@@ -1,0 +1,72 @@
+{
+  "name": "@deposium/cli",
+  "version": "1.0.0",
+  "description": "CLI for Deposium MCP Server - Document search, graph queries, and AI workflows",
+  "main": "dist/cli.js",
+  "bin": {
+    "deposium": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsc",
+    "build:bun": "bun build --compile --minify src/cli.ts --outfile dist/deposium",
+    "build:all": "npm run build:bun-linux && npm run build:bun-macos && npm run build:bun-windows",
+    "build:bun-linux": "bun build --compile --target=linux-x64 --minify src/cli.ts --outfile dist/deposium-linux",
+    "build:bun-macos": "bun build --compile --target=darwin-x64 --minify src/cli.ts --outfile dist/deposium-macos",
+    "build:bun-windows": "bun build --compile --target=windows-x64 --minify src/cli.ts --outfile dist/deposium-windows.exe",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint 'src/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' --fix",
+    "format": "prettier --write .",
+    "test": "bun test",
+    "clean": "rm -rf dist node_modules",
+    "prepare": "husky || true"
+  },
+  "keywords": [
+    "deposium",
+    "mcp",
+    "cli",
+    "search",
+    "graph",
+    "ai",
+    "rag",
+    "duckdb"
+  ],
+  "author": "The Seed Ship",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theseedship/deposium_CLI.git"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.1",
+    "inquirer": "^11.2.0",
+    "cli-table3": "^0.6.5",
+    "axios": "^1.7.9",
+    "dotenv": "^17.2.1",
+    "zod": "^4.1.11",
+    "conf": "^13.1.0",
+    "marked": "^16.0.0",
+    "marked-terminal": "^7.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.17.2",
+    "@types/inquirer": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "husky": "^9.1.7",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.4",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "bun": ">=1.0.0"
+  }
+}
