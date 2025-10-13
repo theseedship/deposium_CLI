@@ -19,7 +19,7 @@ export const compoundCommand = new Command('compound')
           console.log(chalk.bold('\n🤖 Analyzing with Compound AI...\n'));
 
           const result = await client.callTool(
-            'compound.analyze',
+            'compound_analyze',
             {
               query,
               context: {},
@@ -52,7 +52,7 @@ export const compoundCommand = new Command('compound')
           console.log(chalk.bold(`\n🔬 Researching: ${topic}...\n`));
 
           const result = await client.callTool(
-            'compound.research',
+            'compound_research',
             {
               topic,
               depth: 'comprehensive',

@@ -24,7 +24,7 @@ export const searchCommand = new Command('search')
       console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
 
       const result = await client.callTool(
-        'search.hub',
+        'search_hub',
         {
           tenant_id: options.tenant,
           space_id: options.space,

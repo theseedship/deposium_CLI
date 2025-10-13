@@ -19,8 +19,10 @@ export const graphCommand = new Command('graph')
         try {
           console.log(chalk.bold('\n🔗 Analyzing Graph...\n'));
 
+          // TODO: graph.analyze tool not yet available on MCP server
+          // Available: graph_multihop, graph_variable_path, graph_khop, graph_components
           const result = await client.callTool(
-            'graph.analyze',
+            'graph_multihop',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -56,7 +58,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold(`\n🛤️  Finding path: ${from} → ${to}...\n`));
 
           const result = await client.callTool(
-            'graph.path',
+            'graph_variable_path',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -92,7 +94,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold('\n🧩 Finding Components...\n'));
 
           const result = await client.callTool(
-            'graph.components',
+            'graph_components',
             {
               tenant_id: options.tenant,
               space_id: options.space,
