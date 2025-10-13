@@ -82,7 +82,7 @@ async function handleSearch(client: MCPClient): Promise<void> {
   ]);
 
   const result = await client.callTool(
-    'search.hub',
+    'search_hub',
     {
       tenant_id: answers.tenant,
       space_id: answers.space,
@@ -123,8 +123,15 @@ async function handleGraph(client: MCPClient): Promise<void> {
     },
   ]);
 
+  // Map action names to MCP tool names
+  const toolMap: Record<string, string> = {
+    analyze: 'graph_multihop',
+    components: 'graph_components',
+    path: 'graph_variable_path',
+  };
+
   const result = await client.callTool(
-    `graph.${action}`,
+    toolMap[action] || `graph_${action}`,
     {
       tenant_id: answers.tenant,
       space_id: answers.space,
@@ -156,7 +163,7 @@ async function handleCorpus(client: MCPClient): Promise<void> {
   ]);
 
   const result = await client.callTool(
-    'corpus.stats',
+    'corpus_stats',
     {
       tenant_id: answers.tenant,
       space_id: answers.space,
@@ -181,7 +188,7 @@ async function handleCompound(client: MCPClient): Promise<void> {
   ]);
 
   const result = await client.callTool(
-    'compound.analyze',
+    'compound_analyze',
     { query },
     { spinner: true }
   );

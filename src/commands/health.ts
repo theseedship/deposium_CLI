@@ -20,9 +20,9 @@ export const healthCommand = new Command('health')
       const health = await client.health();
 
       if (options.verbose) {
-        // Call system.health tool for detailed info
+        // Call system_health tool for detailed info
         const detailedHealth = await client.callTool(
-          'system.health',
+          'system_health',
           { verbose: true },
           { spinner: true }
         );

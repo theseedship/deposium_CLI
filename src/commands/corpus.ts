@@ -20,7 +20,7 @@ export const corpusCommand = new Command('corpus')
           console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
 
           const result = await client.callTool(
-            'corpus.stats',
+            'corpus_stats',
             {
               tenant_id: options.tenant,
               space_id: options.space,

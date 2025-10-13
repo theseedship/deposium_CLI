@@ -23,6 +23,7 @@ export class MCPClient {
       timeout: 300000, // 5 minutes for long-running operations
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
       },
     });
   }
@@ -40,7 +41,7 @@ export class MCPClient {
       : null;
 
     try {
-      const response = await this.client.post('/tools/call', {
+      const response = await this.client.post('/mcp', {
         jsonrpc: '2.0',
         method: 'tools/call',
         params: {
@@ -95,7 +96,7 @@ export class MCPClient {
    */
   async listTools(): Promise<any[]> {
     try {
-      const response = await this.client.post('/', {
+      const response = await this.client.post('/mcp', {
         jsonrpc: '2.0',
         method: 'tools/list',
         id: 1,
