@@ -1,0 +1,19 @@
+# Build output
+dist/
+build/
+*.min.js
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Testing
+coverage/
+
+# Misc
+.husky/
+*.log
+*.tsbuildinfo
+CHANGELOG.md

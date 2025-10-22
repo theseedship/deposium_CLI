@@ -26,12 +26,9 @@ program
     const config = getConfig();
     // Skip config check for 'config' and 'auth' commands
     if (!config.mcpUrl && program.args[0] !== 'config' && program.args[0] !== 'auth') {
+      console.log(chalk.yellow('⚠️  MCP Server URL not configured.'));
       console.log(
-        chalk.yellow('⚠️  MCP Server URL not configured.')
-      );
-      console.log(
-        chalk.gray('Run: ') +
-          chalk.cyan('deposium config set mcp-url http://localhost:4001')
+        chalk.gray('Run: ') + chalk.cyan('deposium config set mcp-url http://localhost:4001')
       );
       process.exit(1);
     }

@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getApiKey, setApiKey, deleteApiKey, hasApiKey } from './config';
+import { getApiKey, setApiKey, hasApiKey } from './config';
 
 /**
  * Prompt user for API key
@@ -14,7 +14,7 @@ export async function promptApiKey(): Promise<string> {
       message: 'Enter your API key:',
       mask: '*',
       validate: (input: string) => {
-        if (!input || input.trim().length === 0) {
+        if (input?.trim().length === 0) {
           return 'API key cannot be empty';
         }
         if (input.trim().length < 10) {
@@ -31,10 +31,7 @@ export async function promptApiKey(): Promise<string> {
 /**
  * Validate API key with the MCP server
  */
-export async function validateApiKeyWithServer(
-  baseUrl: string,
-  apiKey: string
-): Promise<boolean> {
+export async function validateApiKeyWithServer(baseUrl: string, apiKey: string): Promise<boolean> {
   try {
     const client = new MCPClient(baseUrl, apiKey);
     await client.health();
@@ -92,14 +89,18 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
         return apiKey;
       } else {
         if (attempt < maxAttempts) {
-          console.log(chalk.red(`\n❌ Authentication failed (attempt ${attempt}/${maxAttempts})\n`));
+          console.log(
+            chalk.red(`\n❌ Authentication failed (attempt ${attempt}/${maxAttempts})\n`)
+          );
         } else {
           console.log(chalk.red('\n❌ Authentication failed - maximum attempts reached\n'));
         }
       }
     } catch (error: any) {
       if (attempt < maxAttempts) {
-        console.log(chalk.red(`\n❌ Error: ${error.message} (attempt ${attempt}/${maxAttempts})\n`));
+        console.log(
+          chalk.red(`\n❌ Error: ${error.message} (attempt ${attempt}/${maxAttempts})\n`)
+        );
       } else {
         console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
       }

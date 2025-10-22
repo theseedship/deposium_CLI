@@ -192,11 +192,7 @@ async function handleCompound(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const result = await client.callTool(
-    'compound_analyze',
-    { query },
-    { spinner: true }
-  );
+  const result = await client.callTool('compound_analyze', { query }, { spinner: true });
 
   if (!result.isError) {
     formatOutput(result.content, 'markdown');
