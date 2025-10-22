@@ -1,12 +1,13 @@
 #!/usr/bin/env sh
+set -e
 
 echo "🚀 Running pre-push checks..."
 
-# Type checking
+# Type checking (will exit on failure)
 echo "📝 Type checking..."
 npm run typecheck
 
-# Build test
+# Build test (will exit on failure)
 echo "🏗️  Testing build..."
 npm run build
 
