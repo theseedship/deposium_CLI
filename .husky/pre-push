@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+echo "🚀 Running pre-push checks..."
+
+# Type checking
+echo "📝 Type checking..."
+npm run typecheck
+
+# Build test
+echo "🏗️  Testing build..."
+npm run build
+
+echo "✅ Pre-push checks passed!"

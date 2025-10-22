@@ -5,6 +5,7 @@ Official command-line interface for [Deposium MCP Server](https://github.com/the
 ## 📋 Overview
 
 Deposium CLI is a **lightweight wrapper** around the Deposium MCP Server that provides:
+
 - 🔍 **Search**: DuckDB VSS, FTS, and fuzzy matching
 - 🔗 **Graph**: Network analysis and path finding
 - 📊 **Corpus**: Statistics and quality evaluation
@@ -111,6 +112,7 @@ deposium auth logout
 ```
 
 **Getting your API key:**
+
 - Development: Use `MCP_API_KEY` from the MCP Server's `.env` file
 - Production: Contact your Deposium administrator
 
@@ -153,6 +155,7 @@ deposium auth logout
 ```
 
 **Authentication flow:**
+
 - ✅ First use → Prompts for API key automatically
 - ✅ Key stored in `~/.deposium/config.json`
 - ✅ All subsequent commands use stored key
@@ -276,6 +279,7 @@ deposium i
 ```
 
 Interactive mode provides:
+
 - 🔍 Guided search with prompts
 - 🔗 Graph operations menu
 - 📊 Corpus analysis
@@ -345,11 +349,13 @@ EOF
 ### Output Formats
 
 #### JSON (Machine-readable)
+
 ```bash
 deposium search "query" --format=json | jq '.results[0].content'
 ```
 
 #### Table (Human-readable)
+
 ```bash
 deposium search "query" --format=table
 # ┌────────┬─────────────┬───────┐
@@ -360,6 +366,7 @@ deposium search "query" --format=table
 ```
 
 #### Markdown (Documentation)
+
 ```bash
 deposium search "query" --format=markdown > results.md
 ```
