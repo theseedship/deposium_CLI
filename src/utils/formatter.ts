@@ -1,9 +1,10 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { marked } from 'marked';
-import { markedTerminal } from 'marked-terminal';
+import markedTerminal from 'marked-terminal';
 
 // Configure marked for terminal output
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 marked.use(markedTerminal() as any);
 
 export function formatOutput(data: any, format: string = 'table'): void {
@@ -66,9 +67,8 @@ function formatTable(data: any): void {
 
     Object.entries(data).forEach(([key, value]) => {
       table.push({
-        [chalk.cyan(key)]: typeof value === 'object'
-          ? JSON.stringify(value, null, 2)
-          : String(value),
+        [chalk.cyan(key)]:
+          typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value),
       });
     });
 

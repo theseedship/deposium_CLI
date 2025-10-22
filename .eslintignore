@@ -1,0 +1,24 @@
+# Build output
+dist/
+build/
+*.js
+!eslint.config.mjs
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.husky/
+.vscode/
+.idea/
+*.log
+*.tsbuildinfo
+.env
+.env.*
