@@ -8,6 +8,7 @@ import { corpusCommand } from './commands/corpus';
 import { compoundCommand } from './commands/compound';
 import { configCommand } from './commands/config';
 import { healthCommand } from './commands/health';
+import { authCommand } from './commands/auth';
 import { getConfig } from './utils/config';
 
 const program = new Command();
@@ -23,7 +24,8 @@ program
   .hook('preAction', async () => {
     // Check if MCP server URL is configured
     const config = getConfig();
-    if (!config.mcpUrl && program.args[0] !== 'config') {
+    // Skip config check for 'config' and 'auth' commands
+    if (!config.mcpUrl && program.args[0] !== 'config' && program.args[0] !== 'auth') {
       console.log(
         chalk.yellow('⚠️  MCP Server URL not configured.')
       );
@@ -36,6 +38,7 @@ program
   });
 
 // Commands
+program.addCommand(authCommand);
 program.addCommand(searchCommand);
 program.addCommand(graphCommand);
 program.addCommand(corpusCommand);

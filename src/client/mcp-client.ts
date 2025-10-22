@@ -13,18 +13,28 @@ export interface MCPToolResult {
 }
 
 export class MCPClient {
-  private client: AxiosInstance;
-  private baseUrl: string;
+  private readonly client: AxiosInstance;
+  private readonly baseUrl: string;
+  private readonly apiKey?: string;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, apiKey?: string) {
     this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream',
+    };
+
+    // Add API key to headers if provided
+    if (apiKey) {
+      headers['X-Api-Key'] = apiKey;
+    }
+
     this.client = axios.create({
       baseURL: baseUrl,
       timeout: 300000, // 5 minutes for long-running operations
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/event-stream',
-      },
+      headers,
     });
   }
 
@@ -36,9 +46,7 @@ export class MCPClient {
     args: Record<string, any>,
     options: { silent?: boolean; spinner?: boolean } = {}
   ): Promise<MCPToolResult> {
-    const spinner = options.spinner
-      ? ora(`Calling ${chalk.cyan(toolName)}...`).start()
-      : null;
+    const spinner = options.spinner ? ora(`Calling ${chalk.cyan(toolName)}...`).start() : null;
 
     try {
       const response = await this.client.post('/mcp', {
@@ -72,6 +80,14 @@ export class MCPClient {
           throw new Error(
             `Cannot connect to MCP Server at ${this.baseUrl}\n` +
               'Make sure the MCP server is running (npm run dev in deposium_MCPs)'
+          );
+        }
+
+        // Check for authentication errors
+        if (error.response?.status === 401) {
+          throw new Error(
+            'Authentication failed (401)\n' +
+              (error.response?.data?.message || 'Invalid or missing API key')
           );
         }
 
@@ -117,11 +133,19 @@ export class MCPClient {
       const response = await this.client.get('/health');
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.code === 'ECONNREFUSED') {
-        throw new Error(
-          `Cannot connect to MCP Server at ${this.baseUrl}\n` +
-            'Make sure the server is running'
-        );
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNREFUSED') {
+          throw new Error(
+            `Cannot connect to MCP Server at ${this.baseUrl}\n` + 'Make sure the server is running'
+          );
+        }
+        // Check for authentication errors
+        if (error.response?.status === 401) {
+          throw new Error(
+            'Authentication failed (401)\n' +
+              (error.response?.data?.message || 'Invalid or missing API key')
+          );
+        }
       }
       throw error;
     }

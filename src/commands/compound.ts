@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
+import { ensureAuthenticated } from '../utils/auth';
 
 export const compoundCommand = new Command('compound')
   .description('Compound AI operations with Groq')
@@ -13,7 +14,11 @@ export const compoundCommand = new Command('compound')
       .option('-f, --format <type>', 'Output format (json|markdown)', 'markdown')
       .action(async (query, options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold('\n🤖 Analyzing with Compound AI...\n'));
@@ -46,7 +51,11 @@ export const compoundCommand = new Command('compound')
       .option('-f, --format <type>', 'Output format (json|markdown)', 'markdown')
       .action(async (topic, options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold(`\n🔬 Researching: ${topic}...\n`));

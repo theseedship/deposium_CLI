@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
+import { ensureAuthenticated } from '../utils/auth';
 
 export const corpusCommand = new Command('corpus')
   .description('Corpus statistics and evaluation')
@@ -14,7 +15,11 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
@@ -49,13 +54,17 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold('\n🎯 Evaluating Corpus Quality...\n'));
 
           const result = await client.callTool(
-            'corpus.evaluate',
+            'corpus_evaluate',
             {
               tenant_id: options.tenant,
               space_id: options.space,

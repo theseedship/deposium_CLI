@@ -4,6 +4,7 @@ import os from 'os';
 
 export interface DeposiumConfig {
   mcpUrl?: string;
+  apiKey?: string;
   defaultTenant?: string;
   defaultSpace?: string;
   outputFormat?: 'json' | 'table' | 'markdown';
@@ -19,6 +20,7 @@ const config = new Conf<DeposiumConfig>({
 export function getConfig(): DeposiumConfig {
   return {
     mcpUrl: config.get('mcpUrl'),
+    apiKey: config.get('apiKey'),
     defaultTenant: config.get('defaultTenant'),
     defaultSpace: config.get('defaultSpace'),
     outputFormat: config.get('outputFormat', 'table'),
@@ -40,4 +42,22 @@ export function resetConfig(): void {
 
 export function getConfigPath(): string {
   return config.path;
+}
+
+// API Key specific helpers
+export function getApiKey(): string | undefined {
+  return config.get('apiKey');
+}
+
+export function setApiKey(key: string): void {
+  config.set('apiKey', key);
+}
+
+export function deleteApiKey(): void {
+  config.delete('apiKey');
+}
+
+export function hasApiKey(): boolean {
+  const key = config.get('apiKey');
+  return key !== undefined && key !== null && key !== '';
 }
