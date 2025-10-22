@@ -10,7 +10,13 @@ export const configCommand = new Command('config')
       .argument('<key>', 'Configuration key')
       .argument('<value>', 'Configuration value')
       .action((key, value) => {
-        const validKeys = ['mcp-url', 'default-tenant', 'default-space', 'output-format', 'silent-mode'];
+        const validKeys = [
+          'mcp-url',
+          'default-tenant',
+          'default-space',
+          'output-format',
+          'silent-mode',
+        ];
 
         if (!validKeys.includes(key)) {
           console.error(chalk.red(`\n❌ Invalid key: ${key}`));
@@ -21,7 +27,7 @@ export const configCommand = new Command('config')
         }
 
         // Convert kebab-case to camelCase
-        const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
 
         // Parse boolean values
         let parsedValue: any = value;
@@ -40,7 +46,7 @@ export const configCommand = new Command('config')
         const config = getConfig();
 
         if (key) {
-          const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
           const value = (config as any)[camelKey];
 
           if (value !== undefined) {
@@ -66,25 +72,21 @@ export const configCommand = new Command('config')
       .description('Delete a configuration value')
       .argument('<key>', 'Configuration key')
       .action((key) => {
-        const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
         deleteConfig(camelKey as any);
         console.log(chalk.green(`\n✅ Deleted ${chalk.cyan(key)}\n`));
       })
   )
   .addCommand(
-    new Command('reset')
-      .description('Reset all configuration to defaults')
-      .action(() => {
-        resetConfig();
-        console.log(chalk.green('\n✅ Configuration reset to defaults\n'));
-      })
+    new Command('reset').description('Reset all configuration to defaults').action(() => {
+      resetConfig();
+      console.log(chalk.green('\n✅ Configuration reset to defaults\n'));
+    })
   )
   .addCommand(
-    new Command('path')
-      .description('Show configuration file path')
-      .action(() => {
-        console.log(chalk.gray('\nConfiguration file:'));
-        console.log(chalk.cyan(getConfigPath()));
-        console.log('');
-      })
+    new Command('path').description('Show configuration file path').action(() => {
+      console.log(chalk.gray('\nConfiguration file:'));
+      console.log(chalk.cyan(getConfigPath()));
+      console.log('');
+    })
   );

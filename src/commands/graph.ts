@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
+import { ensureAuthenticated } from '../utils/auth';
 
 export const graphCommand = new Command('graph')
   .description('Graph analysis and queries')
@@ -14,7 +15,11 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold('\n🔗 Analyzing Graph...\n'));
@@ -52,7 +57,11 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (from, to, options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold(`\n🛤️  Finding path: ${from} → ${to}...\n`));
@@ -88,7 +97,11 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const client = new MCPClient(config.mcpUrl!);
+
+        // Ensure user is authenticated
+        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+        const client = new MCPClient(config.mcpUrl!, apiKey);
 
         try {
           console.log(chalk.bold('\n🧩 Finding Components...\n'));

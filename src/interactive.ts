@@ -3,13 +3,18 @@ import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
 import { getConfig } from './utils/config';
 import { formatOutput } from './utils/formatter';
+import { ensureAuthenticated } from './utils/auth';
 
 export async function startInteractive(): Promise<void> {
   console.log(chalk.bold('\n🚀 Deposium Interactive Mode\n'));
   console.log(chalk.gray('Type "exit" to quit\n'));
 
   const config = getConfig();
-  const client = new MCPClient(config.mcpUrl!);
+
+  // Ensure user is authenticated
+  const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
+  const client = new MCPClient(config.mcpUrl!, apiKey);
 
   while (true) {
     const { command } = await inquirer.prompt([

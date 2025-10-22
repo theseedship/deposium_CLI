@@ -17,6 +17,7 @@ Deposium CLI is a **lightweight wrapper** around the Deposium MCP Server that pr
 
 - ✅ **Zero duplication**: All logic lives in MCP Server
 - ✅ **Type-safe**: Shares schemas with MCP Server
+- ✅ **Secure authentication**: API key validation with automatic retry
 - ✅ **Multiple formats**: JSON, Table, Markdown output
 - ✅ **Configuration**: Persistent settings (tenant, space, format)
 - ✅ **Interactive mode**: User-friendly REPL
@@ -87,7 +88,33 @@ deposium health
 deposium health --verbose
 ```
 
-### 3. Search Documents
+### 3. Authenticate with API Key
+
+The CLI requires authentication to access the MCP Server:
+
+```bash
+# Automatic authentication (recommended)
+deposium search "test"
+# → Will prompt for API key on first use
+# → Stores key securely in ~/.deposium/config.json
+
+# Manual authentication
+deposium auth login
+# → Interactive prompt with validation (3 attempts)
+
+# Check authentication status
+deposium auth status
+# → Shows login status and validates key with server
+
+# Logout (remove stored credentials)
+deposium auth logout
+```
+
+**Getting your API key:**
+- Development: Use `MCP_API_KEY` from the MCP Server's `.env` file
+- Production: Contact your Deposium administrator
+
+### 4. Search Documents
 
 ```bash
 # Basic search
@@ -111,6 +138,27 @@ deposium search "machne lerning" --fuzzy
 ```
 
 ## 📚 Commands
+
+### Authentication
+
+```bash
+# Login with API key
+deposium auth login
+
+# Check authentication status
+deposium auth status
+
+# Logout (remove credentials)
+deposium auth logout
+```
+
+**Authentication flow:**
+- ✅ First use → Prompts for API key automatically
+- ✅ Key stored in `~/.deposium/config.json`
+- ✅ All subsequent commands use stored key
+- ✅ Validates key with MCP Server before saving
+- ✅ Retry logic (3 attempts) with helpful error messages
+- ✅ Secure: API key sent via `X-Api-Key` header
 
 ### Search
 
@@ -197,6 +245,7 @@ deposium config path
 
 # Valid keys
   mcp-url           MCP Server endpoint
+  api-key           API key for authentication (use 'deposium auth login' instead)
   default-tenant    Default tenant ID
   default-space     Default space ID
   output-format     Default output format (json|table|markdown)
@@ -402,6 +451,7 @@ deposium_CLI/
 │   ├── client/
 │   │   └── mcp-client.ts     # HTTP client for MCP Server
 │   ├── commands/
+│   │   ├── auth.ts           # Authentication commands
 │   │   ├── search.ts         # Search command
 │   │   ├── graph.ts          # Graph commands
 │   │   ├── corpus.ts         # Corpus commands
@@ -409,6 +459,7 @@ deposium_CLI/
 │   │   ├── config.ts         # Configuration commands
 │   │   └── health.ts         # Health check command
 │   ├── utils/
+│   │   ├── auth.ts           # Authentication logic
 │   │   ├── config.ts         # Configuration manager
 │   │   └── formatter.ts      # Output formatters
 │   └── interactive.ts        # Interactive REPL mode
@@ -457,6 +508,19 @@ deposium health
 ```
 
 ## 🐛 Troubleshooting
+
+### Authentication errors (401 Unauthorized)
+
+```bash
+# Check your API key status
+deposium auth status
+
+# Re-authenticate
+deposium auth login
+
+# Verify MCP Server is accepting your key
+curl -H "X-Api-Key: YOUR_KEY" http://localhost:4001/health
+```
 
 ### CLI can't connect to MCP Server
 

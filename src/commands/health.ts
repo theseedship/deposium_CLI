@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
+import { ensureAuthenticated } from '../utils/auth';
 
 export const healthCommand = new Command('health')
   .description('Check MCP Server and services health')
@@ -11,8 +12,11 @@ export const healthCommand = new Command('health')
   .action(async (options) => {
     const config = getConfig();
 
+    // Ensure user is authenticated
+    const apiKey = await ensureAuthenticated(config.mcpUrl!);
+
     try {
-      const client = new MCPClient(config.mcpUrl!);
+      const client = new MCPClient(config.mcpUrl!, apiKey);
 
       console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
 
@@ -38,12 +42,15 @@ export const healthCommand = new Command('health')
         console.log(chalk.green('✅ MCP Server:'), 'Healthy');
         console.log(chalk.gray('URL:'), config.mcpUrl);
 
-        if (health.services) {
+        if (health.services && Array.isArray(health.services)) {
           console.log(chalk.bold('\nServices:'));
-          Object.entries(health.services).forEach(([name, status]: [string, any]) => {
-            const icon = status === 'healthy' ? '✅' : '❌';
-            const color = status === 'healthy' ? chalk.green : chalk.red;
-            console.log(`  ${icon} ${color(name)}: ${status}`);
+          health.services.forEach((service: any) => {
+            const icon = service.status === 'healthy' ? '✅' : '❌';
+            const color = service.status === 'healthy' ? chalk.green : chalk.red;
+            const message = service.message ? ` - ${service.message}` : '';
+            console.log(
+              `  ${icon} ${color(service.service || 'Unknown')}: ${service.status}${message}`
+            );
           });
         }
 
@@ -51,13 +58,8 @@ export const healthCommand = new Command('health')
       }
     } catch (error: any) {
       console.error(chalk.red('\n❌ Error:'), error.message);
-      console.log(
-        chalk.yellow('\n💡 Tip:'),
-        'Make sure the MCP server is running:'
-      );
-      console.log(
-        chalk.gray('  cd [private-server-repo] && npm run dev\n')
-      );
+      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the MCP server is running:');
+      console.log(chalk.gray('  cd [private-server-repo] && npm run dev\n'));
       process.exit(1);
     }
   });
