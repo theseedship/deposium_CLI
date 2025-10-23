@@ -43,12 +43,17 @@
     "url": "https://github.com/theseedship/deposium_CLI.git"
   },
   "dependencies": {
+    "ascii-tree": "^0.3.0",
     "axios": "^1.7.9",
+    "boxen": "^8.0.1",
     "chalk": "^5.3.0",
+    "cli-progress": "^3.12.0",
+    "cli-spinners": "^3.3.0",
     "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
     "conf": "^13.1.0",
     "dotenv": "^17.2.1",
+    "gradient-string": "^3.0.0",
     "inquirer": "^12.9.6",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",
@@ -56,6 +61,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
     "@types/inquirer": "^9.0.7",
     "@types/node": "^22.17.2",
     "@typescript-eslint/eslint-plugin": "^8.40.0",

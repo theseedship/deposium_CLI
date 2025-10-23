@@ -2,6 +2,9 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
+import boxen from 'boxen';
+import gradient from 'gradient-string';
+import cliProgress from 'cli-progress';
 
 // Lazy initialization of marked with terminal rendering
 let markedConfigured = false;
@@ -157,8 +160,8 @@ function formatCompoundAI(data: any[]): void {
 function formatCompoundAIObject(result: any): void {
   ensureMarkedConfigured();
 
-  // Display ASCII art "D" in blue
-  const asciiArt = chalk.blue(`
+  // Display blue gradient ASCII art header
+  const asciiArt = gradient(['#0ea5e9', '#3b82f6', '#6366f1']).multiline(`
  ██████╗  ███████╗██████╗  ██████╗ ███████╗██╗██╗   ██╗███╗   ███╗
  ██╔══██╗ ██╔════╝██╔══██╗██╔═══██╗██╔════╝██║██║   ██║████╗ ████║
  ██║  ██║ █████╗  ██████╔╝██║   ██║███████╗██║██║   ██║██╔████╔██║
@@ -168,74 +171,49 @@ function formatCompoundAIObject(result: any): void {
 `);
 
   console.log(asciiArt);
-  console.log(
-    chalk.bold.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
-  );
+  console.log('\n' + divider('AI Analysis Result', 'double') + '\n');
 
-  // Display status
-  if (result.success) {
-    console.log(chalk.green('✅ Status: ') + chalk.bold('Success\n'));
-  } else {
-    console.log(chalk.red('❌ Status: ') + chalk.bold('Failed\n'));
-  }
+  // Display status in a nice box
+  const statusType = result.success ? 'success' : 'error';
+  const statusMessage = result.success ? 'Analysis completed successfully' : 'Analysis failed';
+  console.log(createInfoBox('Status', statusMessage, statusType));
 
-  // Display the main answer
+  // Display the main answer with enhanced formatting
   if (result.answer) {
     console.log(chalk.bold.cyan('📝 Answer:\n'));
     // Strip HTML tags and convert to plain text
     const plainText = stripHtmlTags(result.answer);
-    console.log(plainText);
+
+    // Display in a subtle box
+    console.log(boxen(plainText, {
+      padding: 1,
+      margin: { top: 0, right: 0, bottom: 1, left: 2 },
+      borderStyle: 'round',
+      borderColor: 'cyan',
+      dimBorder: true,
+    }));
   }
 
-  // Display metadata in a nice box
-  console.log(
-    chalk.bold.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
-  );
-  console.log(chalk.bold('📊 Analysis Metadata\n'));
-
-  const metadataTable = new Table({
-    style: {
-      head: [],
-      border: ['cyan'],
-    },
-    chars: {
-      top: '═',
-      'top-mid': '╤',
-      'top-left': '╔',
-      'top-right': '╗',
-      bottom: '═',
-      'bottom-mid': '╧',
-      'bottom-left': '╚',
-      'bottom-right': '╝',
-      left: '║',
-      'left-mid': '╟',
-      mid: '─',
-      'mid-mid': '┼',
-      right: '║',
-      'right-mid': '╢',
-      middle: '│',
-    },
-  });
-
-  if (result.model_used) {
-    metadataTable.push([chalk.cyan('🤖 Model'), chalk.white(result.model_used)]);
-  }
+  // Display metadata with visual metrics
+  console.log('\n' + divider('Analysis Metadata', 'light') + '\n');
 
   if (result.confidence !== undefined) {
-    const confidencePercent = (result.confidence * 100).toFixed(1);
-    const confidenceColor =
-      result.confidence >= 0.7 ? chalk.green : result.confidence >= 0.4 ? chalk.yellow : chalk.red;
-    metadataTable.push([chalk.cyan('📈 Confidence'), confidenceColor(`${confidencePercent}%`)]);
+    const confidencePercent = (result.confidence * 100);
+    displayMetricBar('Confidence', confidencePercent, 100, '%');
+  }
+
+  if (result.model_used) {
+    console.log(`${chalk.cyan('🤖 Model:'.padEnd(22))} ${chalk.white(result.model_used)}`);
   }
 
   if (result.tools_used && result.tools_used.length > 0) {
-    metadataTable.push([chalk.cyan('🔧 Tools Used'), chalk.white(result.tools_used.join(', '))]);
+    console.log(`${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.white(result.tools_used.join(', '))}`);
   } else {
-    metadataTable.push([chalk.cyan('🔧 Tools Used'), chalk.gray('None')]);
+    console.log(`${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.gray('None')}`);
   }
 
   if (result.tokens_used) {
-    metadataTable.push([chalk.cyan('🎯 Tokens'), chalk.white(result.tokens_used.toLocaleString())]);
+    console.log(`${chalk.cyan('🎯 Tokens:'.padEnd(22))} ${chalk.white(result.tokens_used.toLocaleString())}`);
   }
 
   if (result.execution_time_ms) {
@@ -243,25 +221,269 @@ function formatCompoundAIObject(result: any): void {
       result.execution_time_ms >= 1000
         ? `${(result.execution_time_ms / 1000).toFixed(2)}s`
         : `${result.execution_time_ms}ms`;
-    metadataTable.push([chalk.cyan('⚡ Execution Time'), chalk.white(timeStr)]);
+    console.log(`${chalk.cyan('⚡ Execution Time:'.padEnd(22))} ${chalk.white(timeStr)}`);
   }
-
-  console.log(metadataTable.toString());
 
   // Display reasoning if available
   if (result.reasoning && result.reasoning !== result.answer) {
-    console.log(chalk.bold.cyan('\n💭 Reasoning:\n'));
+    console.log('\n' + divider('Reasoning Process', 'light') + '\n');
     console.log(chalk.gray(result.reasoning));
   }
 
-  console.log(
-    chalk.bold.cyan('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
-  );
+  console.log('\n' + divider('', 'double') + '\n');
 }
 
 function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength - 3) + '...';
+}
+
+// ============================================================================
+// Enhanced UI Utilities
+// ============================================================================
+
+/**
+ * Create a fancy title box with blue gradient text
+ */
+export function createTitleBox(title: string, subtitle?: string): string {
+  // Blue gradient from cyan to deep blue
+  const gradientTitle = gradient(['#0ea5e9', '#3b82f6', '#6366f1']).multiline(title);
+  let content = gradientTitle;
+
+  if (subtitle) {
+    content += '\n' + chalk.gray(subtitle);
+  }
+
+  return boxen(content, {
+    padding: 1,
+    margin: 1,
+    borderStyle: 'round',
+    borderColor: 'cyan',
+    backgroundColor: '#000000',
+  });
+}
+
+/**
+ * Create an info box with custom styling
+ */
+export function createInfoBox(title: string, content: string, type: 'info' | 'success' | 'warning' | 'error' = 'info'): string {
+  const icons = {
+    info: 'ℹ️',
+    success: '✅',
+    warning: '⚠️',
+    error: '❌',
+  };
+
+  const colors = {
+    info: 'cyan',
+    success: 'green',
+    warning: 'yellow',
+    error: 'red',
+  };
+
+  const icon = icons[type];
+  const color = colors[type] as 'cyan' | 'green' | 'yellow' | 'red';
+
+  return boxen(`${icon}  ${chalk.bold(title)}\n\n${content}`, {
+    padding: 1,
+    margin: { top: 0, right: 0, bottom: 1, left: 0 },
+    borderStyle: 'round',
+    borderColor: color,
+  });
+}
+
+/**
+ * Create a progress bar for long operations
+ */
+export function createProgressBar(total: number, initialValue: number = 0): cliProgress.SingleBar {
+  return new cliProgress.SingleBar({
+    format: chalk.cyan('{bar}') + ' | {percentage}% | {value}/{total} | {status}',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true,
+  }, cliProgress.Presets.shades_classic);
+}
+
+/**
+ * Display a visual metric with bar representation
+ */
+export function displayMetricBar(label: string, value: number, max: number, unit: string = ''): void {
+  const percentage = Math.min(100, (value / max) * 100);
+  const barLength = 30;
+  const filledLength = Math.round((percentage / 100) * barLength);
+  const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
+
+  // Color based on percentage
+  let coloredBar: string;
+  if (percentage >= 70) {
+    coloredBar = chalk.green(bar);
+  } else if (percentage >= 40) {
+    coloredBar = chalk.yellow(bar);
+  } else {
+    coloredBar = chalk.red(bar);
+  }
+
+  const valueStr = unit ? `${value}${unit}` : value.toString();
+  const maxStr = unit ? `${max}${unit}` : max.toString();
+
+  console.log(`${chalk.cyan(label.padEnd(20))} ${coloredBar} ${chalk.white(valueStr)}/${chalk.gray(maxStr)} ${chalk.gray(`(${percentage.toFixed(1)}%)`)}`);
+}
+
+/**
+ * Display a simple status indicator
+ */
+export function displayStatus(label: string, status: 'online' | 'offline' | 'degraded' | 'unknown'): void {
+  const icons = {
+    online: chalk.green('●'),
+    offline: chalk.red('●'),
+    degraded: chalk.yellow('●'),
+    unknown: chalk.gray('●'),
+  };
+
+  const labels = {
+    online: chalk.green('ONLINE'),
+    offline: chalk.red('OFFLINE'),
+    degraded: chalk.yellow('DEGRADED'),
+    unknown: chalk.gray('UNKNOWN'),
+  };
+
+  console.log(`${icons[status]} ${chalk.white(label.padEnd(25))} ${labels[status]}`);
+}
+
+/**
+ * Create a divider line with optional label
+ */
+export function divider(label?: string, style: 'light' | 'heavy' | 'double' = 'light'): string {
+  const chars = {
+    light: '─',
+    heavy: '━',
+    double: '═',
+  };
+
+  const width = 75;
+  const char = chars[style];
+
+  if (label) {
+    const padding = Math.floor((width - label.length - 4) / 2);
+    return chalk.cyan(char.repeat(padding) + `  ${label}  ` + char.repeat(padding));
+  }
+
+  return chalk.cyan(char.repeat(width));
+}
+
+/**
+ * Typewriter effect for text (streaming simulation)
+ */
+export async function typewriter(text: string, speed: number = 10): Promise<void> {
+  for (const char of text) {
+    process.stdout.write(char);
+    await new Promise(resolve => setTimeout(resolve, speed));
+  }
+  process.stdout.write('\n');
+}
+
+/**
+ * Format graph data as a tree visualization
+ */
+export function formatGraphTree(nodes: any[], edges: any[]): void {
+  console.log(chalk.bold.cyan('\n🌳 Graph Structure\n'));
+
+  // Build adjacency list
+  const adjacencyList: Map<string, string[]> = new Map();
+  const nodeMap: Map<string, any> = new Map();
+
+  nodes.forEach(node => {
+    const nodeId = node.id || node.node_id || node.name;
+    nodeMap.set(nodeId, node);
+    if (!adjacencyList.has(nodeId)) {
+      adjacencyList.set(nodeId, []);
+    }
+  });
+
+  edges.forEach(edge => {
+    const from = edge.source || edge.from;
+    const to = edge.target || edge.to;
+    if (!adjacencyList.has(from)) {
+      adjacencyList.set(from, []);
+    }
+    adjacencyList.get(from)?.push(to);
+  });
+
+  // Find root nodes (nodes with no incoming edges)
+  const hasIncoming = new Set<string>();
+  edges.forEach(edge => {
+    const to = edge.target || edge.to;
+    hasIncoming.add(to);
+  });
+
+  const rootNodes = Array.from(adjacencyList.keys()).filter(id => !hasIncoming.has(id));
+
+  // If no clear roots, use all nodes with outgoing edges
+  const nodesToDisplay = rootNodes.length > 0 ? rootNodes : Array.from(adjacencyList.keys()).slice(0, 5);
+
+  // Display tree for each root
+  const visited = new Set<string>();
+  nodesToDisplay.forEach((rootId, index) => {
+    if (index > 0) console.log('');
+    displayTreeNode(rootId, nodeMap, adjacencyList, '', true, visited);
+  });
+
+  console.log('');
+}
+
+/**
+ * Recursively display tree node
+ */
+function displayTreeNode(
+  nodeId: string,
+  nodeMap: Map<string, any>,
+  adjacencyList: Map<string, string[]>,
+  prefix: string,
+  isLast: boolean,
+  visited: Set<string>
+): void {
+  if (visited.has(nodeId)) {
+    console.log(prefix + (isLast ? '└── ' : '├── ') + chalk.gray(nodeId) + chalk.yellow(' (circular)'));
+    return;
+  }
+
+  visited.add(nodeId);
+
+  const node = nodeMap.get(nodeId);
+  const label = node?.label || node?.name || nodeId;
+  const nodeType = node?.type || node?.node_type;
+
+  // Display node with color based on type
+  let nodeDisplay = label;
+  if (nodeType) {
+    nodeDisplay += chalk.gray(` (${nodeType})`);
+  }
+
+  const connector = isLast ? '└── ' : '├── ';
+  console.log(prefix + connector + chalk.cyan(nodeDisplay));
+
+  // Get children
+  const children = adjacencyList.get(nodeId) || [];
+
+  // Display children
+  children.forEach((childId, index) => {
+    const isLastChild = index === children.length - 1;
+    const newPrefix = prefix + (isLast ? '    ' : '│   ');
+    displayTreeNode(childId, nodeMap, adjacencyList, newPrefix, isLastChild, new Set(visited));
+  });
+}
+
+/**
+ * Display a list of items in a compact, visually appealing way
+ */
+export function displayCompactList(title: string, items: string[], icon: string = '•'): void {
+  console.log(chalk.bold.cyan(`\n${title}\n`));
+  items.forEach((item, index) => {
+    const isLast = index === items.length - 1;
+    const connector = isLast ? '└─' : '├─';
+    console.log(chalk.gray(connector) + ' ' + chalk.white(icon + ' ' + item));
+  });
+  console.log('');
 }
 
 function stripHtmlTags(html: string): string {
