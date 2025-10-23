@@ -3,9 +3,21 @@ import Table from 'cli-table3';
 import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
 
-// Configure marked for terminal output
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-marked.use(markedTerminal() as any);
+// Lazy initialization of marked with terminal rendering
+let markedConfigured = false;
+function ensureMarkedConfigured() {
+  if (!markedConfigured) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      marked.use(markedTerminal() as any);
+      markedConfigured = true;
+    } catch {
+      // Fallback to default marked if terminal rendering fails
+      console.warn('Warning: Could not configure terminal markdown rendering');
+      markedConfigured = true;
+    }
+  }
+}
 
 export function formatOutput(data: any, format: string = 'table'): void {
   switch (format.toLowerCase()) {
@@ -79,6 +91,7 @@ function formatTable(data: any): void {
 }
 
 function formatMarkdown(data: any): void {
+  ensureMarkedConfigured();
   let markdown = '';
 
   if (Array.isArray(data)) {
