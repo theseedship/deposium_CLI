@@ -53,6 +53,15 @@ program
     await startInteractive();
   });
 
+// Chat mode
+program
+  .command('chat')
+  .description('Start AI chat mode (continuous conversation)')
+  .action(async () => {
+    const { startChat } = await import('./chat');
+    await startChat();
+  });
+
 // Parse arguments
 program.parse(process.argv);
 

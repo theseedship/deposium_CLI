@@ -4,6 +4,8 @@ import { MCPClient } from './client/mcp-client';
 import { getConfig } from './utils/config';
 import { formatOutput } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
+import { ChatHistory } from './utils/chat-history';
+import { startChat } from './chat';
 
 export async function startInteractive(): Promise<void> {
   console.log(chalk.bold('\n🚀 Deposium Interactive Mode\n'));
@@ -16,6 +18,9 @@ export async function startInteractive(): Promise<void> {
 
   const client = new MCPClient(config.mcpUrl!, apiKey);
 
+  // Initialize chat history for Compound AI
+  const compoundChatHistory = new ChatHistory(10);
+
   while (true) {
     const { command } = await inquirer.prompt([
       {
@@ -23,10 +28,12 @@ export async function startInteractive(): Promise<void> {
         name: 'command',
         message: 'What would you like to do?',
         choices: [
+          { name: '💬 AI Chat (continuous)', value: 'chat' },
+          { name: '🤖 Compound AI (single query)', value: 'compound' },
+          new inquirer.Separator(),
           { name: '🔍 Search documents', value: 'search' },
           { name: '🔗 Analyze graph', value: 'graph' },
           { name: '📊 Corpus stats', value: 'corpus' },
-          { name: '🤖 Compound AI', value: 'compound' },
           { name: '🏥 Health check', value: 'health' },
           new inquirer.Separator(),
           { name: '🚪 Exit', value: 'exit' },
@@ -41,6 +48,9 @@ export async function startInteractive(): Promise<void> {
 
     try {
       switch (command) {
+        case 'chat':
+          await startChat();
+          break;
         case 'search':
           await handleSearch(client);
           break;
@@ -51,7 +61,7 @@ export async function startInteractive(): Promise<void> {
           await handleCorpus(client);
           break;
         case 'compound':
-          await handleCompound(client);
+          await handleCompound(client, compoundChatHistory);
           break;
         case 'health':
           await handleHealth(client);
@@ -183,19 +193,75 @@ async function handleCorpus(client: MCPClient): Promise<void> {
   }
 }
 
-async function handleCompound(client: MCPClient): Promise<void> {
-  const { query } = await inquirer.prompt([
+async function handleCompound(client: MCPClient, chatHistory: ChatHistory): Promise<void> {
+  // Show conversation history if it exists
+  if (!chatHistory.isEmpty()) {
+    const { showHistory } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'showHistory',
+        message: 'View conversation history?',
+        default: false,
+      },
+    ]);
+
+    if (showHistory) {
+      chatHistory.display();
+    }
+  }
+
+  const answers = await inquirer.prompt([
     {
       type: 'input',
       name: 'query',
       message: 'Enter your question:',
     },
+    {
+      type: 'confirm',
+      name: 'clearHistory',
+      message: 'Clear conversation history?',
+      default: false,
+      when: () => !chatHistory.isEmpty(),
+    },
   ]);
 
-  const result = await client.callTool('compound_analyze', { query }, { spinner: true });
+  // Clear history if requested
+  if (answers.clearHistory) {
+    chatHistory.clear();
+    console.log(chalk.yellow('\n🗑️  Conversation history cleared\n'));
+  }
+
+  // Add user message to history
+  chatHistory.addUserMessage(answers.query);
+
+  // Get conversation context
+  const conversationContext = chatHistory.getContext(6);
+
+  // Build context object - only add conversation_history if it exists
+  const context: any = {};
+  if (conversationContext) {
+    context.conversation_history = conversationContext;
+  }
+
+  const result = await client.callTool(
+    'compound_analyze',
+    {
+      query: answers.query,
+      context,
+    },
+    { spinner: true }
+  );
 
   if (!result.isError) {
+    // Add AI response to history
+    const responseText =
+      typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+    chatHistory.addAssistantMessage(responseText);
+
     formatOutput(result.content, 'markdown');
+
+    // Show brief history indicator
+    console.log(chalk.gray(`\n💬 ${chatHistory.getMessages().length} messages in conversation\n`));
   } else {
     console.error(chalk.red('Compound AI failed:'), result.content);
   }

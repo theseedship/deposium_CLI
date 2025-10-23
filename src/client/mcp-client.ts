@@ -92,11 +92,19 @@ export class MCPClient {
           );
         }
 
+        // Extract detailed error information
+        const errorData = error.response?.data;
+        const errorDetails = {
+          message: errorData?.message || errorData?.error?.message || error.message,
+          status: error.response?.status,
+          // Include additional error details if available
+          ...(errorData?.error && { error: errorData.error }),
+          ...(errorData?.details && { details: errorData.details }),
+          ...(errorData?.stack && { stack: errorData.stack }),
+        };
+
         return {
-          content: {
-            message: error.response?.data?.message || error.message,
-            status: error.response?.status,
-          },
+          content: errorDetails,
           isError: true,
         };
       }
