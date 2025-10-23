@@ -9,6 +9,16 @@ import { compoundCommand } from './commands/compound';
 import { configCommand } from './commands/config';
 import { healthCommand } from './commands/health';
 import { authCommand } from './commands/auth';
+import { intelligenceCommand } from './commands/intelligence';
+import { leanragCommand } from './commands/leanrag';
+import { mermaidCommand } from './commands/mermaid';
+import { evaluateCommand } from './commands/evaluate';
+import { dspyCommand } from './commands/dspy';
+import { uiCommand } from './commands/ui';
+import { logsCommand } from './commands/logs';
+import { queryHistoryCommand } from './commands/query-history';
+import { duckdbCommand } from './commands/duckdb';
+import { toolsCommand } from './commands/tools';
 import { getConfig } from './utils/config';
 
 const program = new Command();
@@ -36,12 +46,22 @@ program
 
 // Commands
 program.addCommand(authCommand);
+program.addCommand(toolsCommand);
 program.addCommand(searchCommand);
 program.addCommand(graphCommand);
 program.addCommand(corpusCommand);
 program.addCommand(compoundCommand);
 program.addCommand(configCommand);
 program.addCommand(healthCommand);
+program.addCommand(intelligenceCommand);
+program.addCommand(leanragCommand);
+program.addCommand(mermaidCommand);
+program.addCommand(evaluateCommand);
+program.addCommand(dspyCommand);
+program.addCommand(uiCommand);
+program.addCommand(logsCommand);
+program.addCommand(queryHistoryCommand);
+program.addCommand(duckdbCommand);
 
 // Interactive mode
 program

@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, displayStatus, createTitleBox, divider, displayMetricBar, createInfoBox } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const healthCommand = new Command('health')
@@ -38,23 +38,48 @@ export const healthCommand = new Command('health')
 
         formatOutput(detailedHealth.content, options.format);
       } else {
-        // Simple health display
-        console.log(chalk.green('✅ MCP Server:'), 'Healthy');
-        console.log(chalk.gray('URL:'), config.mcpUrl);
+        // Enhanced health display
+        console.log(createTitleBox('HEALTH CHECK', 'Deposium MCP Server Status'));
+
+        // Server status
+        console.log(createInfoBox('MCP Server', `Connected to ${config.mcpUrl}`, 'success'));
 
         if (health.services && Array.isArray(health.services)) {
-          console.log(chalk.bold('\nServices:'));
+          console.log(divider('Services Status', 'light'));
+          console.log('');
+
           health.services.forEach((service: any) => {
-            const icon = service.status === 'healthy' ? '✅' : '❌';
-            const color = service.status === 'healthy' ? chalk.green : chalk.red;
-            const message = service.message ? ` - ${service.message}` : '';
-            console.log(
-              `  ${icon} ${color(service.service || 'Unknown')}: ${service.status}${message}`
-            );
+            let status: 'online' | 'offline' | 'degraded' | 'unknown';
+
+            if (service.status === 'healthy' || service.status === 'online') {
+              status = 'online';
+            } else if (service.status === 'offline' || service.status === 'unhealthy') {
+              status = 'offline';
+            } else if (service.status === 'degraded') {
+              status = 'degraded';
+            } else {
+              status = 'unknown';
+            }
+
+            displayStatus(service.service || 'Unknown', status);
+
+            if (service.message) {
+              console.log(chalk.gray(`  └─ ${service.message}`));
+            }
           });
+
+          // Calculate uptime percentage if available
+          const healthyServices = health.services.filter((s: any) =>
+            s.status === 'healthy' || s.status === 'online'
+          ).length;
+          const totalServices = health.services.length;
+
+          console.log('\n' + divider('Overall Health', 'light'));
+          console.log('');
+          displayMetricBar('System Health', healthyServices, totalServices, ' services');
         }
 
-        console.log('');
+        console.log('\n' + divider('', 'light') + '\n');
       }
     } catch (error: any) {
       console.error(chalk.red('\n❌ Error:'), error.message);

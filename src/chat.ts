@@ -2,16 +2,13 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
 import { getConfig } from './utils/config';
-import { formatOutput } from './utils/formatter';
+import { formatOutput, createTitleBox, divider } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
 
 export async function startChat(): Promise<void> {
-  console.log(chalk.bold.cyan('\n💬 Deposium AI Chat\n'));
-  console.log(chalk.gray('Chat with AI continuously. Commands:'));
-  console.log(chalk.gray('  /exit    - Exit chat'));
-  console.log(chalk.gray('  /clear   - Clear conversation history'));
-  console.log(chalk.gray('  /history - View conversation history\n'));
+  console.log(createTitleBox('AI CHAT', 'Continuous conversation with Deposium AI'));
+  console.log(chalk.gray('Commands: /exit (quit) | /clear (reset) | /history (view)\n'));
 
   const config = getConfig();
 
@@ -84,12 +81,13 @@ export async function startChat(): Promise<void> {
         typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
       chatHistory.addAssistantMessage(responseText);
 
-      // Display the response
-      console.log(chalk.green('\n🤖 AI:\n'));
+      // Display the response with visual separator
+      console.log('\n' + divider('AI Response', 'light') + '\n');
       formatOutput(result.content, 'markdown');
 
-      // Show message count
-      console.log(chalk.gray(`\n[${chatHistory.getMessages().length / 2} exchanges]\n`));
+      // Show message count with progress indicator
+      const exchanges = chatHistory.getMessages().length / 2;
+      console.log(chalk.gray(`\n💭 ${exchanges} exchange${exchanges !== 1 ? 's' : ''} in this conversation\n`));
     } catch (error: any) {
       console.error(chalk.red('\n❌ Error:'), error.message);
       // Remove the user message from history since we failed
