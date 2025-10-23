@@ -18,7 +18,8 @@ export class MCPClient {
   private readonly apiKey?: string;
 
   constructor(baseUrl: string, apiKey?: string) {
-    this.baseUrl = baseUrl;
+    // Remove trailing slash to avoid double-slash issues with axios
+    this.baseUrl = baseUrl.replace(/\/$/, '');
     this.apiKey = apiKey;
 
     const headers: Record<string, string> = {
@@ -32,7 +33,7 @@ export class MCPClient {
     }
 
     this.client = axios.create({
-      baseURL: baseUrl,
+      baseURL: this.baseUrl,
       timeout: 300000, // 5 minutes for long-running operations
       headers,
     });

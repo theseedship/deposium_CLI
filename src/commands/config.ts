@@ -34,8 +34,13 @@ export const configCommand = new Command('config')
         if (value === 'true') parsedValue = true;
         if (value === 'false') parsedValue = false;
 
+        // Normalize MCP URL by removing trailing slash
+        if (key === 'mcp-url' && typeof parsedValue === 'string') {
+          parsedValue = parsedValue.replace(/\/$/, '');
+        }
+
         setConfig(camelKey as any, parsedValue);
-        console.log(chalk.green(`\n✅ Set ${chalk.cyan(key)} = ${chalk.yellow(value)}\n`));
+        console.log(chalk.green(`\n✅ Set ${chalk.cyan(key)} = ${chalk.yellow(parsedValue)}\n`));
       })
   )
   .addCommand(
