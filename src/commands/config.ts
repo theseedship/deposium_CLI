@@ -11,6 +11,7 @@ export const configCommand = new Command('config')
       .argument('<value>', 'Configuration value')
       .action((key, value) => {
         const validKeys = [
+          'api-key',
           'mcp-url',
           'default-tenant',
           'default-space',
@@ -52,7 +53,12 @@ export const configCommand = new Command('config')
 
         if (key) {
           const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
-          const value = (config as any)[camelKey];
+          let value = (config as any)[camelKey];
+
+          // Mask API key for security
+          if (key === 'api-key' && value) {
+            value = value.substring(0, 8) + '...';
+          }
 
           if (value !== undefined) {
             console.log(chalk.cyan(key) + ':', chalk.yellow(value));
@@ -61,6 +67,13 @@ export const configCommand = new Command('config')
           }
         } else {
           console.log(chalk.bold('\n📋 Deposium CLI Configuration:\n'));
+
+          // Mask API key for security (show first 8 chars + ...)
+          const maskedApiKey = config.apiKey
+            ? config.apiKey.substring(0, 8) + '...'
+            : chalk.gray('not set');
+
+          console.log(chalk.cyan('api-key:'), maskedApiKey);
           console.log(chalk.cyan('mcp-url:'), config.mcpUrl || chalk.gray('not set'));
           console.log(chalk.cyan('default-tenant:'), config.defaultTenant || chalk.gray('not set'));
           console.log(chalk.cyan('default-space:'), config.defaultSpace || chalk.gray('not set'));
