@@ -5,8 +5,9 @@ import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
-export const leanragCommand = new Command('leanrag')
-  .description('Optimized LeanRAG retrieval and analysis');
+export const leanragCommand = new Command('leanrag').description(
+  'Optimized LeanRAG retrieval and analysis'
+);
 
 // leanrag.retrieve - Optimized retrieval
 leanragCommand
@@ -70,7 +71,9 @@ leanragCommand
       // Parse results input
       let resultsData;
       if (results === '-') {
-        console.error(chalk.red('❌ Reading from stdin is not yet supported. Please provide JSON directly.'));
+        console.error(
+          chalk.red('❌ Reading from stdin is not yet supported. Please provide JSON directly.')
+        );
         process.exit(1);
       } else {
         resultsData = JSON.parse(results);

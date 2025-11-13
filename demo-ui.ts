@@ -94,11 +94,17 @@ async function demo() {
 
   // Final message
   console.log('\n' + divider('Demo Complete', 'heavy') + '\n');
-  console.log(createInfoBox('Thank You!', 'The enhanced UI makes CLI interactions more visual and engaging.', 'success'));
+  console.log(
+    createInfoBox(
+      'Thank You!',
+      'The enhanced UI makes CLI interactions more visual and engaging.',
+      'success'
+    )
+  );
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Run demo

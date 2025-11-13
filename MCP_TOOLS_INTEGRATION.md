@@ -9,6 +9,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 ## New Command Categories Added
 
 ### 1. Intelligence (`intelligence` or `smart`)
+
 **AI-powered query analysis, suggestions, and summaries**
 
 - `analyze <query>` - Analyze query intent and optimize search parameters
@@ -17,6 +18,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `elicit <query>` - Detect if query needs clarification and generate questions
 
 ### 2. LeanRAG (`leanrag`)
+
 **Optimized LeanRAG retrieval and analysis**
 
 - `retrieve <query>` - Optimized LeanRAG retrieval with ranking
@@ -24,6 +26,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `analyze <query>` - Analyze query using LeanRAG method
 
 ### 3. Mermaid (`mermaid`)
+
 **Extract, generate, and query Mermaid diagrams**
 
 - `parse` - Extract Mermaid diagrams from documents
@@ -31,6 +34,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `query <query>` - Query documents by diagram content
 
 ### 4. Evaluate (`evaluate` or `eval`)
+
 **Evaluation metrics, dashboards, and feedback**
 
 - `metrics` - Get evaluation metrics for user query history
@@ -41,12 +45,14 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `quality <code>` - Assess code quality with test cases
 
 ### 5. DSPy (`dspy`)
+
 **DSPy intelligent query routing and optimization**
 
 - `route <query>` - Route query to optimal engine (SQL/PGQ/Cypher)
 - `analyze <query>` - Analyze query intent and suggest optimizations
 
 ### 6. UI (`ui`)
+
 **Interactive UI dashboards and visualizations**
 
 - `dashboard` - Open interactive HTML dashboard
@@ -56,6 +62,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `embeddings-monitor` - Open embeddings queue monitor
 
 ### 7. Logs (`logs`)
+
 **View, search, and analyze MCP server logs**
 
 - `view` - View recent MCP server logs
@@ -64,6 +71,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `search <pattern>` - Search logs by pattern
 
 ### 8. Query History (`query-history` or `qh`)
+
 **Query history tracking and analytics**
 
 - `log <query>` - Log a query to history
@@ -73,6 +81,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `cleanup` - Cleanup old query history
 
 ### 9. DuckDB (`duckdb` or `db`)
+
 **DuckDB MCP server integration and federation**
 
 - `serve` - Start DuckDB MCP server for external access
@@ -85,6 +94,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 ## Updated Existing Commands
 
 ### Corpus (`corpus`)
+
 **Added 5 new evaluation tools:**
 
 - `improve` - Get improvement suggestions for corpus
@@ -94,6 +104,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 - `drift` - Detect concept drift over time
 
 ### Graph (`graph`)
+
 **Completely revamped with 7 graph analysis tools:**
 
 - `search <pattern>` - Search entities by pattern in graph
@@ -109,6 +120,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 ### Total MCP Tools Integrated: **53+ tools**
 
 **By Category:**
+
 - ✅ Core Search & Management: 7 tools
 - ✅ Intelligence (Smart): 4 tools
 - ✅ Graph Analysis: 7 tools
@@ -126,6 +138,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 ## File Changes
 
 ### New Files Created (9 files):
+
 1. `src/commands/intelligence.ts` - Smart AI tools
 2. `src/commands/leanrag.ts` - LeanRAG retrieval
 3. `src/commands/mermaid.ts` - Diagram tools
@@ -137,6 +150,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 9. `src/commands/duckdb.ts` - DuckDB integration
 
 ### Files Updated (3 files):
+
 1. `src/cli.ts` - Added 9 new command imports and registrations
 2. `src/commands/corpus.ts` - Added 5 corpus evaluation tools
 3. `src/commands/graph.ts` - Completely revamped with 7 graph tools
@@ -144,6 +158,7 @@ This document summarizes the integration of all 53+ MCP tools from the `deposium
 ## Testing
 
 All commands have been verified:
+
 - ✅ TypeScript compilation passes (`npm run typecheck`)
 - ✅ All commands registered and accessible via CLI
 - ✅ Help text displays correctly for all commands and subcommands
@@ -152,6 +167,7 @@ All commands have been verified:
 ## Usage Examples
 
 ### Intelligence Tools
+
 ```bash
 # Analyze query intent
 deposium intelligence analyze "find recent AI reports"
@@ -164,6 +180,7 @@ deposium intelligence summarize '{"results": [...]}'
 ```
 
 ### Graph Analysis
+
 ```bash
 # Search graph entities
 deposium graph search "person:John"
@@ -179,6 +196,7 @@ deposium graph multihop --source-pattern "person" --target-pattern "organization
 ```
 
 ### Corpus Evaluation
+
 ```bash
 # Get corpus stats
 deposium corpus stats
@@ -194,6 +212,7 @@ deposium corpus drift --time-window 30
 ```
 
 ### LeanRAG
+
 ```bash
 # Retrieve with LeanRAG
 deposium leanrag retrieve "AI research papers"
@@ -203,6 +222,7 @@ deposium leanrag analyze "latest trends in machine learning"
 ```
 
 ### UI Dashboards
+
 ```bash
 # Open main dashboard
 deposium ui dashboard
@@ -215,6 +235,7 @@ deposium ui health-monitor
 ```
 
 ### Query History
+
 ```bash
 # View query history
 deposium query-history retrieve --limit 50
@@ -227,6 +248,7 @@ deposium qh export --format json --output history.json
 ```
 
 ### DuckDB Federation
+
 ```bash
 # Start DuckDB MCP server
 deposium duckdb serve --port 5432
@@ -251,21 +273,25 @@ deposium db federate "SELECT * FROM table1" --sources '[...]'
 To use the enhanced CLI:
 
 1. **Build the CLI:**
+
    ```bash
    npm run build
    ```
 
 2. **Install locally:**
+
    ```bash
    npm run install:local
    ```
 
 3. **Configure MCP server URL:**
+
    ```bash
    deposium config set mcp-url http://localhost:4001
    ```
 
 4. **Authenticate:**
+
    ```bash
    deposium auth login
    ```

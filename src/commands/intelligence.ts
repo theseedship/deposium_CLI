@@ -101,7 +101,9 @@ intelligenceCommand
       // Parse results input
       let resultsData;
       if (results === '-') {
-        console.error(chalk.red('❌ Reading from stdin is not yet supported. Please provide JSON directly.'));
+        console.error(
+          chalk.red('❌ Reading from stdin is not yet supported. Please provide JSON directly.')
+        );
         process.exit(1);
       } else {
         resultsData = JSON.parse(results);

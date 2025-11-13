@@ -5,8 +5,9 @@ import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
-export const logsCommand = new Command('logs')
-  .description('View, search, and analyze MCP server logs');
+export const logsCommand = new Command('logs').description(
+  'View, search, and analyze MCP server logs'
+);
 
 // view.logs - View recent logs
 logsCommand

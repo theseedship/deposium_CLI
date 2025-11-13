@@ -5,8 +5,9 @@ import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
-export const uiCommand = new Command('ui')
-  .description('Interactive UI dashboards and visualizations');
+export const uiCommand = new Command('ui').description(
+  'Interactive UI dashboards and visualizations'
+);
 
 // ui.show_dashboard - Interactive HTML dashboard
 uiCommand

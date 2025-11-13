@@ -20,7 +20,7 @@ export const toolsCommand = new Command('tools')
 
       const tools = await client.listTools();
 
-      if (!tools || tools.length === 0) {
+      if (tools?.length === 0) {
         console.log(chalk.yellow('⚠️  No tools found'));
         return;
       }
@@ -33,7 +33,7 @@ export const toolsCommand = new Command('tools')
         filteredTools = filteredTools.filter(
           (tool: any) =>
             tool.name.toLowerCase().includes(searchTerm) ||
-            (tool.description && tool.description.toLowerCase().includes(searchTerm))
+            tool.description?.toLowerCase().includes(searchTerm)
         );
       }
 
@@ -85,10 +85,7 @@ export const toolsCommand = new Command('tools')
         });
 
         categoryTools.forEach((tool: any) => {
-          table.push([
-            chalk.white(tool.name),
-            chalk.gray(tool.description || 'No description'),
-          ]);
+          table.push([chalk.white(tool.name), chalk.gray(tool.description || 'No description')]);
         });
 
         console.log(table.toString());
