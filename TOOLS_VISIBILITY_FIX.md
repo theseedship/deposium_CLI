@@ -1,9 +1,11 @@
 # Tools Visibility Fix Summary
 
 ## Problem
+
 You couldn't see the available MCP tools in the CLI.
 
 ## Solution
+
 Added a new `tools` command that lists all available MCP tools from the server.
 
 ## What Was Added
@@ -11,6 +13,7 @@ Added a new `tools` command that lists all available MCP tools from the server.
 ### New Command: `deposium tools`
 
 Lists all 65+ MCP tools available from your server with:
+
 - Category grouping
 - Search functionality
 - Detailed descriptions
@@ -19,12 +22,15 @@ Lists all 65+ MCP tools available from your server with:
 ## Usage
 
 ### List All Tools
+
 ```bash
 deposium tools
 ```
+
 Output: Shows all 65 tools organized by category (compound, corpus, dspy, graph, smart, etc.)
 
 ### Search for Specific Tools
+
 ```bash
 # Find intelligence tools
 deposium tools --search "smart"
@@ -40,6 +46,7 @@ deposium tools --search "compound"
 ```
 
 ### Filter by Category
+
 ```bash
 # Show only compound tools
 deposium tools --category compound
@@ -52,6 +59,7 @@ deposium tools --category smart
 ```
 
 ### JSON Output (for scripts)
+
 ```bash
 deposium tools --json > tools.json
 ```
@@ -143,6 +151,7 @@ From your MCP server, you have **65 tools** in these categories:
 ## Quick Examples
 
 ### Example 1: Find all graph tools
+
 ```bash
 $ deposium tools --search "graph"
 
@@ -162,6 +171,7 @@ graph_variable_path - Find variable-length paths between nodes (1..n hops)
 ```
 
 ### Example 2: Find all AI/LLM tools
+
 ```bash
 $ deposium tools --search "compound"
 
@@ -181,6 +191,7 @@ compound_validate - Validate claims with fact-checking and calculations
 ```
 
 ### Example 3: Find corpus evaluation tools
+
 ```bash
 $ deposium tools --search "corpus"
 
@@ -213,21 +224,21 @@ corpus_stats - Get comprehensive statistics about the corpus
 
 The tools you see with `deposium tools` map to these CLI commands:
 
-| Tool Name Pattern | CLI Command | Example |
-|-------------------|-------------|---------|
-| `smart_*` | `deposium intelligence` | `deposium intelligence analyze "query"` |
-| `compound_*` | `deposium compound` | `deposium compound analyze "task"` |
-| `corpus_*` | `deposium corpus` | `deposium corpus stats` |
-| `graph_*` | `deposium graph` | `deposium graph path A B` |
-| `leanrag_*` | `deposium leanrag` | `deposium leanrag retrieve "query"` |
-| `mermaid_*` | `deposium mermaid` | `deposium mermaid parse` |
-| `eval_*` | `deposium evaluate` | `deposium eval metrics` |
-| `dspy_*` | `deposium dspy` | `deposium dspy route "query"` |
-| `ui_*` | `deposium ui` | `deposium ui dashboard` |
-| `query_*` | `deposium query-history` | `deposium qh retrieve` |
-| `duckdb_*` | `deposium duckdb` | `deposium db serve` |
-| `view_logs`, etc. | `deposium logs` | `deposium logs view` |
-| `search_hub` | `deposium search` | `deposium search "query"` |
+| Tool Name Pattern | CLI Command              | Example                                 |
+| ----------------- | ------------------------ | --------------------------------------- |
+| `smart_*`         | `deposium intelligence`  | `deposium intelligence analyze "query"` |
+| `compound_*`      | `deposium compound`      | `deposium compound analyze "task"`      |
+| `corpus_*`        | `deposium corpus`        | `deposium corpus stats`                 |
+| `graph_*`         | `deposium graph`         | `deposium graph path A B`               |
+| `leanrag_*`       | `deposium leanrag`       | `deposium leanrag retrieve "query"`     |
+| `mermaid_*`       | `deposium mermaid`       | `deposium mermaid parse`                |
+| `eval_*`          | `deposium evaluate`      | `deposium eval metrics`                 |
+| `dspy_*`          | `deposium dspy`          | `deposium dspy route "query"`           |
+| `ui_*`            | `deposium ui`            | `deposium ui dashboard`                 |
+| `query_*`         | `deposium query-history` | `deposium qh retrieve`                  |
+| `duckdb_*`        | `deposium duckdb`        | `deposium db serve`                     |
+| `view_logs`, etc. | `deposium logs`          | `deposium logs view`                    |
+| `search_hub`      | `deposium search`        | `deposium search "query"`               |
 
 ## Testing
 

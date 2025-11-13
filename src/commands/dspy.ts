@@ -5,8 +5,9 @@ import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
-export const dspyCommand = new Command('dspy')
-  .description('DSPy intelligent query routing and optimization');
+export const dspyCommand = new Command('dspy').description(
+  'DSPy intelligent query routing and optimization'
+);
 
 // dspy.route - Intelligent query routing
 dspyCommand

@@ -2,7 +2,14 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig } from '../utils/config';
-import { formatOutput, displayStatus, createTitleBox, divider, displayMetricBar, createInfoBox } from '../utils/formatter';
+import {
+  formatOutput,
+  displayStatus,
+  createTitleBox,
+  divider,
+  displayMetricBar,
+  createInfoBox,
+} from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const healthCommand = new Command('health')
@@ -69,8 +76,8 @@ export const healthCommand = new Command('health')
           });
 
           // Calculate uptime percentage if available
-          const healthyServices = health.services.filter((s: any) =>
-            s.status === 'healthy' || s.status === 'online'
+          const healthyServices = health.services.filter(
+            (s: any) => s.status === 'healthy' || s.status === 'online'
           ).length;
           const totalServices = health.services.length;
 

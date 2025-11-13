@@ -5,8 +5,9 @@ import { getConfig } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
-export const mermaidCommand = new Command('mermaid')
-  .description('Extract, generate, and query Mermaid diagrams');
+export const mermaidCommand = new Command('mermaid').description(
+  'Extract, generate, and query Mermaid diagrams'
+);
 
 // mermaid.parse - Extract diagrams
 mermaidCommand

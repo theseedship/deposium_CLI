@@ -47,54 +47,73 @@ The interactive mode now has **23 options** organized into 7 categories:
 ## New Interactive Features
 
 ### 1. Intelligence Tools (🧠)
+
 Choose from 4 AI-powered operations:
+
 - **analyze** - Query intent analysis
 - **suggest** - Auto-completion suggestions
 - **summarize** - Result summarization
 - **elicit** - Clarification detection
 
 ### 2. DSPy Router (🧭)
+
 Smart query routing:
+
 - **route** - Route to optimal engine (SQL/PGQ/Cypher)
 - **analyze** - Query intent analysis
 
 ### 3. LeanRAG (🎯)
+
 Optimized retrieval with LeanRAG methodology
 
 ### 4. Mermaid (📐)
+
 Diagram tools:
+
 - **parse** - Extract diagrams from documents
 - **query** - Query by diagram content
 
 ### 5. Evaluate (📈)
+
 Quality metrics:
+
 - **metrics** - Get evaluation metrics
 - **dashboard** - Generate evaluation dashboard
 - **feedback** - Submit quality feedback
 
 ### 6. Query History (📝)
+
 Query tracking:
+
 - **retrieve** - View query history
 - **stats** - Get query statistics
 
 ### 7. Logs (📜)
+
 Log management:
+
 - **view** - View recent logs
 - **stats** - Get log statistics
 
 ### 8. DuckDB (🦆)
+
 Database operations:
+
 - **status** - Get MCP server status
 - **list tables** - List available tables
 
 ### 9. UI Dashboards (🎨)
+
 Interactive interfaces:
+
 - **dashboard** - Main dashboard
 - **health monitor** - Real-time health monitoring
 - **tools explorer** - Browse all tools
 
 ### 10. List Tools (🛠️)
+
 View all 65 MCP tools with category summary:
+
 ```
 📊 Found 65 tools
 
@@ -113,6 +132,7 @@ corpus: 5 tools
 ## Usage Examples
 
 ### Example 1: Using Intelligence Tools
+
 ```bash
 $ deposium interactive
 
@@ -123,6 +143,7 @@ $ deposium interactive
 ```
 
 ### Example 2: Using LeanRAG
+
 ```bash
 $ deposium interactive
 
@@ -134,6 +155,7 @@ $ deposium interactive
 ```
 
 ### Example 3: Viewing All Tools
+
 ```bash
 $ deposium interactive
 
@@ -143,6 +165,7 @@ $ deposium interactive
 ```
 
 ### Example 4: Query History
+
 ```bash
 $ deposium interactive
 
@@ -152,6 +175,7 @@ $ deposium interactive
 ```
 
 ### Example 5: DuckDB Operations
+
 ```bash
 $ deposium interactive
 
@@ -163,9 +187,11 @@ $ deposium interactive
 ## Technical Details
 
 ### Files Modified
+
 - **`src/interactive.ts`** - Enhanced with 10 new handlers and menu expansion
 
 ### New Handler Functions Added
+
 1. `handleIntelligence()` - Smart AI tools
 2. `handleDSPy()` - Query routing
 3. `handleLeanRAG()` - Optimized retrieval
@@ -178,7 +204,9 @@ $ deposium interactive
 10. `handleTools()` - Tool listing
 
 ### Menu Organization
+
 The menu is now organized into **7 logical categories**:
+
 1. AI Operations (4 items)
 2. Search & Retrieval (2 items)
 3. Graph & Analysis (2 items)
@@ -203,11 +231,13 @@ npm run dev -- i
 ## Key Improvements
 
 ### Before
+
 - ❌ Only 6 operations visible
 - ❌ Most new tools hidden
 - ❌ No way to explore available tools
 
 ### After
+
 - ✅ 23 operations visible
 - ✅ All 65 tools accessible
 - ✅ Built-in tool explorer
@@ -226,27 +256,29 @@ npm run dev -- i
 
 All these interactive features are also available via direct commands:
 
-| Interactive Option | Command Line Equivalent |
-|-------------------|------------------------|
-| 🧠 Intelligence | `deposium intelligence analyze "query"` |
-| 🧭 DSPy Router | `deposium dspy route "query"` |
-| 🎯 LeanRAG | `deposium leanrag retrieve "query"` |
-| 📐 Mermaid | `deposium mermaid parse` |
-| 📈 Evaluate | `deposium evaluate metrics` |
-| 📝 Query History | `deposium query-history retrieve` |
-| 📜 Logs | `deposium logs view` |
-| 🦆 DuckDB | `deposium duckdb status` |
-| 🎨 UI Dashboards | `deposium ui dashboard` |
-| 🛠️ List Tools | `deposium tools` |
+| Interactive Option | Command Line Equivalent                 |
+| ------------------ | --------------------------------------- |
+| 🧠 Intelligence    | `deposium intelligence analyze "query"` |
+| 🧭 DSPy Router     | `deposium dspy route "query"`           |
+| 🎯 LeanRAG         | `deposium leanrag retrieve "query"`     |
+| 📐 Mermaid         | `deposium mermaid parse`                |
+| 📈 Evaluate        | `deposium evaluate metrics`             |
+| 📝 Query History   | `deposium query-history retrieve`       |
+| 📜 Logs            | `deposium logs view`                    |
+| 🦆 DuckDB          | `deposium duckdb status`                |
+| 🎨 UI Dashboards   | `deposium ui dashboard`                 |
+| 🛠️ List Tools      | `deposium tools`                        |
 
 ## What's Next
 
 Try the interactive mode:
+
 ```bash
 deposium interactive
 ```
 
 Or use the short alias:
+
 ```bash
 deposium i
 ```

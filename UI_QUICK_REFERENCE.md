@@ -19,76 +19,95 @@ import {
 ## 📦 Functions at a Glance
 
 ### 1. Title Box
+
 ```typescript
-createTitleBox('TITLE', 'subtitle?')
+createTitleBox('TITLE', 'subtitle?');
 ```
+
 **Returns:** String with boxed gradient title
 
 ### 2. Info Box
+
 ```typescript
-createInfoBox('Title', 'content', 'success' | 'info' | 'warning' | 'error')
+createInfoBox('Title', 'content', 'success' | 'info' | 'warning' | 'error');
 ```
+
 **Returns:** String with styled info box
 
 ### 3. Metric Bar
+
 ```typescript
-displayMetricBar('Label', currentValue, maxValue, 'unit?')
+displayMetricBar('Label', currentValue, maxValue, 'unit?');
 ```
+
 **Output:** Visual progress bar with percentage
 
 ### 4. Status Indicator
+
 ```typescript
-displayStatus('Service', 'online' | 'offline' | 'degraded' | 'unknown')
+displayStatus('Service', 'online' | 'offline' | 'degraded' | 'unknown');
 ```
+
 **Output:** Colored dot with status label
 
 ### 5. Divider
+
 ```typescript
-divider('Label?', 'light' | 'heavy' | 'double')
+divider('Label?', 'light' | 'heavy' | 'double');
 ```
+
 **Returns:** Styled horizontal line
 
 ### 6. Graph Tree
+
 ```typescript
 formatGraphTree(nodes: any[], edges: any[])
 ```
+
 **Output:** ASCII tree structure
 
 ### 7. Compact List
+
 ```typescript
 displayCompactList('Title', items: string[], 'icon?')
 ```
+
 **Output:** Hierarchical list with icons
 
 ### 8. Typewriter Effect
+
 ```typescript
 await typewriter('text', speed?)
 ```
+
 **Output:** Character-by-character streaming
 
 ### 9. Progress Bar
+
 ```typescript
 const bar = createProgressBar(total, initialValue?)
 bar.start(total, 0, { status: 'msg' })
 bar.update(current, { status: 'msg' })
 bar.stop()
 ```
+
 **Returns:** Progress bar instance
 
 ## 🎨 Color Scheme
 
-| Color | Usage |
-|-------|-------|
-| Cyan | Headers, titles, labels |
-| Green | Success, online, high (≥70%) |
-| Yellow | Warning, degraded, medium (40-69%) |
-| Red | Error, offline, low (<40%) |
-| Gray | Secondary info, hints |
-| Gradient | Special elements (titles, logos) |
+| Color    | Usage                              |
+| -------- | ---------------------------------- |
+| Cyan     | Headers, titles, labels            |
+| Green    | Success, online, high (≥70%)       |
+| Yellow   | Warning, degraded, medium (40-69%) |
+| Red      | Error, offline, low (<40%)         |
+| Gray     | Secondary info, hints              |
+| Gradient | Special elements (titles, logos)   |
 
 ## 📊 Common Patterns
 
 ### Status Dashboard
+
 ```typescript
 console.log(createTitleBox('HEALTH CHECK', 'System Status'));
 console.log(createInfoBox('Server', 'Connected', 'success'));
@@ -99,6 +118,7 @@ displayMetricBar('Uptime', 99.5, 100, '%');
 ```
 
 ### Data Display
+
 ```typescript
 console.log(divider('Results', 'heavy'));
 formatGraphTree(nodes, edges);
@@ -106,6 +126,7 @@ displayCompactList('Items', ['item1', 'item2'], '📄');
 ```
 
 ### Progress Tracking
+
 ```typescript
 const bar = createProgressBar(items.length);
 bar.start(items.length, 0, { status: 'Processing...' });
@@ -129,13 +150,13 @@ bar.stop();
 
 ## 🎯 File Locations
 
-| Component | File Path |
-|-----------|-----------|
-| UI Utilities | `/src/utils/formatter.ts` |
-| Enhanced Health | `/src/commands/health.ts` |
-| Enhanced Interactive | `/src/interactive.ts` |
-| Enhanced Chat | `/src/chat.ts` |
-| Demo Script | `/demo-ui.ts` |
+| Component            | File Path                 |
+| -------------------- | ------------------------- |
+| UI Utilities         | `/src/utils/formatter.ts` |
+| Enhanced Health      | `/src/commands/health.ts` |
+| Enhanced Interactive | `/src/interactive.ts`     |
+| Enhanced Chat        | `/src/chat.ts`            |
+| Demo Script          | `/demo-ui.ts`             |
 
 ## 📝 Examples
 

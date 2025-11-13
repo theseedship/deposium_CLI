@@ -87,7 +87,9 @@ export async function startChat(): Promise<void> {
 
       // Show message count with progress indicator
       const exchanges = chatHistory.getMessages().length / 2;
-      console.log(chalk.gray(`\n💭 ${exchanges} exchange${exchanges !== 1 ? 's' : ''} in this conversation\n`));
+      console.log(
+        chalk.gray(`\n💭 ${exchanges} exchange${exchanges !== 1 ? 's' : ''} in this conversation\n`)
+      );
     } catch (error: any) {
       console.error(chalk.red('\n❌ Error:'), error.message);
       // Remove the user message from history since we failed
