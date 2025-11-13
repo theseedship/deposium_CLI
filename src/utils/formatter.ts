@@ -185,20 +185,22 @@ function formatCompoundAIObject(result: any): void {
     const plainText = stripHtmlTags(result.answer);
 
     // Display in a subtle box
-    console.log(boxen(plainText, {
-      padding: 1,
-      margin: { top: 0, right: 0, bottom: 1, left: 2 },
-      borderStyle: 'round',
-      borderColor: 'cyan',
-      dimBorder: true,
-    }));
+    console.log(
+      boxen(plainText, {
+        padding: 1,
+        margin: { top: 0, right: 0, bottom: 1, left: 2 },
+        borderStyle: 'round',
+        borderColor: 'cyan',
+        dimBorder: true,
+      })
+    );
   }
 
   // Display metadata with visual metrics
   console.log('\n' + divider('Analysis Metadata', 'light') + '\n');
 
   if (result.confidence !== undefined) {
-    const confidencePercent = (result.confidence * 100);
+    const confidencePercent = result.confidence * 100;
     displayMetricBar('Confidence', confidencePercent, 100, '%');
   }
 
@@ -207,13 +209,17 @@ function formatCompoundAIObject(result: any): void {
   }
 
   if (result.tools_used && result.tools_used.length > 0) {
-    console.log(`${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.white(result.tools_used.join(', '))}`);
+    console.log(
+      `${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.white(result.tools_used.join(', '))}`
+    );
   } else {
     console.log(`${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.gray('None')}`);
   }
 
   if (result.tokens_used) {
-    console.log(`${chalk.cyan('🎯 Tokens:'.padEnd(22))} ${chalk.white(result.tokens_used.toLocaleString())}`);
+    console.log(
+      `${chalk.cyan('🎯 Tokens:'.padEnd(22))} ${chalk.white(result.tokens_used.toLocaleString())}`
+    );
   }
 
   if (result.execution_time_ms) {
@@ -266,7 +272,11 @@ export function createTitleBox(title: string, subtitle?: string): string {
 /**
  * Create an info box with custom styling
  */
-export function createInfoBox(title: string, content: string, type: 'info' | 'success' | 'warning' | 'error' = 'info'): string {
+export function createInfoBox(
+  title: string,
+  content: string,
+  type: 'info' | 'success' | 'warning' | 'error' = 'info'
+): string {
   const icons = {
     info: 'ℹ️',
     success: '✅',
@@ -295,19 +305,27 @@ export function createInfoBox(title: string, content: string, type: 'info' | 'su
 /**
  * Create a progress bar for long operations
  */
-export function createProgressBar(total: number, initialValue: number = 0): cliProgress.SingleBar {
-  return new cliProgress.SingleBar({
-    format: chalk.cyan('{bar}') + ' | {percentage}% | {value}/{total} | {status}',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true,
-  }, cliProgress.Presets.shades_classic);
+export function createProgressBar(_total: number): cliProgress.SingleBar {
+  return new cliProgress.SingleBar(
+    {
+      format: chalk.cyan('{bar}') + ' | {percentage}% | {value}/{total} | {status}',
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      hideCursor: true,
+    },
+    cliProgress.Presets.shades_classic
+  );
 }
 
 /**
  * Display a visual metric with bar representation
  */
-export function displayMetricBar(label: string, value: number, max: number, unit: string = ''): void {
+export function displayMetricBar(
+  label: string,
+  value: number,
+  max: number,
+  unit: string = ''
+): void {
   const percentage = Math.min(100, (value / max) * 100);
   const barLength = 30;
   const filledLength = Math.round((percentage / 100) * barLength);
@@ -326,13 +344,18 @@ export function displayMetricBar(label: string, value: number, max: number, unit
   const valueStr = unit ? `${value}${unit}` : value.toString();
   const maxStr = unit ? `${max}${unit}` : max.toString();
 
-  console.log(`${chalk.cyan(label.padEnd(20))} ${coloredBar} ${chalk.white(valueStr)}/${chalk.gray(maxStr)} ${chalk.gray(`(${percentage.toFixed(1)}%)`)}`);
+  console.log(
+    `${chalk.cyan(label.padEnd(20))} ${coloredBar} ${chalk.white(valueStr)}/${chalk.gray(maxStr)} ${chalk.gray(`(${percentage.toFixed(1)}%)`)}`
+  );
 }
 
 /**
  * Display a simple status indicator
  */
-export function displayStatus(label: string, status: 'online' | 'offline' | 'degraded' | 'unknown'): void {
+export function displayStatus(
+  label: string,
+  status: 'online' | 'offline' | 'degraded' | 'unknown'
+): void {
   const icons = {
     online: chalk.green('●'),
     offline: chalk.red('●'),
@@ -377,7 +400,7 @@ export function divider(label?: string, style: 'light' | 'heavy' | 'double' = 'l
 export async function typewriter(text: string, speed: number = 10): Promise<void> {
   for (const char of text) {
     process.stdout.write(char);
-    await new Promise(resolve => setTimeout(resolve, speed));
+    await new Promise((resolve) => setTimeout(resolve, speed));
   }
   process.stdout.write('\n');
 }
@@ -392,7 +415,7 @@ export function formatGraphTree(nodes: any[], edges: any[]): void {
   const adjacencyList: Map<string, string[]> = new Map();
   const nodeMap: Map<string, any> = new Map();
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const nodeId = node.id || node.node_id || node.name;
     nodeMap.set(nodeId, node);
     if (!adjacencyList.has(nodeId)) {
@@ -400,7 +423,7 @@ export function formatGraphTree(nodes: any[], edges: any[]): void {
     }
   });
 
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     const from = edge.source || edge.from;
     const to = edge.target || edge.to;
     if (!adjacencyList.has(from)) {
@@ -411,15 +434,16 @@ export function formatGraphTree(nodes: any[], edges: any[]): void {
 
   // Find root nodes (nodes with no incoming edges)
   const hasIncoming = new Set<string>();
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     const to = edge.target || edge.to;
     hasIncoming.add(to);
   });
 
-  const rootNodes = Array.from(adjacencyList.keys()).filter(id => !hasIncoming.has(id));
+  const rootNodes = Array.from(adjacencyList.keys()).filter((id) => !hasIncoming.has(id));
 
   // If no clear roots, use all nodes with outgoing edges
-  const nodesToDisplay = rootNodes.length > 0 ? rootNodes : Array.from(adjacencyList.keys()).slice(0, 5);
+  const nodesToDisplay =
+    rootNodes.length > 0 ? rootNodes : Array.from(adjacencyList.keys()).slice(0, 5);
 
   // Display tree for each root
   const visited = new Set<string>();
@@ -443,7 +467,9 @@ function displayTreeNode(
   visited: Set<string>
 ): void {
   if (visited.has(nodeId)) {
-    console.log(prefix + (isLast ? '└── ' : '├── ') + chalk.gray(nodeId) + chalk.yellow(' (circular)'));
+    console.log(
+      prefix + (isLast ? '└── ' : '├── ') + chalk.gray(nodeId) + chalk.yellow(' (circular)')
+    );
     return;
   }
 

@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
 import { getConfig } from './utils/config';
-import { formatOutput, createTitleBox, divider } from './utils/formatter';
+import { formatOutput, createTitleBox } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
 import { startChat } from './chat';
@@ -29,8 +29,14 @@ export async function startInteractive(): Promise<void> {
         choices: [
           new inquirer.Separator(chalk.gray('─── AI Operations ───')),
           { name: '💬  AI Chat ' + chalk.gray('(continuous conversation)'), value: 'chat' },
-          { name: '🤖  Compound AI ' + chalk.gray('(single query with context)'), value: 'compound' },
-          { name: '🧠  Intelligence ' + chalk.gray('(smart query analysis)'), value: 'intelligence' },
+          {
+            name: '🤖  Compound AI ' + chalk.gray('(single query with context)'),
+            value: 'compound',
+          },
+          {
+            name: '🧠  Intelligence ' + chalk.gray('(smart query analysis)'),
+            value: 'intelligence',
+          },
           { name: '🧭  DSPy Router ' + chalk.gray('(intelligent routing)'), value: 'dspy' },
           new inquirer.Separator(chalk.gray('─── Search & Retrieval ───')),
           { name: '🔍  Search ' + chalk.gray('(find documents)'), value: 'search' },
@@ -503,11 +509,7 @@ async function handleQueryHistory(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const result = await client.callTool(
-    `query_${action}`,
-    { limit: 50 },
-    { spinner: true }
-  );
+  const result = await client.callTool(`query_${action}`, { limit: 50 }, { spinner: true });
 
   if (!result.isError) {
     formatOutput(result.content, 'table');
@@ -592,7 +594,7 @@ async function handleTools(client: MCPClient): Promise<void> {
 
   const tools = await client.listTools();
 
-  if (!tools || tools.length === 0) {
+  if (tools?.length === 0) {
     console.log(chalk.yellow('⚠️  No tools found'));
     return;
   }
