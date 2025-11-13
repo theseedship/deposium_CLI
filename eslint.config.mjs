@@ -51,6 +51,7 @@ export default [
       '@typescript-eslint/no-misused-promises': 'error',
 
       // General JavaScript/TypeScript rules
+      'no-unused-vars': 'off', // Using @typescript-eslint/no-unused-vars instead
       'no-console': 'off', // We're a CLI, console is expected
       'no-debugger': 'error',
       'no-alert': 'error',
