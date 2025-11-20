@@ -25,7 +25,7 @@ intelligenceCommand
       console.log(chalk.bold('\n🧠 Analyzing query intent...\n'));
 
       const result = await client.callTool(
-        'smart.analyze',
+        'smart_analyze',
         { query_text: query },
         { spinner: !options.silent }
       );
@@ -60,7 +60,7 @@ intelligenceCommand
       console.log(chalk.bold('\n💡 Generating suggestions...\n'));
 
       const result = await client.callTool(
-        'smart.suggest',
+        'smart_suggest',
         {
           partial_query: partial,
           tenant_id: options.tenant,
@@ -110,7 +110,7 @@ intelligenceCommand
       }
 
       const result = await client.callTool(
-        'smart.summarize',
+        'smart_summarize',
         {
           results: resultsData,
           max_tokens: parseInt(options.maxTokens, 10),
@@ -151,7 +151,7 @@ intelligenceCommand
       const context = options.context ? JSON.parse(options.context) : undefined;
 
       const result = await client.callTool(
-        'smart.elicit',
+        'smart_elicit',
         {
           query_text: query,
           search_results: parseInt(options.searchResults, 10),

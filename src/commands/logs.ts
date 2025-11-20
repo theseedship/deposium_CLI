@@ -27,7 +27,7 @@ logsCommand
       console.log(chalk.bold('\n📜 Viewing logs...\n'));
 
       const result = await client.callTool(
-        'view.logs',
+        'view_logs',
         {
           level: options.level,
           limit: parseInt(options.limit, 10),
@@ -64,7 +64,7 @@ logsCommand
       console.log(chalk.bold('\n📊 Fetching log statistics...\n'));
 
       const result = await client.callTool(
-        'log.stats',
+        'get_log_stats',
         {
           time_range: options.timeRange,
         },
@@ -103,7 +103,7 @@ logsCommand
 
       console.log(chalk.bold('\n🗑️  Clearing logs...\n'));
 
-      const result = await client.callTool('clear.logs', {}, { spinner: !options.silent });
+      const result = await client.callTool('clear_logs', {}, { spinner: !options.silent });
 
       if (result.isError) {
         console.error(chalk.red('\n❌ Clear logs failed:'), result.content);
@@ -136,7 +136,7 @@ logsCommand
       console.log(chalk.bold('\n🔍 Searching logs...\n'));
 
       const result = await client.callTool(
-        'search.logs',
+        'search_logs',
         {
           pattern,
           level: options.level,

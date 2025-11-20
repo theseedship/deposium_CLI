@@ -30,7 +30,7 @@ dspyCommand
       const params = options.params ? JSON.parse(options.params) : {};
 
       const result = await client.callTool(
-        'dspy.route',
+        'dspy_route',
         {
           query,
           userId: options.userId,
@@ -69,7 +69,7 @@ dspyCommand
       console.log(chalk.bold('\n🔍 Analyzing query intent...\n'));
 
       const result = await client.callTool(
-        'dspy.analyze',
+        'dspy_analyze',
         {
           query,
           includeTemplates: options.includeTemplates || false,
