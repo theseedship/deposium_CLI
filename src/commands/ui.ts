@@ -25,7 +25,7 @@ uiCommand
       console.log(chalk.bold('\n🎨 Opening dashboard...\n'));
 
       const result = await client.callTool(
-        'ui.show_dashboard',
+        'ui_show_dashboard',
         {
           port: parseInt(options.port, 10),
         },
@@ -60,7 +60,7 @@ uiCommand
       console.log(chalk.bold('\n🔍 Opening search interface...\n'));
 
       const result = await client.callTool(
-        'ui.show_search',
+        'ui_show_search',
         {
           port: parseInt(options.port, 10),
         },
@@ -96,7 +96,7 @@ uiCommand
       console.log(chalk.bold('\n💚 Opening health monitor...\n'));
 
       const result = await client.callTool(
-        'ui.show_health',
+        'ui_show_health',
         {
           port: parseInt(options.port, 10),
           refresh_interval: parseInt(options.refresh, 10),
@@ -132,7 +132,7 @@ uiCommand
       console.log(chalk.bold('\n🛠️  Opening tools explorer...\n'));
 
       const result = await client.callTool(
-        'ui.show_tools',
+        'ui_show_tools',
         {
           port: parseInt(options.port, 10),
         },
@@ -168,7 +168,7 @@ uiCommand
       console.log(chalk.bold('\n⚡ Opening embeddings monitor...\n'));
 
       const result = await client.callTool(
-        'ui.show_embeddings',
+        'ui_show_embeddings',
         {
           port: parseInt(options.port, 10),
           refresh_interval: parseInt(options.refresh, 10),

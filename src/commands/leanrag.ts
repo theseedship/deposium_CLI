@@ -29,7 +29,7 @@ leanragCommand
       console.log(chalk.bold('\n🎯 LeanRAG retrieval...\n'));
 
       const result = await client.callTool(
-        'leanrag.retrieve',
+        'leanrag_retrieve',
         {
           tenant_id: options.tenant,
           space_id: options.space,
@@ -80,7 +80,7 @@ leanragCommand
       }
 
       const result = await client.callTool(
-        'leanrag.aggregate',
+        'leanrag_aggregate',
         {
           results: resultsData,
           strategy: options.strategy,
@@ -118,7 +118,7 @@ leanragCommand
       console.log(chalk.bold('\n🔬 LeanRAG analysis...\n'));
 
       const result = await client.callTool(
-        'leanrag.analyze',
+        'leanrag_analyze',
         {
           tenant_id: options.tenant,
           space_id: options.space,

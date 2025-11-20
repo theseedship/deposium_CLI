@@ -220,7 +220,7 @@ duckdbCommand
     try {
       console.log(chalk.bold('\n📊 Fetching MCP server status...\n'));
 
-      const result = await client.callTool('duckdb.mcp_status', {}, { spinner: !options.silent });
+      const result = await client.callTool('duckdb_mcp_status', {}, { spinner: !options.silent });
 
       if (result.isError) {
         console.error(chalk.red('\n❌ Status check failed:'), result.content);

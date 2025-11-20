@@ -26,7 +26,7 @@ evaluateCommand
       console.log(chalk.bold('\n📊 Fetching evaluation metrics...\n'));
 
       const result = await client.callTool(
-        'eval.metrics',
+        'eval_metrics',
         {
           userId: options.userId,
           includeGlobal: options.includeGlobal || false,
@@ -63,7 +63,7 @@ evaluateCommand
       console.log(chalk.bold('\n📈 Generating dashboard...\n'));
 
       const result = await client.callTool(
-        'eval.dashboard',
+        'eval_dashboard',
         {
           userId: options.userId,
           timeRange: options.timeRange,
@@ -107,7 +107,7 @@ evaluateCommand
       console.log(chalk.bold('\n💬 Submitting feedback...\n'));
 
       const result = await client.callTool(
-        'eval.feedback',
+        'eval_feedback',
         {
           queryId: options.queryId,
           userId: options.userId,
@@ -147,7 +147,7 @@ evaluateCommand
       console.log(chalk.bold('\n⚡ Executing code in sandbox...\n'));
 
       const result = await client.callTool(
-        'evaluate.code',
+        'analyze_code',
         {
           code,
           language: options.language,
@@ -186,7 +186,7 @@ evaluateCommand
       console.log(chalk.bold('\n🕸️  Generating graph visualization...\n'));
 
       const result = await client.callTool(
-        'evaluate.graph',
+        'generate_security_report',
         {
           tenant_id: options.tenant,
           space_id: options.space,
@@ -227,7 +227,7 @@ evaluateCommand
       const testCases = options.testCases ? JSON.parse(options.testCases) : undefined;
 
       const result = await client.callTool(
-        'evaluate.quality',
+        'scan_vulnerabilities',
         {
           code,
           test_cases: testCases,

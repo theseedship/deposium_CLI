@@ -24,7 +24,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold('\n🔍 Searching graph...\n'));
 
           const result = await client.callTool(
-            'graph.search',
+            'graph_search',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -62,7 +62,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold('\n🔗 Analyzing Graph...\n'));
 
           const result = await client.callTool(
-            'graph.analyze',
+            'graph_analyze',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -100,7 +100,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold(`\n🛤️  Finding path: ${from} → ${to}...\n`));
 
           const result = await client.callTool(
-            'graph.path',
+            'graph_path',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -145,7 +145,7 @@ export const graphCommand = new Command('graph')
           const edgeFilters = options.edgeFilters ? JSON.parse(options.edgeFilters) : undefined;
 
           const result = await client.callTool(
-            'graph.multihop',
+            'graph_multihop',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -191,7 +191,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold(`\n🔗 Finding variable paths: ${from} → ${to}...\n`));
 
           const result = await client.callTool(
-            'graph.variable_path',
+            'graph_variable_path',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -234,7 +234,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold(`\n🎯 Analyzing ${options.hops}-hop neighborhood...\n`));
 
           const result = await client.callTool(
-            'graph.khop',
+            'graph_khop',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -273,7 +273,7 @@ export const graphCommand = new Command('graph')
           console.log(chalk.bold('\n🧩 Finding Components...\n'));
 
           const result = await client.callTool(
-            'graph.components',
+            'graph_components',
             {
               tenant_id: options.tenant,
               space_id: options.space,
