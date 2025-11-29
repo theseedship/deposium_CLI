@@ -12,7 +12,7 @@ Deposium CLI is a **lightweight wrapper** around the Deposium MCP Server that pr
 - 🤖 **Compound AI**: Multi-tool reasoning with Groq
 - 🎨 **Interactive mode**: REPL for exploration
 
-**Architecture:** TypeScript client → HTTP → MCP Server (47 tools)
+**Architecture:** TypeScript client → HTTP → MCP Server (82 tools)
 
 ## 🌟 Key Features
 
@@ -677,11 +677,11 @@ deposium_CLI/
 
 ### With Claude Desktop/Code
 
-While Claude uses MCP via stdio, the CLI uses HTTP. Both access the same 47 tools:
+While Claude uses MCP via stdio, the CLI uses HTTP. Both access the same 82 tools:
 
 ```mermaid
 graph LR
-    CLI[Deposium CLI<br/>HTTP] --> MCP[MCP Server<br/>47 Tools]
+    CLI[Deposium CLI<br/>HTTP] --> MCP[MCP Server<br/>82 Tools]
     CLAUDE[Claude Desktop<br/>stdio] --> MCP
     N8N[n8n Workflows<br/>HTTP] --> MCP
     FRONT[Frontend<br/>HTTP] --> MCP
