@@ -568,13 +568,52 @@ deposium search "query" --format=markdown > results.md
 
 ### Environment Variables
 
-```bash
-# Override config with env vars
-export DEPOSIUM_MCP_URL=http://localhost:4001
-export DEPOSIUM_TENANT=production
-export DEPOSIUM_SPACE=main
+The CLI supports configuration via environment variables, with automatic `.env` file loading.
 
-deposium search "query"  # Uses env vars
+| Variable           | Description                         | Required | Default |
+| ------------------ | ----------------------------------- | -------- | ------- |
+| `DEPOSIUM_MCP_URL` | MCP Server URL                      | Yes      | -       |
+| `DEPOSIUM_API_KEY` | Authentication key                  | Yes      | -       |
+| `DEPOSIUM_TENANT`  | Default tenant ID                   | No       | -       |
+| `DEPOSIUM_SPACE`   | Default space ID                    | No       | -       |
+| `DEPOSIUM_OUTPUT`  | Output format (json/table/markdown) | No       | `table` |
+| `DEPOSIUM_SILENT`  | Suppress progress messages          | No       | `false` |
+
+**Priority order:** Environment variables > Config file (`~/.deposium/config.json`) > Defaults
+
+```bash
+# Via export
+export DEPOSIUM_MCP_URL="https://api.deposium.io"
+export DEPOSIUM_API_KEY="sk-xxx"
+deposium search "query"
+
+# Inline for scripts
+DEPOSIUM_API_KEY=$SECRET deposium compound analyze "question"
+
+# Docker
+docker run -e DEPOSIUM_API_KEY=$KEY -e DEPOSIUM_MCP_URL=$URL deposium/cli search "query"
+
+# Kubernetes
+env:
+  - name: DEPOSIUM_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: deposium-secrets
+        key: api-key
+
+# CI/CD (GitHub Actions)
+env:
+  DEPOSIUM_API_KEY: ${{ secrets.DEPOSIUM_API_KEY }}
+  DEPOSIUM_MCP_URL: ${{ vars.MCP_URL }}
+```
+
+**Using .env file:**
+
+```bash
+# Copy example and configure
+cp .env.example .env
+# Edit .env with your values
+deposium search "query"  # Automatically loads .env
 ```
 
 ### Piping & Chaining
@@ -769,4 +808,4 @@ MIT © The Seed Ship
 
 ---
 
-**Built with TypeScript** • **Powered by Deposium MCP Server** • **47 AI Tools at your fingertips**
+**Built with TypeScript** • **Powered by Deposium MCP Server** • **82 AI Tools at your fingertips**
