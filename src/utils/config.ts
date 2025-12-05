@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Conf from 'conf';
 import path from 'path';
 import os from 'os';
@@ -18,13 +19,16 @@ const config = new Conf<DeposiumConfig>({
 });
 
 export function getConfig(): DeposiumConfig {
+  // Priority: Environment variables > Config file > Defaults
   return {
-    mcpUrl: config.get('mcpUrl'),
-    apiKey: config.get('apiKey'),
-    defaultTenant: config.get('defaultTenant'),
-    defaultSpace: config.get('defaultSpace'),
-    outputFormat: config.get('outputFormat', 'table'),
-    silentMode: config.get('silentMode', false),
+    mcpUrl: process.env.DEPOSIUM_MCP_URL || config.get('mcpUrl'),
+    apiKey: process.env.DEPOSIUM_API_KEY || config.get('apiKey'),
+    defaultTenant: process.env.DEPOSIUM_TENANT || config.get('defaultTenant'),
+    defaultSpace: process.env.DEPOSIUM_SPACE || config.get('defaultSpace'),
+    outputFormat:
+      (process.env.DEPOSIUM_OUTPUT as 'json' | 'table' | 'markdown') ||
+      config.get('outputFormat', 'table'),
+    silentMode: process.env.DEPOSIUM_SILENT === 'true' || config.get('silentMode', false),
   };
 }
 
