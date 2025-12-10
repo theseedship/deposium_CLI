@@ -1,6 +1,5 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
 import { getApiKey, setApiKey, hasApiKey } from './config';
 
 /**
@@ -29,20 +28,39 @@ export async function promptApiKey(): Promise<string> {
 }
 
 /**
- * Validate API key with the MCP server
+ * Validate API key with the Deposium API
+ *
+ * Calls POST /api/auth/validate-key to verify the key is valid
+ * and associated with a user account.
  */
 export async function validateApiKeyWithServer(baseUrl: string, apiKey: string): Promise<boolean> {
   try {
-    const client = new MCPClient(baseUrl, apiKey);
-    await client.health();
-    return true;
-  } catch (error: any) {
-    // Check if it's an authentication error (401)
-    if (error.message.includes('401') || error.message.includes('Authentication')) {
-      return false;
+    const response = await fetch(`${baseUrl}/api/auth/validate-key`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+    });
+
+    // Handle different response codes
+    if (response.status === 401) {
+      return false; // Invalid key
     }
-    // For other errors (like connection errors), we assume the key format is valid
-    // and the error is not related to authentication
+
+    if (!response.ok) {
+      // For other errors (500, etc.), throw to trigger retry logic
+      throw new Error(`Validation failed: ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as { valid?: boolean };
+    return data.valid === true;
+  } catch (error: any) {
+    // Check for connection errors (ECONNREFUSED, etc.)
+    if (error.cause?.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+      throw new Error(`Cannot connect to Deposium API at ${baseUrl}`);
+    }
+    // Re-throw other errors
     throw error;
   }
 }
@@ -72,7 +90,7 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
   }
 
   // No valid key stored, need to authenticate
-  console.log(chalk.cyan('🔐 Authentication required for MCP Server\n'));
+  console.log(chalk.cyan('🔐 Authentication required for Deposium API\n'));
 
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

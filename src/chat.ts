@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
-import { getConfig } from './utils/config';
+import { getConfig, getBaseUrl } from './utils/config';
 import { formatOutput, createTitleBox, divider } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
@@ -11,11 +11,12 @@ export async function startChat(): Promise<void> {
   console.log(chalk.gray('Commands: /exit (quit) | /clear (reset) | /history (view)\n'));
 
   const config = getConfig();
+  const baseUrl = getBaseUrl(config);
 
   // Ensure user is authenticated
-  const apiKey = await ensureAuthenticated(config.mcpUrl!);
+  const apiKey = await ensureAuthenticated(baseUrl);
 
-  const client = new MCPClient(config.mcpUrl!, apiKey);
+  const client = new MCPClient(baseUrl, apiKey);
   const chatHistory = new ChatHistory(10);
 
   while (true) {

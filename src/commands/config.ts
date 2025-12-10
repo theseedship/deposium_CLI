@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { getConfig, setConfig, deleteConfig, resetConfig, getConfigPath } from '../utils/config';
+import { getConfig, getBaseUrl, setConfig, deleteConfig, resetConfig, getConfigPath } from '../utils/config';
 
 export const configCommand = new Command('config')
   .description('Manage Deposium CLI configuration')
@@ -12,7 +12,8 @@ export const configCommand = new Command('config')
       .action((key, value) => {
         const validKeys = [
           'api-key',
-          'mcp-url',
+          'deposium-url',
+          'mcp-url', // @deprecated - use deposium-url
           'default-tenant',
           'default-space',
           'output-format',
@@ -35,8 +36,8 @@ export const configCommand = new Command('config')
         if (value === 'true') parsedValue = true;
         if (value === 'false') parsedValue = false;
 
-        // Normalize MCP URL by removing trailing slash
-        if (key === 'mcp-url' && typeof parsedValue === 'string') {
+        // Normalize URLs by removing trailing slash
+        if ((key === 'mcp-url' || key === 'deposium-url') && typeof parsedValue === 'string') {
           parsedValue = parsedValue.replace(/\/$/, '');
         }
 
@@ -73,8 +74,12 @@ export const configCommand = new Command('config')
             ? config.apiKey.substring(0, 8) + '...'
             : chalk.gray('not set');
 
+          const baseUrl = getBaseUrl(config);
+
           console.log(chalk.cyan('api-key:'), maskedApiKey);
-          console.log(chalk.cyan('mcp-url:'), config.mcpUrl || chalk.gray('not set'));
+          console.log(chalk.cyan('deposium-url:'), config.deposiumUrl || chalk.gray('not set'));
+          console.log(chalk.cyan('mcp-url:'), config.mcpUrl || chalk.gray('not set (deprecated)'));
+          console.log(chalk.cyan('effective-url:'), baseUrl);
           console.log(chalk.cyan('default-tenant:'), config.defaultTenant || chalk.gray('not set'));
           console.log(chalk.cyan('default-space:'), config.defaultSpace || chalk.gray('not set'));
           console.log(chalk.cyan('output-format:'), config.outputFormat || chalk.gray('not set'));

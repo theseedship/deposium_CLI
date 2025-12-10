@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
@@ -22,8 +22,9 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (query: string, options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n📝 Logging query...\n'));
@@ -63,8 +64,9 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n💾 Exporting query history...\n'));
@@ -104,8 +106,9 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n📜 Retrieving query history...\n'));
@@ -144,8 +147,9 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n📊 Fetching query statistics...\n'));
@@ -182,8 +186,9 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       if (!options.confirm) {

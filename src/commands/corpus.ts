@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
@@ -15,11 +15,12 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
+        const baseUrl = getBaseUrl(config);
 
         // Ensure user is authenticated
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+        const apiKey = await ensureAuthenticated(baseUrl);
 
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
@@ -54,11 +55,12 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
+        const baseUrl = getBaseUrl(config);
 
         // Ensure user is authenticated
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+        const apiKey = await ensureAuthenticated(baseUrl);
 
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🎯 Evaluating Corpus Quality...\n'));
@@ -94,8 +96,9 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
@@ -131,8 +134,9 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n⚡ Starting real-time evaluation...\n'));
@@ -168,8 +172,9 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🔍 Monitoring corpus quality...\n'));
@@ -205,8 +210,9 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🆕 Checking corpus freshness...\n'));
@@ -244,8 +250,9 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n📉 Detecting concept drift...\n'));

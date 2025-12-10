@@ -4,7 +4,8 @@ import path from 'path';
 import os from 'os';
 
 export interface DeposiumConfig {
-  mcpUrl?: string;
+  deposiumUrl?: string; // Unified URL for Deposium API (SolidStart server)
+  mcpUrl?: string; // @deprecated - Use deposiumUrl instead. Kept for backward compatibility.
   apiKey?: string;
   defaultTenant?: string;
   defaultSpace?: string;
@@ -21,7 +22,8 @@ const config = new Conf<DeposiumConfig>({
 export function getConfig(): DeposiumConfig {
   // Priority: Environment variables > Config file > Defaults
   return {
-    mcpUrl: process.env.DEPOSIUM_MCP_URL || config.get('mcpUrl'),
+    deposiumUrl: process.env.DEPOSIUM_URL || config.get('deposiumUrl'),
+    mcpUrl: process.env.DEPOSIUM_MCP_URL || config.get('mcpUrl'), // @deprecated
     apiKey: process.env.DEPOSIUM_API_KEY || config.get('apiKey'),
     defaultTenant: process.env.DEPOSIUM_TENANT || config.get('defaultTenant'),
     defaultSpace: process.env.DEPOSIUM_SPACE || config.get('defaultSpace'),
@@ -30,6 +32,17 @@ export function getConfig(): DeposiumConfig {
       config.get('outputFormat', 'table'),
     silentMode: process.env.DEPOSIUM_SILENT === 'true' || config.get('silentMode', false),
   };
+}
+
+/**
+ * Get the base URL for Deposium API
+ *
+ * Priority: deposiumUrl > mcpUrl (deprecated) > default
+ * Default is http://localhost:3003 (local SolidStart dev server)
+ */
+export function getBaseUrl(cfg?: DeposiumConfig): string {
+  const c = cfg || getConfig();
+  return c.deposiumUrl || c.mcpUrl || 'http://localhost:3003';
 }
 
 export function setConfig(key: keyof DeposiumConfig, value: any): void {

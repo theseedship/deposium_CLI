@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
@@ -17,8 +17,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (pattern, options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🔍 Searching graph...\n'));
@@ -55,8 +56,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🔗 Analyzing Graph...\n'));
@@ -93,8 +95,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (from, to, options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold(`\n🛤️  Finding path: ${from} → ${to}...\n`));
@@ -136,8 +139,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🔀 Executing multi-hop query...\n'));
@@ -184,8 +188,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (from, to, options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold(`\n🔗 Finding variable paths: ${from} → ${to}...\n`));
@@ -227,8 +232,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (nodeId, options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold(`\n🎯 Analyzing ${options.hops}-hop neighborhood...\n`));
@@ -266,8 +272,9 @@ export const graphCommand = new Command('graph')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const baseUrl = getBaseUrl(config);
+        const apiKey = await ensureAuthenticated(baseUrl);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold('\n🧩 Finding Components...\n'));

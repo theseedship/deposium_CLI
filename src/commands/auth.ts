@@ -1,22 +1,15 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { getConfig, hasApiKey, getApiKey, deleteApiKey, setApiKey } from '../utils/config';
+import { getConfig, getBaseUrl, hasApiKey, getApiKey, deleteApiKey, setApiKey } from '../utils/config';
 import { promptApiKey, validateApiKeyWithServer, maskApiKey } from '../utils/auth';
 
 export const authCommand = new Command('auth')
-  .description('Manage authentication with MCP Server')
+  .description('Manage authentication with Deposium API')
   .addCommand(
     new Command('login').description('Authenticate with API key').action(async () => {
       try {
         const config = getConfig();
-
-        if (!config.mcpUrl) {
-          console.log(chalk.yellow('⚠️  MCP Server URL not configured.'));
-          console.log(
-            chalk.gray('Run: ') + chalk.cyan('deposium config set mcp-url http://localhost:4001')
-          );
-          process.exit(1);
-        }
+        const baseUrl = getBaseUrl(config);
 
         // Check if already logged in
         if (hasApiKey()) {
@@ -28,8 +21,8 @@ export const authCommand = new Command('auth')
           process.exit(0);
         }
 
-        console.log(chalk.cyan('\n🔐 Login to MCP Server\n'));
-        console.log(chalk.gray(`Server: ${config.mcpUrl}\n`));
+        console.log(chalk.cyan('\n🔐 Login to Deposium\n'));
+        console.log(chalk.gray(`Server: ${baseUrl}\n`));
 
         const maxAttempts = 3;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -37,7 +30,7 @@ export const authCommand = new Command('auth')
             const apiKey = await promptApiKey();
 
             console.log(chalk.gray('\nValidating API key...'));
-            const isValid = await validateApiKeyWithServer(config.mcpUrl, apiKey);
+            const isValid = await validateApiKeyWithServer(baseUrl, apiKey);
 
             if (isValid) {
               setApiKey(apiKey);
@@ -71,7 +64,7 @@ export const authCommand = new Command('auth')
 
         console.log(
           chalk.yellow(
-            '\n💡 Make sure you are using a valid API key from your MCP Server configuration.\n'
+            '\n💡 Make sure you are using a valid API key from your Deposium account.\n'
           )
         );
         process.exit(1);
@@ -105,19 +98,11 @@ export const authCommand = new Command('auth')
     new Command('status').description('Show authentication status').action(async () => {
       try {
         const config = getConfig();
+        const baseUrl = getBaseUrl(config);
 
         console.log(chalk.bold('\n🔐 Authentication Status\n'));
 
-        if (!config.mcpUrl) {
-          console.log(chalk.yellow('MCP Server URL: ') + chalk.red('Not configured'));
-          console.log(
-            chalk.gray('\nRun: ') +
-              chalk.cyan('deposium config set mcp-url http://localhost:4001\n')
-          );
-          process.exit(1);
-        }
-
-        console.log(chalk.gray('MCP Server URL: ') + chalk.cyan(config.mcpUrl));
+        console.log(chalk.gray('Deposium URL: ') + chalk.cyan(baseUrl));
 
         if (hasApiKey()) {
           const apiKey = getApiKey()!;
@@ -128,7 +113,7 @@ export const authCommand = new Command('auth')
           console.log(chalk.gray('\nValidating credentials...'));
           try {
             const { validateApiKeyWithServer } = await import('../utils/auth');
-            const isValid = await validateApiKeyWithServer(config.mcpUrl, apiKey);
+            const isValid = await validateApiKeyWithServer(baseUrl, apiKey);
 
             if (isValid) {
               console.log(chalk.green('✅ API key is valid\n'));

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
@@ -18,8 +18,9 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🎨 Opening dashboard...\n'));
@@ -53,8 +54,9 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🔍 Opening search interface...\n'));
@@ -89,8 +91,9 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n💚 Opening health monitor...\n'));
@@ -125,8 +128,9 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🛠️  Opening tools explorer...\n'));
@@ -161,8 +165,9 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n⚡ Opening embeddings monitor...\n'));

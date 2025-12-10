@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
-import { getConfig } from './utils/config';
+import { getConfig, getBaseUrl } from './utils/config';
 import { formatOutput, createTitleBox } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
@@ -11,11 +11,12 @@ export async function startInteractive(): Promise<void> {
   console.log(createTitleBox('INTERACTIVE MODE', 'Menu-driven access to all Deposium features'));
 
   const config = getConfig();
+  const baseUrl = getBaseUrl(config);
 
   // Ensure user is authenticated
-  const apiKey = await ensureAuthenticated(config.mcpUrl!);
+  const apiKey = await ensureAuthenticated(baseUrl);
 
-  const client = new MCPClient(config.mcpUrl!, apiKey);
+  const client = new MCPClient(baseUrl, apiKey);
 
   // Initialize chat history for Compound AI
   const compoundChatHistory = new ChatHistory(10);
