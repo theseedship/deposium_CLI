@@ -27,9 +27,9 @@ export class MCPClient {
       Accept: 'application/json, text/event-stream',
     };
 
-    // Add API key to headers if provided
+    // Add API key to headers if provided (consistent casing with server)
     if (apiKey) {
-      headers['X-Api-Key'] = apiKey;
+      headers['X-API-Key'] = apiKey;
     }
 
     this.client = axios.create({
@@ -40,7 +40,7 @@ export class MCPClient {
   }
 
   /**
-   * Call an MCP tool via HTTP
+   * Call an MCP tool via HTTP (through SolidStart proxy)
    */
   async callTool(
     toolName: string,
@@ -50,27 +50,24 @@ export class MCPClient {
     const spinner = options.spinner ? ora(`Calling ${chalk.cyan(toolName)}...`).start() : null;
 
     try {
-      const response = await this.client.post('/mcp', {
-        jsonrpc: '2.0',
-        method: 'tools/call',
-        params: {
-          name: toolName,
-          arguments: args,
-        },
-        id: Date.now(),
+      // Call SolidStart proxy endpoint (validates API key, forwards to MCP backend)
+      const response = await this.client.post('/api/cli/mcp', {
+        tool: toolName,
+        params: args,
       });
 
       if (spinner) spinner.succeed(`Tool ${chalk.green(toolName)} completed`);
 
-      if (response.data.error) {
+      // New proxy returns { result, isError } format
+      if (response.data.isError) {
         return {
-          content: response.data.error,
+          content: response.data.result || response.data.error,
           isError: true,
         };
       }
 
       return {
-        content: response.data.result?.content || response.data.result,
+        content: response.data.result,
         isError: false,
       };
     } catch (error: any) {
@@ -79,8 +76,8 @@ export class MCPClient {
       if (axios.isAxiosError(error)) {
         if (error.code === 'ECONNREFUSED') {
           throw new Error(
-            `Cannot connect to MCP Server at ${this.baseUrl}\n` +
-              'Make sure the MCP server is running (npm run dev in deposium_MCPs)'
+            `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+              'Make sure the Deposium server is running'
           );
         }
 
@@ -118,16 +115,25 @@ export class MCPClient {
 
   /**
    * List all available MCP tools
+   *
+   * Note: This calls through the SolidStart proxy using a special list_tools request.
+   * The proxy forwards to the MCP backend which returns available tools.
    */
   async listTools(): Promise<any[]> {
     try {
-      const response = await this.client.post('/mcp', {
-        jsonrpc: '2.0',
-        method: 'tools/list',
-        id: 1,
+      // Use the _list_tools pseudo-tool to get available tools via proxy
+      const response = await this.client.post('/api/cli/mcp', {
+        tool: '_list_tools',
+        params: {},
       });
 
-      return response.data.result?.tools || [];
+      // The proxy returns tools in the result field
+      if (response.data.isError) {
+        console.error(chalk.red('Failed to list tools:'), response.data.result);
+        return [];
+      }
+
+      return response.data.result?.tools || response.data.result || [];
     } catch (error) {
       console.error(chalk.red('Failed to list tools:'), error);
       return [];
@@ -135,17 +141,19 @@ export class MCPClient {
   }
 
   /**
-   * Check MCP server health
+   * Check Deposium API health (validates API key and MCP backend connectivity)
    */
   async health(): Promise<any> {
     try {
-      const response = await this.client.get('/health');
+      // GET /api/cli/mcp returns health status including MCP backend status
+      const response = await this.client.get('/api/cli/mcp');
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.code === 'ECONNREFUSED') {
           throw new Error(
-            `Cannot connect to MCP Server at ${this.baseUrl}\n` + 'Make sure the server is running'
+            `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+              'Make sure the Deposium server is running'
           );
         }
         // Check for authentication errors

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 import { ChatHistory } from '../utils/chat-history';
@@ -20,11 +20,12 @@ export const compoundCommand = new Command('compound')
       .option('-s, --show-history', 'Show conversation history before query')
       .action(async (query, options) => {
         const config = getConfig();
+        const baseUrl = getBaseUrl(config);
 
         // Ensure user is authenticated
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+        const apiKey = await ensureAuthenticated(baseUrl);
 
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           // Show history if requested
@@ -84,11 +85,12 @@ export const compoundCommand = new Command('compound')
       .option('-f, --format <type>', 'Output format (json|markdown)', 'markdown')
       .action(async (topic, options) => {
         const config = getConfig();
+        const baseUrl = getBaseUrl(config);
 
         // Ensure user is authenticated
-        const apiKey = await ensureAuthenticated(config.mcpUrl!);
+        const apiKey = await ensureAuthenticated(baseUrl);
 
-        const client = new MCPClient(config.mcpUrl!, apiKey);
+        const client = new MCPClient(baseUrl, apiKey);
 
         try {
           console.log(chalk.bold(`\n🔬 Researching: ${topic}...\n`));

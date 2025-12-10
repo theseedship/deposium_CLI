@@ -20,7 +20,7 @@ import { queryHistoryCommand } from './commands/query-history';
 import { duckdbCommand } from './commands/duckdb';
 import { toolsCommand } from './commands/tools';
 import { uploadBatchCommand } from './commands/upload-batch';
-import { getConfig } from './utils/config';
+import { getConfig, getBaseUrl } from './utils/config';
 
 const program = new Command();
 
@@ -29,20 +29,21 @@ program
   .description(
     chalk.bold('🚀 Deposium CLI') +
       '\n' +
-      chalk.gray('Document search, graph queries, and AI workflows via MCP Server')
+      chalk.gray('Document search, graph queries, and AI workflows via Deposium API')
   )
   .version('1.0.0')
   .hook('preAction', async () => {
-    // Check if MCP server URL is configured
+    // Check if Deposium server URL is configured
     const config = getConfig();
-    // Skip config check for commands that don't use MCP
-    const noMcpCommands = ['config', 'auth', 'upload-batch'];
-    if (!config.mcpUrl && !noMcpCommands.includes(program.args[0])) {
-      console.log(chalk.yellow('⚠️  MCP Server URL not configured.'));
+    const baseUrl = getBaseUrl(config);
+    // Skip config check for commands that don't use API, or if using default localhost
+    const noApiCommands = ['config', 'auth', 'upload-batch'];
+    if (!config.deposiumUrl && !config.mcpUrl && !noApiCommands.includes(program.args[0])) {
+      console.log(chalk.yellow('⚠️  Deposium server URL not configured.'));
+      console.log(chalk.gray(`Using default: ${chalk.cyan(baseUrl)}`));
       console.log(
-        chalk.gray('Run: ') + chalk.cyan('deposium config set mcp-url http://localhost:4001')
+        chalk.gray('To change, run: ') + chalk.cyan('deposium config set deposium-url <url>')
       );
-      process.exit(1);
     }
   });
 
