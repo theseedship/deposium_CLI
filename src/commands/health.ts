@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import {
   formatOutput,
   displayStatus,
@@ -13,17 +13,18 @@ import {
 import { ensureAuthenticated } from '../utils/auth';
 
 export const healthCommand = new Command('health')
-  .description('Check MCP Server and services health')
+  .description('Check Deposium API and services health')
   .option('-v, --verbose', 'Show detailed health information')
   .option('-f, --format <type>', 'Output format (json|table)', 'table')
   .action(async (options) => {
     const config = getConfig();
+    const baseUrl = getBaseUrl(config);
 
     // Ensure user is authenticated
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
+    const apiKey = await ensureAuthenticated(baseUrl);
 
     try {
-      const client = new MCPClient(config.mcpUrl!, apiKey);
+      const client = new MCPClient(baseUrl, apiKey);
 
       console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
 
@@ -46,10 +47,10 @@ export const healthCommand = new Command('health')
         formatOutput(detailedHealth.content, options.format);
       } else {
         // Enhanced health display
-        console.log(createTitleBox('HEALTH CHECK', 'Deposium MCP Server Status'));
+        console.log(createTitleBox('HEALTH CHECK', 'Deposium API Status'));
 
         // Server status
-        console.log(createInfoBox('MCP Server', `Connected to ${config.mcpUrl}`, 'success'));
+        console.log(createInfoBox('Deposium API', `Connected to ${baseUrl}`, 'success'));
 
         if (health.services && Array.isArray(health.services)) {
           console.log(divider('Services Status', 'light'));
@@ -90,8 +91,8 @@ export const healthCommand = new Command('health')
       }
     } catch (error: any) {
       console.error(chalk.red('\n❌ Error:'), error.message);
-      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the MCP server is running:');
-      console.log(chalk.gray('  cd [private-server-repo] && npm run dev\n'));
+      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is running:');
+      console.log(chalk.gray('  cd deposium_solid && pnpm dev\n'));
       process.exit(1);
     }
   });

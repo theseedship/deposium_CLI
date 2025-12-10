@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const toolsCommand = new Command('tools')
@@ -12,8 +12,9 @@ export const toolsCommand = new Command('tools')
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));

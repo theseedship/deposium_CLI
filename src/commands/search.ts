@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
@@ -19,11 +19,12 @@ export const searchCommand = new Command('search')
   .option('--silent', 'Suppress progress messages')
   .action(async (query: string, options) => {
     const config = getConfig();
+    const baseUrl = getBaseUrl(config);
 
     // Ensure user is authenticated
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
+    const apiKey = await ensureAuthenticated(baseUrl);
 
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🔍 Searching Deposium...\n'));

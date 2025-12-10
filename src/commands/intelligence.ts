@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
-import { getConfig } from '../utils/config';
+import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
@@ -18,8 +18,9 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (query: string, options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🧠 Analyzing query intent...\n'));
@@ -53,8 +54,9 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (partial: string, options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n💡 Generating suggestions...\n'));
@@ -92,8 +94,9 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (results: string, options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n📝 Summarizing results...\n'));
@@ -142,8 +145,9 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(async (query: string, options) => {
     const config = getConfig();
-    const apiKey = await ensureAuthenticated(config.mcpUrl!);
-    const client = new MCPClient(config.mcpUrl!, apiKey);
+    const baseUrl = getBaseUrl(config);
+    const apiKey = await ensureAuthenticated(baseUrl);
+    const client = new MCPClient(baseUrl, apiKey);
 
     try {
       console.log(chalk.bold('\n🤔 Checking for clarification needs...\n'));
