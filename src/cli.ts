@@ -19,6 +19,7 @@ import { logsCommand } from './commands/logs';
 import { queryHistoryCommand } from './commands/query-history';
 import { duckdbCommand } from './commands/duckdb';
 import { toolsCommand } from './commands/tools';
+import { uploadBatchCommand } from './commands/upload-batch';
 import { getConfig } from './utils/config';
 
 const program = new Command();
@@ -34,8 +35,9 @@ program
   .hook('preAction', async () => {
     // Check if MCP server URL is configured
     const config = getConfig();
-    // Skip config check for 'config' and 'auth' commands
-    if (!config.mcpUrl && program.args[0] !== 'config' && program.args[0] !== 'auth') {
+    // Skip config check for commands that don't use MCP
+    const noMcpCommands = ['config', 'auth', 'upload-batch'];
+    if (!config.mcpUrl && !noMcpCommands.includes(program.args[0])) {
       console.log(chalk.yellow('⚠️  MCP Server URL not configured.'));
       console.log(
         chalk.gray('Run: ') + chalk.cyan('deposium config set mcp-url http://localhost:4001')
@@ -62,6 +64,7 @@ program.addCommand(uiCommand);
 program.addCommand(logsCommand);
 program.addCommand(queryHistoryCommand);
 program.addCommand(duckdbCommand);
+program.addCommand(uploadBatchCommand);
 
 // Interactive mode
 program
