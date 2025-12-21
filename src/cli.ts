@@ -20,6 +20,7 @@ import { queryHistoryCommand } from './commands/query-history';
 import { duckdbCommand } from './commands/duckdb';
 import { toolsCommand } from './commands/tools';
 import { uploadBatchCommand } from './commands/upload-batch';
+import { benchmarkCommand } from './commands/benchmark';
 import { getConfig, getBaseUrl } from './utils/config';
 
 const program = new Command();
@@ -66,6 +67,7 @@ program.addCommand(logsCommand);
 program.addCommand(queryHistoryCommand);
 program.addCommand(duckdbCommand);
 program.addCommand(uploadBatchCommand);
+program.addCommand(benchmarkCommand);
 
 // Interactive mode
 program
