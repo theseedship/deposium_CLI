@@ -410,6 +410,103 @@ deposium corpus evaluate --metric=relevance
   -f, --format <type>      Output format: json|table
 ```
 
+### Benchmark
+
+OpenBench LLM benchmarking and evaluation via turbo v2.
+
+```bash
+# List available benchmarks
+deposium benchmark list
+
+# Run a benchmark
+deposium benchmark run -c <category> [-p provider] [-m model] [-n samples]
+
+# Evaluate corpus quality
+deposium benchmark corpus -t <tenant> -s <space> [-q queries.json]
+
+# Compare multiple models
+deposium benchmark compare --models model1,model2 [-c category]
+```
+
+#### List Benchmarks
+
+```bash
+deposium benchmark list [--details] [-f json|table|markdown]
+```
+
+Lists available benchmark categories and providers:
+
+- **knowledge**: General knowledge (MMLU, TriviaQA)
+- **coding**: Code generation (HumanEval, MBPP)
+- **math**: Mathematical reasoning (GSM8K, MATH)
+- **reasoning**: Logic and deduction (ARC, HellaSwag)
+- **cybersecurity**: Security-related tasks
+- **search**: Retrieval and search quality
+
+#### Run Benchmark
+
+```bash
+deposium benchmark run -c <category> [-p provider] [-m model] [-n samples] [--no-cache]
+```
+
+Runs a standardized LLM benchmark. Returns score (0-1) with detailed metrics.
+
+**Options:**
+
+- `-c, --category` - Benchmark category (default: search)
+- `-p, --provider` - LLM provider: groq, openai, anthropic (default: groq)
+- `-m, --model` - Model name (default: llama-3.1-8b-instant)
+- `-n, --samples` - Max samples to evaluate (default: 100)
+- `--no-cache` - Disable result caching
+
+**Example:**
+
+```bash
+deposium benchmark run -c search -p groq --samples 50 -f json
+```
+
+#### Corpus Evaluation
+
+```bash
+deposium benchmark corpus -t <tenant> -s <space> [-q queries.json]
+```
+
+Evaluates a Deposium corpus for search/retrieval quality with custom query-document pairs.
+
+**Options:**
+
+- `-t, --tenant` - Tenant ID
+- `-s, --space` - Space ID
+- `-q, --queries` - JSON file with query-document pairs
+- `-p, --provider` - LLM provider (default: groq)
+- `-m, --model` - Model name
+
+**Query format (queries.json):**
+
+```json
+[
+  {
+    "query": "What is machine learning?",
+    "relevant_docs": ["Machine learning is a subset of AI..."],
+    "context": "Technical documentation"
+  }
+]
+```
+
+#### Compare Models
+
+```bash
+deposium benchmark compare --models model1,model2 [-c category] [-n samples]
+```
+
+Compares benchmark results across multiple models and displays a ranked comparison table.
+
+**Example:**
+
+```bash
+deposium benchmark compare --models llama-3.1-8b-instant,gpt-4o-mini -c search
+```
+
 ### Compound AI
 
 ```bash
@@ -801,6 +898,7 @@ MIT © The Seed Ship
 
 ## 🔗 Links
 
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 - **MCP Server**: https://github.com/theseedship/deposium_MCPs
 - **Documentation**: https://deposium.vip/docs
 - **Issues**: https://github.com/theseedship/deposium_CLI/issues
