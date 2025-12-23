@@ -135,18 +135,6 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
 }
 
 /**
- * Handle authentication errors (401) during operations
- */
-export function handleAuthError(error: any): void {
-  if (error.message.includes('401') || error.message.includes('Authentication')) {
-    console.error(chalk.red('\n❌ Authentication failed'));
-    console.log(chalk.yellow('\nYour API key may be invalid or expired.'));
-    console.log(chalk.cyan('Run: deposium auth login') + chalk.gray(' to re-authenticate\n'));
-    process.exit(1);
-  }
-}
-
-/**
  * Mask API key for display (show first 8 chars + ...)
  */
 export function maskApiKey(apiKey: string): string {
