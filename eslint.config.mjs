@@ -7,9 +7,10 @@ export default [
   // Base ESLint recommended rules
   eslint.configs.recommended,
 
-  // TypeScript files configuration
+  // TypeScript files configuration (non-test)
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -78,6 +79,50 @@ export default [
       'no-implied-eval': 'error',
       'no-new-func': 'error',
       'no-script-url': 'error',
+    },
+  },
+
+  // Test files configuration (use separate tsconfig)
+  {
+    files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2024,
+        sourceType: 'module',
+        project: './tsconfig.test.json',
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        describe: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        vi: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      // Relaxed rules for tests
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'max-lines-per-function': 'off',
+      'max-lines': 'off',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
     },
   },
 
