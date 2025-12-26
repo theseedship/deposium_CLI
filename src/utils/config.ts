@@ -2,6 +2,53 @@ import 'dotenv/config';
 import Conf from 'conf';
 import path from 'path';
 import os from 'os';
+import chalk from 'chalk';
+
+/**
+ * Check if a URL is a localhost/development URL
+ */
+function isLocalhostUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '0.0.0.0' ||
+      parsed.hostname.endsWith('.local') ||
+      parsed.hostname.endsWith('.localhost')
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate URL security - warn if non-localhost URL uses HTTP instead of HTTPS
+ */
+export function validateUrlSecurity(url: string, silent: boolean = false): void {
+  if (!url) return;
+
+  try {
+    const parsed = new URL(url);
+
+    // Skip validation for localhost/development URLs
+    if (isLocalhostUrl(url)) return;
+
+    // Warn if production URL uses HTTP instead of HTTPS
+    if (parsed.protocol === 'http:') {
+      if (!silent) {
+        console.warn(
+          chalk.yellow('\n⚠️  Security Warning: ') +
+            chalk.white(`Using insecure HTTP for ${parsed.hostname}\n`) +
+            chalk.gray('   Production URLs should use HTTPS to protect data in transit.\n') +
+            chalk.gray(`   Consider using: ${chalk.cyan(url.replace('http:', 'https:'))}\n`)
+        );
+      }
+    }
+  } catch {
+    // Invalid URL, will be caught elsewhere
+  }
+}
 
 export interface DeposiumConfig {
   deposiumUrl?: string; // Unified URL for Deposium API (SolidStart server)
@@ -39,10 +86,26 @@ export function getConfig(): DeposiumConfig {
  *
  * Priority: deposiumUrl > mcpUrl (deprecated) > default
  * Default is http://localhost:3003 (local SolidStart dev server)
+ *
+ * @param cfg - Optional config object
+ * @param options - Options for URL validation
+ * @param options.validateSecurity - If true, warn about insecure HTTP on non-localhost URLs (default: true)
+ * @param options.silent - If true, suppress security warnings (default: false)
  */
-export function getBaseUrl(cfg?: DeposiumConfig): string {
+export function getBaseUrl(
+  cfg?: DeposiumConfig,
+  options: { validateSecurity?: boolean; silent?: boolean } = {}
+): string {
   const c = cfg || getConfig();
-  return c.deposiumUrl || c.mcpUrl || 'http://localhost:3003';
+  const url = c.deposiumUrl || c.mcpUrl || 'http://localhost:3003';
+
+  // Validate URL security by default (can be disabled for testing)
+  const { validateSecurity = true, silent = c.silentMode } = options;
+  if (validateSecurity) {
+    validateUrlSecurity(url, silent);
+  }
+
+  return url;
 }
 
 export function setConfig(key: keyof DeposiumConfig, value: any): void {
