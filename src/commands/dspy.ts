@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const dspyCommand = new Command('dspy').description(
@@ -28,7 +28,9 @@ dspyCommand
     try {
       console.log(chalk.bold('\n🧭 Routing query...\n'));
 
-      const params = options.params ? JSON.parse(options.params) : {};
+      const params = options.params
+        ? safeParseJSON<Record<string, unknown>>(options.params, '--params')
+        : {};
 
       const result = await client.callTool(
         'dspy_route',
