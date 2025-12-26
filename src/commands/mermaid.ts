@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const mermaidCommand = new Command('mermaid').description(
@@ -72,7 +72,7 @@ mermaidCommand
 
       console.log(chalk.bold('\n🎨 Generating Mermaid diagram...\n'));
 
-      const data = JSON.parse(options.data);
+      const data = safeParseJSON<Record<string, unknown>>(options.data, '--data');
 
       const result = await client.callTool(
         'mermaid.generate',

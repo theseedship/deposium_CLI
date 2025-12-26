@@ -140,17 +140,6 @@ displayCompactList('Title', items, 'icon');
 └─ 📦 @deposium/sdk v1.5.2
 ```
 
-### 9. **Progress Bars**
-
-Full progress bar support for long-running operations.
-
-```typescript
-const bar = createProgressBar(total, initialValue);
-bar.start(total, 0, { status: 'Processing...' });
-bar.update(current, { status: 'Current operation' });
-bar.stop();
-```
-
 ## 📦 New Dependencies
 
 The following packages were added to support the enhanced UI:
@@ -158,10 +147,7 @@ The following packages were added to support the enhanced UI:
 ```json
 {
   "boxen": "^8.0.1", // Boxes around content
-  "gradient-string": "^3.0.0", // Gradient text colors
-  "cli-progress": "^3.12.0", // Progress bars
-  "cli-spinners": "^3.2.0", // Enhanced spinners
-  "ascii-tree": "^0.3.0" // Tree visualization helpers
+  "gradient-string": "^3.0.0" // Gradient text colors
 }
 ```
 
@@ -282,7 +268,6 @@ import {
   formatGraphTree,
   displayCompactList,
   typewriter,
-  createProgressBar,
 } from './utils/formatter';
 ```
 

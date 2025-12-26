@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const graphCommand = new Command('graph')
@@ -146,7 +146,9 @@ export const graphCommand = new Command('graph')
         try {
           console.log(chalk.bold('\n🔀 Executing multi-hop query...\n'));
 
-          const edgeFilters = options.edgeFilters ? JSON.parse(options.edgeFilters) : undefined;
+          const edgeFilters = options.edgeFilters
+            ? safeParseJSON<Record<string, unknown>>(options.edgeFilters, '--edge-filters')
+            : undefined;
 
           const result = await client.callTool(
             'graph_multihop',

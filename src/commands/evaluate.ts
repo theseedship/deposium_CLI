@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const evaluateCommand = new Command('evaluate')
@@ -230,7 +230,9 @@ evaluateCommand
     try {
       console.log(chalk.bold('\n🔍 Assessing code quality...\n'));
 
-      const testCases = options.testCases ? JSON.parse(options.testCases) : undefined;
+      const testCases = options.testCases
+        ? safeParseJSON<unknown[]>(options.testCases, '--test-cases')
+        : undefined;
 
       const result = await client.callTool(
         'scan_vulnerabilities',

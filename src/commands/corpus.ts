@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const corpusCommand = new Command('corpus')
@@ -217,7 +217,9 @@ export const corpusCommand = new Command('corpus')
         try {
           console.log(chalk.bold('\n🆕 Checking corpus freshness...\n'));
 
-          const sources = options.sources ? JSON.parse(options.sources) : undefined;
+          const sources = options.sources
+            ? safeParseJSON<string[]>(options.sources, '--sources')
+            : undefined;
 
           const result = await client.callTool(
             'corpus.freshness',

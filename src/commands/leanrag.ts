@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, parseAPIResponse } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const leanragCommand = new Command('leanrag').description(
@@ -78,7 +78,7 @@ leanragCommand
         );
         process.exit(1);
       } else {
-        resultsData = JSON.parse(results);
+        resultsData = parseAPIResponse(results);
       }
 
       const result = await client.callTool(

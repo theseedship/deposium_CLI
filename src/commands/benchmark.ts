@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const benchmarkCommand = new Command('benchmark')
@@ -41,7 +41,8 @@ benchmarkCommand
       }
 
       // Parse and display categories nicely
-      const data = typeof result.content === 'string' ? JSON.parse(result.content) : result.content;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = parseAPIResponse<any>(result.content);
 
       if (options.format === 'table' && data.categories) {
         console.log(chalk.cyan('Categories:'));
@@ -68,7 +69,11 @@ benchmarkCommand
 benchmarkCommand
   .command('run')
   .description('Run a standardized LLM benchmark')
-  .option('-c, --category <name>', 'Benchmark category (knowledge|coding|math|reasoning|cybersecurity|search)', 'search')
+  .option(
+    '-c, --category <name>',
+    'Benchmark category (knowledge|coding|math|reasoning|cybersecurity|search)',
+    'search'
+  )
   .option('-p, --provider <name>', 'LLM provider (groq|openai|anthropic)', 'groq')
   .option('-m, --model <name>', 'Model name', 'llama-3.1-8b-instant')
   .option('-n, --samples <number>', 'Maximum samples to evaluate', '100')
@@ -108,7 +113,8 @@ benchmarkCommand
       }
 
       // Parse and display score prominently
-      const data = typeof result.content === 'string' ? JSON.parse(result.content) : result.content;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = parseAPIResponse<any>(result.content);
 
       if (options.format === 'table') {
         const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
@@ -174,12 +180,12 @@ benchmarkCommand
       if (options.queries) {
         try {
           // Try parsing as inline JSON first
-          queries = JSON.parse(options.queries);
+          queries = safeParseJSON<typeof queries>(options.queries, '--queries');
         } catch {
           // If that fails, try reading as file
           const fs = await import('fs/promises');
           const content = await fs.readFile(options.queries, 'utf-8');
-          queries = JSON.parse(content);
+          queries = safeParseJSON<typeof queries>(content, '--queries (file)');
         }
       } else {
         // Default example queries for demo
@@ -189,7 +195,9 @@ benchmarkCommand
             relevant_docs: ['Expected relevant document content'],
           },
         ];
-        console.log(chalk.yellow('⚠️  No queries provided, using example. Use --queries to specify.'));
+        console.log(
+          chalk.yellow('⚠️  No queries provided, using example. Use --queries to specify.')
+        );
       }
 
       const result = await client.callTool(
@@ -211,7 +219,8 @@ benchmarkCommand
       }
 
       // Parse and display results
-      const data = typeof result.content === 'string' ? JSON.parse(result.content) : result.content;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = parseAPIResponse<any>(result.content);
 
       if (options.format === 'table') {
         const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
@@ -293,7 +302,8 @@ benchmarkCommand
         );
 
         if (!result.isError) {
-          const data = typeof result.content === 'string' ? JSON.parse(result.content) : result.content;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = parseAPIResponse<any>(result.content);
           results.push({
             model,
             score: data.score,
@@ -309,7 +319,16 @@ benchmarkCommand
     results.sort((a, b) => b.score - a.score);
 
     console.log(chalk.bold('\n📊 Comparison Results\n'));
-    console.log('  ' + chalk.gray('Rank') + '  ' + chalk.gray('Model'.padEnd(30)) + '  ' + chalk.gray('Score') + '  ' + chalk.gray('Duration'));
+    console.log(
+      '  ' +
+        chalk.gray('Rank') +
+        '  ' +
+        chalk.gray('Model'.padEnd(30)) +
+        '  ' +
+        chalk.gray('Score') +
+        '  ' +
+        chalk.gray('Duration')
+    );
     console.log('  ' + '-'.repeat(55));
 
     results.forEach((r, i) => {

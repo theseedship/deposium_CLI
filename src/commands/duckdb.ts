@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const duckdbCommand = new Command('duckdb')
@@ -112,7 +112,7 @@ duckdbCommand
 
       console.log(chalk.bold('\n🌐 Executing federated query...\n'));
 
-      const sources = JSON.parse(options.sources);
+      const sources = safeParseJSON<Record<string, unknown>[]>(options.sources, '--sources');
 
       const result = await client.callTool(
         'duckdb.federate',
