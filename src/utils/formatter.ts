@@ -4,7 +4,6 @@ import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
 import boxen from 'boxen';
 import gradient from 'gradient-string';
-import cliProgress from 'cli-progress';
 
 // Lazy initialization of marked with terminal rendering
 let markedConfigured = false;
@@ -303,21 +302,6 @@ export function createInfoBox(
 }
 
 /**
- * Create a progress bar for long operations
- */
-export function createProgressBar(_total: number): cliProgress.SingleBar {
-  return new cliProgress.SingleBar(
-    {
-      format: chalk.cyan('{bar}') + ' | {percentage}% | {value}/{total} | {status}',
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      hideCursor: true,
-    },
-    cliProgress.Presets.shades_classic
-  );
-}
-
-/**
  * Display a visual metric with bar representation
  */
 export function displayMetricBar(
@@ -541,4 +525,40 @@ export function formatError(error: any): void {
   }
 
   console.error('');
+}
+
+/**
+ * Safely parse JSON with descriptive error messages for CLI options
+ * @param input - The JSON string to parse
+ * @param optionName - The CLI option name for error messages (e.g., '--sources')
+ * @returns Parsed JSON object
+ * @throws Error with user-friendly message if parsing fails
+ */
+export function safeParseJSON<T = unknown>(input: string, optionName: string): T {
+  try {
+    return JSON.parse(input) as T;
+  } catch {
+    throw new Error(
+      `Invalid JSON for ${optionName}. ` +
+        `Please provide valid JSON (e.g., ${optionName} '{"key": "value"}' or ${optionName} '[1, 2, 3]'). ` +
+        `Received: ${input.length > 100 ? input.substring(0, 100) + '...' : input}`
+    );
+  }
+}
+
+/**
+ * Safely parse JSON from API response content
+ * @param content - The content to parse (string or object)
+ * @returns Parsed object or the original object if already parsed
+ */
+export function parseAPIResponse<T = unknown>(content: string | T): T {
+  if (typeof content === 'string') {
+    try {
+      return JSON.parse(content) as T;
+    } catch {
+      // Return as-is if not valid JSON (could be plain text response)
+      return content as unknown as T;
+    }
+  }
+  return content;
 }

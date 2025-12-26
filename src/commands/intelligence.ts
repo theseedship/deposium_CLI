@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
-import { formatOutput } from '../utils/formatter';
+import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
 
 export const intelligenceCommand = new Command('intelligence')
@@ -109,7 +109,7 @@ intelligenceCommand
         );
         process.exit(1);
       } else {
-        resultsData = JSON.parse(results);
+        resultsData = parseAPIResponse(results);
       }
 
       const result = await client.callTool(
@@ -152,7 +152,9 @@ intelligenceCommand
     try {
       console.log(chalk.bold('\n🤔 Checking for clarification needs...\n'));
 
-      const context = options.context ? JSON.parse(options.context) : undefined;
+      const context = options.context
+        ? safeParseJSON<Record<string, unknown>>(options.context, '--context')
+        : undefined;
 
       const result = await client.callTool(
         'smart_elicit',

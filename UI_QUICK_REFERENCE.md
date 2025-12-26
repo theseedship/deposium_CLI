@@ -12,7 +12,6 @@ import {
   formatGraphTree,
   displayCompactList,
   typewriter,
-  createProgressBar,
 } from './utils/formatter';
 ```
 
@@ -82,17 +81,6 @@ await typewriter('text', speed?)
 
 **Output:** Character-by-character streaming
 
-### 9. Progress Bar
-
-```typescript
-const bar = createProgressBar(total, initialValue?)
-bar.start(total, 0, { status: 'msg' })
-bar.update(current, { status: 'msg' })
-bar.stop()
-```
-
-**Returns:** Progress bar instance
-
 ## 🎨 Color Scheme
 
 | Color    | Usage                              |
@@ -123,18 +111,6 @@ displayMetricBar('Uptime', 99.5, 100, '%');
 console.log(divider('Results', 'heavy'));
 formatGraphTree(nodes, edges);
 displayCompactList('Items', ['item1', 'item2'], '📄');
-```
-
-### Progress Tracking
-
-```typescript
-const bar = createProgressBar(items.length);
-bar.start(items.length, 0, { status: 'Processing...' });
-for (let i = 0; i < items.length; i++) {
-  // Process item
-  bar.update(i + 1, { status: `Processing ${items[i]}` });
-}
-bar.stop();
 ```
 
 ## ⚡ Quick Tips

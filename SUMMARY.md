@@ -26,7 +26,6 @@ Added 9 new exported functions:
 - 🌳 `formatGraphTree()` - ASCII tree visualization for graph data
 - 📋 `displayCompactList()` - Hierarchical list display
 - ⌨️ `typewriter()` - Streaming text effect for AI responses
-- 📈 `createProgressBar()` - Full progress bar instances
 
 ### 3. **Enhanced Commands**
 
@@ -174,7 +173,6 @@ import {
   formatGraphTree,
   displayCompactList,
   typewriter,
-  createProgressBar,
 } from './utils/formatter';
 ```
 
