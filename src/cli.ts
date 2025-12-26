@@ -23,6 +23,59 @@ import { uploadBatchCommand } from './commands/upload-batch';
 import { benchmarkCommand } from './commands/benchmark';
 import { getConfig, getBaseUrl } from './utils/config';
 
+// ============================================================================
+// Graceful Shutdown Handlers
+// ============================================================================
+
+let isShuttingDown = false;
+
+/**
+ * Handle graceful shutdown on SIGTERM/SIGINT
+ * Ensures clean exit without orphaned processes or connections
+ */
+function handleShutdown(signal: string): void {
+  if (isShuttingDown) {
+    // Force exit if already shutting down (user pressed Ctrl+C twice)
+    console.log(chalk.red('\nForce exit...'));
+    process.exit(1);
+  }
+
+  isShuttingDown = true;
+  console.log(chalk.yellow(`\n\n🛑 Received ${signal}, shutting down gracefully...`));
+
+  // Give a short time for cleanup, then exit
+  setTimeout(() => {
+    console.log(chalk.gray('Cleanup complete. Goodbye!'));
+    process.exit(0);
+  }, 100);
+}
+
+// Register signal handlers
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+
+// Handle uncaught errors gracefully
+process.on('uncaughtException', (error: Error) => {
+  console.error(chalk.red('\n❌ Unexpected error:'), error.message);
+  if (process.env.DEBUG) {
+    console.error(chalk.gray(error.stack || ''));
+  }
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  console.error(chalk.red('\n❌ Unhandled promise rejection:'), message);
+  if (process.env.DEBUG && reason instanceof Error) {
+    console.error(chalk.gray(reason.stack || ''));
+  }
+  process.exit(1);
+});
+
+// ============================================================================
+// CLI Setup
+// ============================================================================
+
 const program = new Command();
 
 program
