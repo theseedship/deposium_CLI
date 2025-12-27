@@ -911,7 +911,6 @@ MIT © The Seed Ship
 ## 🔗 Links
 
 - **MCP Server**: https://github.com/theseedship/deposium_MCPs
-- **Online Docs**: https://deposium.vip/docs
 - **Issues**: https://github.com/theseedship/deposium_CLI/issues
 - **Releases**: https://github.com/theseedship/deposium_CLI/releases
 
