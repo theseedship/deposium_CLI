@@ -429,17 +429,6 @@ export function divider(label?: string, style: 'light' | 'heavy' | 'double' = 'l
 }
 
 /**
- * Typewriter effect for text (streaming simulation)
- */
-export async function typewriter(text: string, speed: number = 10): Promise<void> {
-  for (const char of text) {
-    process.stdout.write(char);
-    await new Promise((resolve) => setTimeout(resolve, speed));
-  }
-  process.stdout.write('\n');
-}
-
-/**
  * Format graph data as a tree visualization
  */
 export function formatGraphTree(nodes: GraphNode[], edges: GraphEdge[]): void {
@@ -562,23 +551,6 @@ function stripHtmlTags(html: string): string {
     .replace(/&#39;/g, "'")
     .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines to double
     .trim();
-}
-
-export function formatError(error: unknown): void {
-  console.error(chalk.red('\n❌ Error:\n'));
-
-  const httpError = error as HttpError;
-  if (httpError?.response) {
-    console.error(chalk.yellow('Status:'), httpError.response.status);
-    console.error(
-      chalk.yellow('Message:'),
-      httpError.response.data?.message || getErrorMessage(error)
-    );
-  } else {
-    console.error(getErrorMessage(error));
-  }
-
-  console.error('');
 }
 
 /**

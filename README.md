@@ -896,11 +896,22 @@ export PATH="$PATH:$(npm bin -g)"
 
 MIT © The Seed Ship
 
+## 📚 Documentation
+
+| Document                                                       | Description                      |
+| -------------------------------------------------------------- | -------------------------------- |
+| [ROADMAP.md](ROADMAP.md)                                       | Vision, roadmap & best practices |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md)                 | Complete configuration guide     |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)                   | Contribution guidelines          |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md)                         | Version history                  |
+| [docs/guides/BEST_PRACTICES.md](docs/guides/BEST_PRACTICES.md) | Tips and recommendations         |
+| [docs/features/](docs/features/)                               | Feature-specific documentation   |
+| [docs/architecture/](docs/architecture/)                       | Technical architecture docs      |
+
 ## 🔗 Links
 
-- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 - **MCP Server**: https://github.com/theseedship/[private-server-repo]
-- **Documentation**: https://deposium.vip/docs
+- **Online Docs**: https://deposium.vip/docs
 - **Issues**: https://github.com/theseedship/deposium_CLI/issues
 - **Releases**: https://github.com/theseedship/deposium_CLI/releases
 
