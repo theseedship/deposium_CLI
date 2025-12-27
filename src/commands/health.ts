@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
+import { MCPClient, MCPHealthService } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
 import {
   formatOutput,
@@ -11,6 +11,7 @@ import {
   createInfoBox,
 } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 
 export const healthCommand = new Command('health')
   .description('Check Deposium API and services health')
@@ -56,7 +57,7 @@ export const healthCommand = new Command('health')
           console.log(divider('Services Status', 'light'));
           console.log('');
 
-          health.services.forEach((service: any) => {
+          health.services.forEach((service: MCPHealthService) => {
             let status: 'online' | 'offline' | 'degraded' | 'unknown';
 
             if (service.status === 'healthy' || service.status === 'online') {
@@ -69,7 +70,7 @@ export const healthCommand = new Command('health')
               status = 'unknown';
             }
 
-            displayStatus(service.service || 'Unknown', status);
+            displayStatus(service.name || 'Unknown', status);
 
             if (service.message) {
               console.log(chalk.gray(`  └─ ${service.message}`));
@@ -78,7 +79,7 @@ export const healthCommand = new Command('health')
 
           // Calculate uptime percentage if available
           const healthyServices = health.services.filter(
-            (s: any) => s.status === 'healthy' || s.status === 'online'
+            (s) => s.status === 'healthy' || s.status === 'online'
           ).length;
           const totalServices = health.services.length;
 
@@ -89,8 +90,8 @@ export const healthCommand = new Command('health')
 
         console.log('\n' + divider('', 'light') + '\n');
       }
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is running:');
       console.log(chalk.gray('  cd deposium_solid && pnpm dev\n'));
       process.exit(1);

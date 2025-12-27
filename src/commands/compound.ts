@@ -4,6 +4,7 @@ import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 import { ChatHistory } from '../utils/chat-history';
 
 // Global chat history for the compound command (persists across calls in same session)
@@ -72,8 +73,8 @@ export const compoundCommand = new Command('compound')
           console.log(
             chalk.gray(`\n💬 ${globalChatHistory.getMessages().length} messages in conversation\n`)
           );
-        } catch (error: any) {
-          console.error(chalk.red('\n❌ Error:'), error.message);
+        } catch (error: unknown) {
+          console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
           process.exit(1);
         }
       })
@@ -110,8 +111,8 @@ export const compoundCommand = new Command('compound')
           }
 
           formatOutput(result.content, options.format);
-        } catch (error: any) {
-          console.error(chalk.red('\n❌ Error:'), error.message);
+        } catch (error: unknown) {
+          console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
           process.exit(1);
         }
       })

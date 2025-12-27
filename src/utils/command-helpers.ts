@@ -9,6 +9,15 @@ import chalk from 'chalk';
 import { MCPClient, MCPClientOptions } from '../client/mcp-client';
 import { getConfig, getBaseUrl, DeposiumConfig } from './config';
 import { ensureAuthenticated } from './auth';
+import {
+  getErrorMessage as _getErrorMessage,
+  isErrorWithCode,
+  hasErrorCauseWithCode,
+} from './errors';
+
+// Re-export error utilities for convenience
+export { isErrorWithCode, hasErrorCauseWithCode };
+export const getErrorMessage = _getErrorMessage;
 
 export interface CommandContext {
   config: DeposiumConfig;
@@ -64,7 +73,7 @@ export async function initializeCommand(options: InitializeOptions = {}): Promis
  * @param silent - If true, suppress detailed error output
  */
 export function handleCommandError(error: unknown, silent: boolean = false): never {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? getErrorMessage(error) : String(error);
 
   if (!silent) {
     console.error(chalk.red('\n❌ Error:'), message);

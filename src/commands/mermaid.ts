@@ -4,6 +4,7 @@ import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 
 export const mermaidCommand = new Command('mermaid').description(
   'Extract, generate, and query Mermaid diagrams'
@@ -43,8 +44,8 @@ mermaidCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -90,8 +91,8 @@ mermaidCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -134,8 +135,8 @@ mermaidCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
