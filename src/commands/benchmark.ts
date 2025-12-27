@@ -6,6 +6,34 @@ import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatte
 import { ensureAuthenticated } from '../utils/auth';
 import { getErrorMessage } from '../utils/command-helpers';
 
+/** OpenBench category information */
+interface BenchmarkCategory {
+  name: string;
+  description: string;
+  benchmarks: string[];
+}
+
+/** Response from openbench_list */
+interface BenchmarkListResponse {
+  categories: Record<string, BenchmarkCategory>;
+  providers: string[];
+  default_provider: string;
+  default_model: string;
+}
+
+/** Response from openbench_run and openbench_corpus_eval */
+interface BenchmarkRunResponse {
+  score: number;
+  category: string;
+  provider: string;
+  model: string;
+  samples_evaluated: number;
+  duration_seconds?: number;
+  timestamp: string;
+  metrics?: Record<string, unknown>;
+  errors?: string[];
+}
+
 export const benchmarkCommand = new Command('benchmark')
   .alias('bench')
   .description('OpenBench LLM benchmarking and evaluation');
@@ -42,13 +70,11 @@ benchmarkCommand
       }
 
       // Parse and display categories nicely
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = parseAPIResponse<any>(result.content);
+      const data = parseAPIResponse<BenchmarkListResponse>(result.content);
 
       if (options.format === 'table' && data.categories) {
         console.log(chalk.cyan('Categories:'));
-        for (const [key, cat] of Object.entries(data.categories)) {
-          const category = cat as { name: string; description: string; benchmarks: string[] };
+        for (const [key, category] of Object.entries(data.categories)) {
           console.log(`  ${chalk.yellow(key)}: ${category.name}`);
           console.log(`    ${chalk.gray(category.description)}`);
           if (category.benchmarks) {
@@ -114,8 +140,7 @@ benchmarkCommand
       }
 
       // Parse and display score prominently
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = parseAPIResponse<any>(result.content);
+      const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
 
       if (options.format === 'table') {
         const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
@@ -220,8 +245,7 @@ benchmarkCommand
       }
 
       // Parse and display results
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = parseAPIResponse<any>(result.content);
+      const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
 
       if (options.format === 'table') {
         const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
@@ -303,12 +327,11 @@ benchmarkCommand
         );
 
         if (!result.isError) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data = parseAPIResponse<any>(result.content);
+          const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
           results.push({
             model,
             score: data.score,
-            duration: data.duration_seconds,
+            duration: data.duration_seconds ?? 0,
           });
         }
       } catch (error: unknown) {
