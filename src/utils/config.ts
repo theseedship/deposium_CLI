@@ -108,7 +108,7 @@ export function getBaseUrl(
   return url;
 }
 
-export function setConfig(key: keyof DeposiumConfig, value: any): void {
+export function setConfig(key: keyof DeposiumConfig, value: DeposiumConfig[typeof key]): void {
   config.set(key, value);
 }
 

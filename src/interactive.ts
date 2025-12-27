@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { MCPClient } from './client/mcp-client';
+import { MCPClient, MCPTool } from './client/mcp-client';
 import { getConfig, getBaseUrl } from './utils/config';
 import { formatOutput, createTitleBox } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
@@ -292,7 +292,7 @@ async function handleCompound(client: MCPClient, chatHistory: ChatHistory): Prom
   const conversationContext = chatHistory.getContext(6);
 
   // Build context object - only add conversation_history if it exists
-  const context: any = {};
+  const context: { conversation_history?: string } = {};
   if (conversationContext) {
     context.conversation_history = conversationContext;
   }
@@ -604,8 +604,8 @@ async function handleTools(client: MCPClient): Promise<void> {
   console.log(chalk.bold.cyan(`📊 Found ${tools.length} tools\n`));
 
   // Group by category
-  const categories = new Map<string, any[]>();
-  tools.forEach((tool: any) => {
+  const categories = new Map<string, MCPTool[]>();
+  tools.forEach((tool) => {
     const category = tool.name.split('_')[0] || 'other';
     if (!categories.has(category)) {
       categories.set(category, []);
