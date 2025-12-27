@@ -58,8 +58,7 @@ let markedConfigured = false;
 function ensureMarkedConfigured() {
   if (!markedConfigured) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      marked.use(markedTerminal() as any);
+      marked.use(markedTerminal());
       markedConfigured = true;
     } catch {
       // Fallback to default marked if terminal rendering fails

@@ -147,6 +147,83 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Sanitize error data to remove stack traces
+ */
+function sanitizeErrorData(
+  errorData: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  if (!errorData) return {};
+
+  const result: Record<string, unknown> = {};
+
+  // Use top-level message first, fallback to nested error.message
+  if (errorData.message) {
+    result.message = errorData.message;
+  } else if ((errorData.error as Record<string, unknown>)?.message) {
+    result.message = (errorData.error as Record<string, unknown>).message;
+  }
+
+  // Include safe error details (exclude stack traces)
+  if (errorData.error && typeof errorData.error === 'object') {
+    const { stack: _stack, ...safeError } = errorData.error as Record<string, unknown>;
+    if (Object.keys(safeError).length > 0) {
+      result.error = safeError;
+    }
+  }
+
+  if (errorData.details) result.details = errorData.details;
+
+  return result;
+}
+
+/**
+ * Create an error result from an Axios error
+ */
+function createAxiosErrorResult(
+  error: AxiosError,
+  baseUrl: string,
+  requestId: string
+): { result: MCPToolResult; shouldThrow: boolean; errorToThrow?: Error } {
+  if (error.code === 'ECONNREFUSED') {
+    return {
+      result: { content: null, isError: true },
+      shouldThrow: true,
+      errorToThrow: new Error(
+        `Cannot connect to Deposium API at ${baseUrl}\nMake sure the Deposium server is running`
+      ),
+    };
+  }
+
+  if (error.response?.status === 401) {
+    return {
+      result: { content: null, isError: true },
+      shouldThrow: true,
+      errorToThrow: new Error(
+        'Authentication failed (401)\n' +
+          ((error.response?.data as Record<string, unknown>)?.message ??
+            'Invalid or missing API key')
+      ),
+    };
+  }
+
+  const errorData = error.response?.data as Record<string, unknown> | undefined;
+  const sanitized = sanitizeErrorData(errorData);
+
+  return {
+    result: {
+      content: {
+        message: sanitized.message ?? error.message,
+        status: error.response?.status,
+        requestId,
+        ...sanitized,
+      },
+      isError: true,
+    },
+    shouldThrow: false,
+  };
+}
+
+/**
  * HTTP client for the Deposium MCP API
  *
  * Provides methods for calling MCP tools, listing available tools,
@@ -326,50 +403,17 @@ export class MCPClient {
     if (spinner) spinner.fail(`Tool ${chalk.red(toolName)} failed`);
 
     if (axios.isAxiosError(lastError)) {
-      if (lastError.code === 'ECONNREFUSED') {
-        throw new Error(
-          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-            'Make sure the Deposium server is running'
-        );
-      }
-
-      // Check for authentication errors
-      if (lastError.response?.status === 401) {
-        throw new Error(
-          'Authentication failed (401)\n' +
-            (lastError.response?.data?.message || 'Invalid or missing API key')
-        );
-      }
-
-      // Extract error information WITHOUT exposing stack traces
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const errorData = lastError.response?.data as Record<string, any> | undefined;
-      const errorDetails: Record<string, unknown> = {
-        message: errorData?.message || errorData?.error?.message || lastError.message,
-        status: lastError.response?.status,
-        requestId, // Include request ID for debugging
-      };
-
-      // Include safe error details (exclude stack traces)
-      if (errorData?.error && typeof errorData.error === 'object') {
-        const { stack: _stack, ...safeError } = errorData.error;
-        if (Object.keys(safeError).length > 0) {
-          errorDetails.error = safeError;
-        }
-      }
-      if (errorData?.details) {
-        errorDetails.details = errorData.details;
-      }
-      // Explicitly DO NOT include errorData.stack
-
-      return {
-        content: errorDetails,
-        isError: true,
-      };
+      const { result, shouldThrow, errorToThrow } = createAxiosErrorResult(
+        lastError,
+        this.baseUrl,
+        requestId
+      );
+      if (shouldThrow && errorToThrow) throw errorToThrow;
+      return result;
     }
 
     return {
-      content: { message: lastError?.message || 'Unknown error', requestId },
+      content: { message: lastError?.message ?? 'Unknown error', requestId },
       isError: true,
     };
   }

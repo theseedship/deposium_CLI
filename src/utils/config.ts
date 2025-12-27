@@ -69,11 +69,11 @@ const config = new Conf<DeposiumConfig>({
 export function getConfig(): DeposiumConfig {
   // Priority: Environment variables > Config file > Defaults
   return {
-    deposiumUrl: process.env.DEPOSIUM_URL || config.get('deposiumUrl'),
-    mcpUrl: process.env.DEPOSIUM_MCP_URL || config.get('mcpUrl'), // @deprecated
-    apiKey: process.env.DEPOSIUM_API_KEY || config.get('apiKey'),
-    defaultTenant: process.env.DEPOSIUM_TENANT || config.get('defaultTenant'),
-    defaultSpace: process.env.DEPOSIUM_SPACE || config.get('defaultSpace'),
+    deposiumUrl: process.env.DEPOSIUM_URL ?? config.get('deposiumUrl'),
+    mcpUrl: process.env.DEPOSIUM_MCP_URL ?? config.get('mcpUrl'), // @deprecated
+    apiKey: process.env.DEPOSIUM_API_KEY ?? config.get('apiKey'),
+    defaultTenant: process.env.DEPOSIUM_TENANT ?? config.get('defaultTenant'),
+    defaultSpace: process.env.DEPOSIUM_SPACE ?? config.get('defaultSpace'),
     outputFormat:
       (process.env.DEPOSIUM_OUTPUT as 'json' | 'table' | 'markdown') ||
       config.get('outputFormat', 'table'),
@@ -97,7 +97,7 @@ export function getBaseUrl(
   options: { validateSecurity?: boolean; silent?: boolean } = {}
 ): string {
   const c = cfg || getConfig();
-  const url = c.deposiumUrl || c.mcpUrl || 'http://localhost:3003';
+  const url = c.deposiumUrl ?? c.mcpUrl ?? 'http://localhost:3003';
 
   // Validate URL security by default (can be disabled for testing)
   const { validateSecurity = true, silent = c.silentMode } = options;
