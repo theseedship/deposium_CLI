@@ -6,6 +6,53 @@ import boxen from 'boxen';
 import gradient from 'gradient-string';
 import { getErrorMessage } from './errors';
 
+/** Text block from compound AI response */
+interface TextBlock {
+  type: 'text';
+  text: string;
+}
+
+/** Compound AI analysis result */
+interface CompoundAIResult {
+  success: boolean;
+  answer?: string;
+  confidence?: number;
+  model_used?: string;
+  tools_used?: string[];
+  tokens_used?: number;
+  execution_time_ms?: number;
+  reasoning?: string;
+}
+
+/** Graph node for visualization */
+interface GraphNode {
+  id?: string;
+  node_id?: string;
+  name?: string;
+  label?: string;
+  type?: string;
+  content?: string;
+  [key: string]: unknown;
+}
+
+/** Graph edge for visualization */
+interface GraphEdge {
+  source?: string;
+  from?: string;
+  target?: string;
+  to?: string;
+  label?: string;
+  type?: string;
+}
+
+/** Error with HTTP response */
+interface HttpError extends Error {
+  response?: {
+    status: number;
+    data?: { message?: string };
+  };
+}
+
 // Lazy initialization of marked with terminal rendering
 let markedConfigured = false;
 function ensureMarkedConfigured() {
@@ -22,7 +69,7 @@ function ensureMarkedConfigured() {
   }
 }
 
-export function formatOutput(data: any, format: string = 'table'): void {
+export function formatOutput(data: unknown, format: string = 'table'): void {
   switch (format.toLowerCase()) {
     case 'json':
       formatJSON(data);
@@ -38,11 +85,11 @@ export function formatOutput(data: any, format: string = 'table'): void {
   }
 }
 
-function formatJSON(data: any): void {
+function formatJSON(data: unknown): void {
   console.log(JSON.stringify(data, null, 2));
 }
 
-function formatTable(data: any): void {
+function formatTable(data: unknown): void {
   // Handle different data types
   if (Array.isArray(data)) {
     if (data.length === 0) {
@@ -64,13 +111,13 @@ function formatTable(data: any): void {
     });
 
     // Add rows
-    data.forEach((row) => {
-      table.push(headers.map((h) => truncate(String(row[h] || ''), 100)));
+    data.forEach((row: Record<string, unknown>) => {
+      table.push(headers.map((h) => truncate(String(row[h] ?? ''), 100)));
     });
 
     console.log('\n' + table.toString() + '\n');
     console.log(chalk.gray(`Found ${data.length} result(s)\n`));
-  } else if (typeof data === 'object') {
+  } else if (data && typeof data === 'object') {
     // Single object - show as key-value pairs
     const table = new Table({
       style: {
@@ -80,7 +127,7 @@ function formatTable(data: any): void {
       wordWrap: true,
     });
 
-    Object.entries(data).forEach(([key, value]) => {
+    Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
       table.push({
         [chalk.cyan(key)]:
           typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value),
@@ -93,7 +140,7 @@ function formatTable(data: any): void {
   }
 }
 
-function formatMarkdown(data: any): void {
+function formatMarkdown(data: unknown): void {
   ensureMarkedConfigured();
   let markdown = '';
 
@@ -104,28 +151,30 @@ function formatMarkdown(data: any): void {
     }
 
     // Check if this is compound AI result (has content array with text blocks)
-    if (data.length > 0 && data[0].type === 'text' && data[0].text) {
-      formatCompoundAI(data);
+    const first = data[0] as Record<string, unknown>;
+    if (data.length > 0 && first.type === 'text' && first.text) {
+      formatCompoundAI(data as TextBlock[]);
       return;
     }
 
     // Create markdown table
-    const headers = Object.keys(data[0] || {});
+    const headers = Object.keys(first || {});
     markdown += '| ' + headers.join(' | ') + ' |\n';
     markdown += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
 
-    data.forEach((row) => {
-      markdown += '| ' + headers.map((h) => String(row[h] || '')).join(' | ') + ' |\n';
+    data.forEach((row: Record<string, unknown>) => {
+      markdown += '| ' + headers.map((h) => String(row[h] ?? '')).join(' | ') + ' |\n';
     });
-  } else if (typeof data === 'object') {
+  } else if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
     // Check if this is a compound AI response object
-    if (data.success !== undefined && data.answer) {
-      formatCompoundAIObject(data);
+    if (obj.success !== undefined && obj.answer) {
+      formatCompoundAIObject(obj as unknown as CompoundAIResult);
       return;
     }
 
     // Single object - show as list
-    Object.entries(data).forEach(([key, value]) => {
+    Object.entries(obj).forEach(([key, value]) => {
       markdown += `**${key}**: ${typeof value === 'object' ? JSON.stringify(value) : value}\n\n`;
     });
   } else {
@@ -135,9 +184,9 @@ function formatMarkdown(data: any): void {
   console.log('\n' + marked(markdown) + '\n');
 }
 
-function formatCompoundAI(data: any[]): void {
+function formatCompoundAI(data: TextBlock[]): void {
   // Parse the text content to extract JSON
-  let result: any = {};
+  let result: CompoundAIResult = { success: false };
 
   try {
     // Combine all text blocks
@@ -147,7 +196,7 @@ function formatCompoundAI(data: any[]): void {
       .join('\n');
 
     // Try to parse as JSON
-    result = JSON.parse(textContent);
+    result = JSON.parse(textContent) as CompoundAIResult;
   } catch {
     // If not JSON, display as-is
     console.log('\n' + data.map((item) => item.text).join('\n') + '\n');
@@ -157,7 +206,7 @@ function formatCompoundAI(data: any[]): void {
   formatCompoundAIObject(result);
 }
 
-function formatCompoundAIObject(result: any): void {
+function formatCompoundAIObject(result: CompoundAIResult): void {
   ensureMarkedConfigured();
 
   // Display blue gradient ASCII art header
@@ -393,15 +442,15 @@ export async function typewriter(text: string, speed: number = 10): Promise<void
 /**
  * Format graph data as a tree visualization
  */
-export function formatGraphTree(nodes: any[], edges: any[]): void {
+export function formatGraphTree(nodes: GraphNode[], edges: GraphEdge[]): void {
   console.log(chalk.bold.cyan('\n🌳 Graph Structure\n'));
 
   // Build adjacency list
   const adjacencyList: Map<string, string[]> = new Map();
-  const nodeMap: Map<string, any> = new Map();
+  const nodeMap: Map<string, GraphNode> = new Map();
 
   nodes.forEach((node) => {
-    const nodeId = node.id || node.node_id || node.name;
+    const nodeId = node.id || node.node_id || node.name || '';
     nodeMap.set(nodeId, node);
     if (!adjacencyList.has(nodeId)) {
       adjacencyList.set(nodeId, []);
@@ -409,8 +458,8 @@ export function formatGraphTree(nodes: any[], edges: any[]): void {
   });
 
   edges.forEach((edge) => {
-    const from = edge.source || edge.from;
-    const to = edge.target || edge.to;
+    const from = edge.source || edge.from || '';
+    const to = edge.target || edge.to || '';
     if (!adjacencyList.has(from)) {
       adjacencyList.set(from, []);
     }
@@ -420,7 +469,7 @@ export function formatGraphTree(nodes: any[], edges: any[]): void {
   // Find root nodes (nodes with no incoming edges)
   const hasIncoming = new Set<string>();
   edges.forEach((edge) => {
-    const to = edge.target || edge.to;
+    const to = edge.target || edge.to || '';
     hasIncoming.add(to);
   });
 
@@ -445,7 +494,7 @@ export function formatGraphTree(nodes: any[], edges: any[]): void {
  */
 function displayTreeNode(
   nodeId: string,
-  nodeMap: Map<string, any>,
+  nodeMap: Map<string, GraphNode>,
   adjacencyList: Map<string, string[]>,
   prefix: string,
   isLast: boolean,
@@ -515,12 +564,16 @@ function stripHtmlTags(html: string): string {
     .trim();
 }
 
-export function formatError(error: any): void {
+export function formatError(error: unknown): void {
   console.error(chalk.red('\n❌ Error:\n'));
 
-  if (error.response) {
-    console.error(chalk.yellow('Status:'), error.response.status);
-    console.error(chalk.yellow('Message:'), error.response.data?.message || getErrorMessage(error));
+  const httpError = error as HttpError;
+  if (httpError?.response) {
+    console.error(chalk.yellow('Status:'), httpError.response.status);
+    console.error(
+      chalk.yellow('Message:'),
+      httpError.response.data?.message || getErrorMessage(error)
+    );
   } else {
     console.error(getErrorMessage(error));
   }
@@ -552,14 +605,14 @@ export function safeParseJSON<T = unknown>(input: string, optionName: string): T
  * @param content - The content to parse (string or object)
  * @returns Parsed object or the original object if already parsed
  */
-export function parseAPIResponse<T = unknown>(content: string | T): T {
+export function parseAPIResponse<T = unknown>(content: unknown): T {
   if (typeof content === 'string') {
     try {
       return JSON.parse(content) as T;
     } catch {
       // Return as-is if not valid JSON (could be plain text response)
-      return content as unknown as T;
+      return content as T;
     }
   }
-  return content;
+  return content as T;
 }

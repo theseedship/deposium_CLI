@@ -1,6 +1,17 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { getConfig, getBaseUrl, setConfig, deleteConfig, resetConfig, getConfigPath } from '../utils/config';
+import {
+  getConfig,
+  getBaseUrl,
+  setConfig,
+  deleteConfig,
+  resetConfig,
+  getConfigPath,
+  DeposiumConfig,
+} from '../utils/config';
+
+type ConfigKey = keyof DeposiumConfig;
+type ConfigValue = string | boolean | undefined;
 
 export const configCommand = new Command('config')
   .description('Manage Deposium CLI configuration')
@@ -29,10 +40,10 @@ export const configCommand = new Command('config')
         }
 
         // Convert kebab-case to camelCase
-        const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
+        const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
 
         // Parse boolean values
-        let parsedValue: any = value;
+        let parsedValue: ConfigValue = value;
         if (value === 'true') parsedValue = true;
         if (value === 'false') parsedValue = false;
 
@@ -41,8 +52,10 @@ export const configCommand = new Command('config')
           parsedValue = parsedValue.replace(/\/$/, '');
         }
 
-        setConfig(camelKey as any, parsedValue);
-        console.log(chalk.green(`\n✅ Set ${chalk.cyan(key)} = ${chalk.yellow(parsedValue)}\n`));
+        setConfig(camelKey, parsedValue);
+        console.log(
+          chalk.green(`\n✅ Set ${chalk.cyan(key)} = ${chalk.yellow(String(parsedValue))}\n`)
+        );
       })
   )
   .addCommand(
@@ -53,11 +66,11 @@ export const configCommand = new Command('config')
         const config = getConfig();
 
         if (key) {
-          const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
-          let value = (config as any)[camelKey];
+          const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
+          let value: ConfigValue = config[camelKey];
 
           // Mask API key for security
-          if (key === 'api-key' && value) {
+          if (key === 'api-key' && typeof value === 'string') {
             value = value.substring(0, 8) + '...';
           }
 
@@ -95,8 +108,8 @@ export const configCommand = new Command('config')
       .description('Delete a configuration value')
       .argument('<key>', 'Configuration key')
       .action((key) => {
-        const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
-        deleteConfig(camelKey as any);
+        const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
+        deleteConfig(camelKey);
         console.log(chalk.green(`\n✅ Deleted ${chalk.cyan(key)}\n`));
       })
   )
