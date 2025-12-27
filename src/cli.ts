@@ -22,6 +22,7 @@ import { toolsCommand } from './commands/tools';
 import { uploadBatchCommand } from './commands/upload-batch';
 import { benchmarkCommand } from './commands/benchmark';
 import { getConfig, getBaseUrl } from './utils/config';
+import { getErrorMessage } from './utils/command-helpers';
 
 // ============================================================================
 // Graceful Shutdown Handlers
@@ -56,7 +57,7 @@ process.on('SIGINT', () => handleShutdown('SIGINT'));
 
 // Handle uncaught errors gracefully
 process.on('uncaughtException', (error: Error) => {
-  console.error(chalk.red('\n❌ Unexpected error:'), error.message);
+  console.error(chalk.red('\n❌ Unexpected error:'), getErrorMessage(error));
   if (process.env.DEBUG) {
     console.error(chalk.gray(error.stack || ''));
   }

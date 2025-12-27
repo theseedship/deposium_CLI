@@ -1,7 +1,15 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { getConfig, getBaseUrl, hasApiKey, getApiKey, deleteApiKey, setApiKey } from '../utils/config';
+import {
+  getConfig,
+  getBaseUrl,
+  hasApiKey,
+  getApiKey,
+  deleteApiKey,
+  setApiKey,
+} from '../utils/config';
 import { promptApiKey, validateApiKeyWithServer, maskApiKey } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 
 export const authCommand = new Command('auth')
   .description('Manage authentication with Deposium API')
@@ -51,25 +59,25 @@ export const authCommand = new Command('auth')
                 console.log(chalk.red('\n❌ Invalid API key - maximum attempts reached'));
               }
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             if (attempt < maxAttempts) {
               console.log(
-                chalk.red(`\n❌ Error: ${error.message} (attempt ${attempt}/${maxAttempts})\n`)
+                chalk.red(
+                  `\n❌ Error: ${getErrorMessage(error)} (attempt ${attempt}/${maxAttempts})\n`
+                )
               );
             } else {
-              console.log(chalk.red(`\n❌ Error: ${error.message}`));
+              console.log(chalk.red(`\n❌ Error: ${getErrorMessage(error)}`));
             }
           }
         }
 
         console.log(
-          chalk.yellow(
-            '\n💡 Make sure you are using a valid API key from your Deposium account.\n'
-          )
+          chalk.yellow('\n💡 Make sure you are using a valid API key from your Deposium account.\n')
         );
         process.exit(1);
-      } catch (error: any) {
-        console.error(chalk.red('\n❌ Login failed:'), error.message);
+      } catch (error: unknown) {
+        console.error(chalk.red('\n❌ Login failed:'), getErrorMessage(error));
         process.exit(1);
       }
     })
@@ -88,8 +96,8 @@ export const authCommand = new Command('auth')
         console.log(chalk.green('\n✅ Logged out successfully'));
         console.log(chalk.gray('Removed API key: ') + chalk.cyan(maskApiKey(currentKey)));
         console.log(chalk.gray('\nTo login again, run: ') + chalk.cyan('deposium auth login\n'));
-      } catch (error: any) {
-        console.error(chalk.red('\n❌ Logout failed:'), error.message);
+      } catch (error: unknown) {
+        console.error(chalk.red('\n❌ Logout failed:'), getErrorMessage(error));
         process.exit(1);
       }
     })
@@ -125,8 +133,8 @@ export const authCommand = new Command('auth')
                   chalk.gray(' to re-authenticate\n')
               );
             }
-          } catch (error: any) {
-            console.log(chalk.yellow('⚠️  Could not validate: ' + error.message + '\n'));
+          } catch (error: unknown) {
+            console.log(chalk.yellow('⚠️  Could not validate: ' + getErrorMessage(error) + '\n'));
           }
         } else {
           console.log(chalk.gray('Authentication: ') + chalk.red('❌ Not logged in'));
@@ -136,8 +144,8 @@ export const authCommand = new Command('auth')
               chalk.gray(' to authenticate\n')
           );
         }
-      } catch (error: any) {
-        console.error(chalk.red('\n❌ Error:'), error.message);
+      } catch (error: unknown) {
+        console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
         process.exit(1);
       }
     })

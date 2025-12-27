@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
 import boxen from 'boxen';
 import gradient from 'gradient-string';
+import { getErrorMessage } from './errors';
 
 // Lazy initialization of marked with terminal rendering
 let markedConfigured = false;
@@ -519,9 +520,9 @@ export function formatError(error: any): void {
 
   if (error.response) {
     console.error(chalk.yellow('Status:'), error.response.status);
-    console.error(chalk.yellow('Message:'), error.response.data?.message || error.message);
+    console.error(chalk.yellow('Message:'), error.response.data?.message || getErrorMessage(error));
   } else {
-    console.error(error.message);
+    console.error(getErrorMessage(error));
   }
 
   console.error('');

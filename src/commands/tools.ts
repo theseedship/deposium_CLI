@@ -1,9 +1,10 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { MCPClient } from '../client/mcp-client';
+import { MCPClient, MCPTool } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
 import { ensureAuthenticated } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 
 export const toolsCommand = new Command('tools')
   .description('List and explore available MCP tools')
@@ -32,7 +33,7 @@ export const toolsCommand = new Command('tools')
       if (options.search) {
         const searchTerm = options.search.toLowerCase();
         filteredTools = filteredTools.filter(
-          (tool: any) =>
+          (tool) =>
             tool.name.toLowerCase().includes(searchTerm) ||
             tool.description?.toLowerCase().includes(searchTerm)
         );
@@ -41,7 +42,7 @@ export const toolsCommand = new Command('tools')
       if (options.category) {
         const category = options.category.toLowerCase();
         filteredTools = filteredTools.filter(
-          (tool: any) =>
+          (tool) =>
             tool.name.toLowerCase().startsWith(category) ||
             (tool.category && tool.category.toLowerCase() === category)
         );
@@ -54,9 +55,9 @@ export const toolsCommand = new Command('tools')
       }
 
       // Group tools by category
-      const categories = new Map<string, any[]>();
+      const categories = new Map<string, MCPTool[]>();
 
-      filteredTools.forEach((tool: any) => {
+      filteredTools.forEach((tool) => {
         const category = tool.name.split('.')[0] || 'other';
         if (!categories.has(category)) {
           categories.set(category, []);
@@ -85,7 +86,7 @@ export const toolsCommand = new Command('tools')
           },
         });
 
-        categoryTools.forEach((tool: any) => {
+        categoryTools.forEach((tool) => {
           table.push([chalk.white(tool.name), chalk.gray(tool.description || 'No description')]);
         });
 
@@ -103,8 +104,8 @@ export const toolsCommand = new Command('tools')
 
       console.log(chalk.gray('\n💡 Tip: Use --search or --category to filter tools'));
       console.log(chalk.gray('💡 Tip: Use --json for machine-readable output\n'));
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });

@@ -5,6 +5,7 @@ import { getConfig, getBaseUrl } from './utils/config';
 import { formatOutput, createTitleBox, divider } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
+import { getErrorMessage } from './utils/command-helpers';
 
 export async function startChat(): Promise<void> {
   console.log(createTitleBox('AI CHAT', 'Continuous conversation with Deposium AI'));
@@ -91,8 +92,8 @@ export async function startChat(): Promise<void> {
       console.log(
         chalk.gray(`\n💭 ${exchanges} exchange${exchanges !== 1 ? 's' : ''} in this conversation\n`)
       );
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       // Remove the user message from history since we failed
       const messages = chatHistory.getMessages();
       if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
