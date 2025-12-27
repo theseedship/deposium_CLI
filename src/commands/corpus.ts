@@ -11,8 +11,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('stats')
       .description('Get corpus statistics')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
         const config = getConfig();
@@ -50,8 +50,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('evaluate')
       .description('Evaluate corpus quality with LLM-as-judge')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('--metric <name>', 'Evaluation metric (relevance|coherence|diversity)')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
@@ -71,7 +71,7 @@ export const corpusCommand = new Command('corpus')
             {
               tenant_id: options.tenant,
               space_id: options.space,
-              metric: options.metric || 'relevance',
+              metric: options.metric ?? 'relevance',
             },
             { spinner: true }
           );
@@ -91,8 +91,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('improve')
       .description('Get improvement suggestions for corpus')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('--focus <area>', 'Focus area (coverage|quality|diversity)')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
@@ -129,8 +129,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('realtime-eval')
       .description('Real-time corpus evaluation with RSS')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('--interval <seconds>', 'Evaluation interval', '300')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
@@ -167,8 +167,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('monitor')
       .description('Monitor corpus quality with anomaly detection')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('--threshold <number>', 'Anomaly threshold', '0.8')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
@@ -205,8 +205,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('freshness')
       .description('Check corpus freshness against external sources')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('--sources <json>', 'External sources JSON')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {
@@ -247,8 +247,8 @@ export const corpusCommand = new Command('corpus')
   .addCommand(
     new Command('drift')
       .description('Detect concept drift over time')
-      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+      .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+      .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
       .option('--time-window <days>', 'Time window for comparison', '30')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(async (options) => {

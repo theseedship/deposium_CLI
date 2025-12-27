@@ -58,7 +58,7 @@ export const toolsCommand = new Command('tools')
       const categories = new Map<string, MCPTool[]>();
 
       filteredTools.forEach((tool) => {
-        const category = tool.name.split('.')[0] || 'other';
+        const category = tool.name.split('.')[0] ?? 'other';
         if (!categories.has(category)) {
           categories.set(category, []);
         }

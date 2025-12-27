@@ -22,7 +22,10 @@ export const authCommand = new Command('auth')
         // Check if already logged in
         if (hasApiKey()) {
           console.log(chalk.yellow('\n⚠️  You are already logged in'));
-          console.log(chalk.gray('Your current API key: ') + chalk.cyan(maskApiKey(getApiKey()!)));
+          const currentApiKey = getApiKey();
+          console.log(
+            chalk.gray('Your current API key: ') + chalk.cyan(maskApiKey(currentApiKey ?? ''))
+          );
           console.log(
             chalk.gray('\nTo logout first, run: ') + chalk.cyan('deposium auth logout\n')
           );
@@ -90,7 +93,7 @@ export const authCommand = new Command('auth')
           process.exit(0);
         }
 
-        const currentKey = getApiKey()!;
+        const currentKey = getApiKey() ?? '';
         deleteApiKey();
 
         console.log(chalk.green('\n✅ Logged out successfully'));
@@ -113,7 +116,7 @@ export const authCommand = new Command('auth')
         console.log(chalk.gray('Deposium URL: ') + chalk.cyan(baseUrl));
 
         if (hasApiKey()) {
-          const apiKey = getApiKey()!;
+          const apiKey = getApiKey() ?? '';
           console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
           console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(apiKey)));
 

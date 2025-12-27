@@ -177,8 +177,8 @@ evaluateCommand
 evaluateCommand
   .command('graph')
   .description('Generate graph visualization and quality metrics')
-  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
   .option('--max-nodes <number>', 'Maximum nodes to visualize', '100')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')

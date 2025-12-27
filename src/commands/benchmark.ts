@@ -179,8 +179,8 @@ benchmarkCommand
 benchmarkCommand
   .command('corpus')
   .description('Evaluate a Deposium corpus for search/retrieval quality')
-  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
   .option('-q, --queries <json>', 'Query-document pairs JSON file or inline JSON')
   .option('-p, --provider <name>', 'LLM provider', 'groq')
   .option('-m, --model <name>', 'Model name', 'llama-3.1-8b-instant')
@@ -260,7 +260,7 @@ benchmarkCommand
 
         if (data.metrics) {
           console.log(chalk.bold('\n📈 Quality Metrics:'));
-          const { tenant_id, space_id, ...otherMetrics } = data.metrics;
+          const { tenant_id: _tenantId, space_id: _spaceId, ...otherMetrics } = data.metrics;
           for (const [key, value] of Object.entries(otherMetrics)) {
             if (typeof value === 'number') {
               console.log(`  ${chalk.gray(key)}: ${(value as number).toFixed(3)}`);

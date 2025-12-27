@@ -140,13 +140,13 @@ async function handleSearch(client: MCPClient): Promise<void> {
       type: 'input',
       name: 'tenant',
       message: 'Tenant ID:',
-      default: getConfig().defaultTenant || 'default',
+      default: getConfig().defaultTenant ?? 'default',
     },
     {
       type: 'input',
       name: 'space',
       message: 'Space ID:',
-      default: getConfig().defaultSpace || 'default',
+      default: getConfig().defaultSpace ?? 'default',
     },
   ]);
 
@@ -182,13 +182,13 @@ async function handleGraph(client: MCPClient): Promise<void> {
       type: 'input',
       name: 'tenant',
       message: 'Tenant ID:',
-      default: getConfig().defaultTenant || 'default',
+      default: getConfig().defaultTenant ?? 'default',
     },
     {
       type: 'input',
       name: 'space',
       message: 'Space ID:',
-      default: getConfig().defaultSpace || 'default',
+      default: getConfig().defaultSpace ?? 'default',
     },
   ]);
 
@@ -221,13 +221,13 @@ async function handleCorpus(client: MCPClient): Promise<void> {
       type: 'input',
       name: 'tenant',
       message: 'Tenant ID:',
-      default: getConfig().defaultTenant || 'default',
+      default: getConfig().defaultTenant ?? 'default',
     },
     {
       type: 'input',
       name: 'space',
       message: 'Space ID:',
-      default: getConfig().defaultSpace || 'default',
+      default: getConfig().defaultSpace ?? 'default',
     },
   ]);
 
@@ -409,13 +409,13 @@ async function handleLeanRAG(client: MCPClient): Promise<void> {
       type: 'input',
       name: 'tenant',
       message: 'Tenant ID:',
-      default: getConfig().defaultTenant || 'default',
+      default: getConfig().defaultTenant ?? 'default',
     },
     {
       type: 'input',
       name: 'space',
       message: 'Space ID:',
-      default: getConfig().defaultSpace || 'default',
+      default: getConfig().defaultSpace ?? 'default',
     },
   ]);
 
@@ -452,13 +452,13 @@ async function handleMermaid(client: MCPClient): Promise<void> {
       type: 'input',
       name: 'tenant',
       message: 'Tenant ID:',
-      default: getConfig().defaultTenant || 'default',
+      default: getConfig().defaultTenant ?? 'default',
     },
     {
       type: 'input',
       name: 'space',
       message: 'Space ID:',
-      default: getConfig().defaultSpace || 'default',
+      default: getConfig().defaultSpace ?? 'default',
     },
   ]);
 
@@ -606,7 +606,7 @@ async function handleTools(client: MCPClient): Promise<void> {
   // Group by category
   const categories = new Map<string, MCPTool[]>();
   tools.forEach((tool) => {
-    const category = tool.name.split('_')[0] || 'other';
+    const category = tool.name.split('_')[0] ?? 'other';
     if (!categories.has(category)) {
       categories.set(category, []);
     }

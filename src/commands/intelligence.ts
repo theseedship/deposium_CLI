@@ -49,8 +49,8 @@ intelligenceCommand
   .command('suggest')
   .description('Generate intelligent query suggestions and auto-completions')
   .argument('<partial>', 'Partial query text')
-  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant || 'default')
-  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace || 'default')
+  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
+  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(async (partial: string, options) => {
