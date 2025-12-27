@@ -1,42 +1,112 @@
+/**
+ * MCP Client Module
+ *
+ * HTTP client for communicating with the Deposium MCP (Model Context Protocol) API.
+ * Provides methods for calling tools, listing available tools, and health checks.
+ *
+ * Features:
+ * - Automatic retry with exponential backoff for transient errors
+ * - Request tracing with unique request IDs
+ * - Configurable timeouts
+ * - Spinner support for long-running operations
+ *
+ * @module client/mcp-client
+ *
+ * @example
+ * ```typescript
+ * import { MCPClient } from './client/mcp-client';
+ *
+ * const client = new MCPClient('https://api.deposium.io', 'your-api-key');
+ *
+ * // Call a tool
+ * const result = await client.callTool('search_hub', {
+ *   query_text: 'machine learning',
+ *   top_k: 10
+ * });
+ *
+ * // List available tools
+ * const tools = await client.listTools();
+ *
+ * // Check health
+ * const health = await client.health();
+ * ```
+ */
+
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
 
-// Package info for User-Agent
+/** CLI version for User-Agent header */
 const CLI_VERSION = '1.0.0';
+
+/** CLI name for User-Agent header */
 const CLI_NAME = '@deposium/cli';
 
+/**
+ * Represents a tool call request
+ */
 export interface MCPToolCall {
+  /** Name of the tool to call */
   name: string;
+  /** Arguments to pass to the tool */
   arguments: Record<string, unknown>;
 }
 
+/**
+ * Result returned from a tool call
+ */
 export interface MCPToolResult {
+  /** The response content from the tool */
   content: unknown;
+  /** Whether the tool call resulted in an error */
   isError?: boolean;
 }
 
+/**
+ * Description of an available MCP tool
+ */
 export interface MCPTool {
+  /** Unique tool identifier */
   name: string;
+  /** Human-readable description */
   description?: string;
+  /** Tool category (e.g., 'search', 'graph', 'compound') */
   category?: string;
+  /** JSON Schema describing the tool's input parameters */
   inputSchema?: Record<string, unknown>;
 }
 
+/**
+ * Status information for a Deposium service
+ */
 export interface MCPHealthService {
+  /** Service name */
   name: string;
+  /** Current status */
   status: 'healthy' | 'online' | 'offline' | 'degraded' | string;
+  /** Response latency in milliseconds */
   latency?: number;
+  /** Additional status message */
   message?: string;
 }
 
+/**
+ * Health check response from the Deposium API
+ */
 export interface MCPHealthResponse {
+  /** Overall system status */
   status: string;
+  /** Individual service statuses */
   services?: MCPHealthService[];
+  /** API version */
   version?: string;
+  /** Timestamp of the health check */
   timestamp?: string;
 }
 
+/**
+ * Configuration options for MCPClient
+ */
 export interface MCPClientOptions {
   /** Request timeout in milliseconds (default: 300000 = 5 minutes) */
   timeout?: number;
@@ -76,13 +146,63 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * HTTP client for the Deposium MCP API
+ *
+ * Provides methods for calling MCP tools, listing available tools,
+ * and performing health checks. Includes automatic retry logic with
+ * exponential backoff for transient errors.
+ *
+ * @example
+ * ```typescript
+ * const client = new MCPClient('https://api.deposium.io', 'your-api-key');
+ *
+ * // Search documents
+ * const results = await client.callTool('search_hub', {
+ *   query_text: 'AI research',
+ *   top_k: 10
+ * });
+ *
+ * // Check API health
+ * const health = await client.health();
+ * console.log(`Status: ${health.status}`);
+ * ```
+ */
 export class MCPClient {
+  /** Axios HTTP client instance */
   private readonly client: AxiosInstance;
+
+  /** Base URL of the Deposium API */
   private readonly baseUrl: string;
+
+  /** API key for authentication */
   private readonly apiKey?: string;
+
+  /** Maximum number of retry attempts */
   private readonly maxRetries: number;
+
+  /** Base delay for exponential backoff (ms) */
   private readonly retryBaseDelay: number;
 
+  /**
+   * Create a new MCP client instance
+   *
+   * @param baseUrl - Base URL of the Deposium API (e.g., 'https://api.deposium.io')
+   * @param apiKey - API key for authentication
+   * @param options - Additional client configuration options
+   *
+   * @example
+   * ```typescript
+   * // Basic usage
+   * const client = new MCPClient('https://api.deposium.io', 'your-api-key');
+   *
+   * // With custom options
+   * const client = new MCPClient('https://api.deposium.io', 'your-api-key', {
+   *   timeout: 60000,
+   *   maxRetries: 5
+   * });
+   * ```
+   */
   constructor(baseUrl: string, apiKey?: string, options: MCPClientOptions = {}) {
     // Remove trailing slash to avoid double-slash issues with axios
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -109,8 +229,35 @@ export class MCPClient {
   }
 
   /**
-   * Call an MCP tool via HTTP (through SolidStart proxy)
-   * Includes automatic retry with exponential backoff for transient errors
+   * Call an MCP tool via HTTP
+   *
+   * Sends a request to the Deposium API to execute the specified tool
+   * with the given arguments. Includes automatic retry with exponential
+   * backoff for transient network errors.
+   *
+   * @param toolName - Name of the tool to call (e.g., 'search_hub', 'compound_analyze')
+   * @param args - Tool arguments as key-value pairs
+   * @param options - Optional settings for the call
+   * @param options.silent - Suppress console output
+   * @param options.spinner - Show a loading spinner
+   * @returns Promise resolving to the tool result
+   *
+   * @throws Error if the API call fails after all retry attempts
+   *
+   * @example
+   * ```typescript
+   * // Search for documents
+   * const result = await client.callTool('search_hub', {
+   *   query_text: 'machine learning papers',
+   *   tenant_id: 'default',
+   *   space_id: 'research',
+   *   top_k: 10
+   * }, { spinner: true });
+   *
+   * if (!result.isError) {
+   *   console.log('Results:', result.content);
+   * }
+   * ```
    */
   async callTool(
     toolName: string,
@@ -230,8 +377,29 @@ export class MCPClient {
   /**
    * List all available MCP tools
    *
-   * Note: This calls through the SolidStart proxy using a special list_tools request.
-   * The proxy forwards to the MCP backend which returns available tools.
+   * Retrieves a list of all tools available in the Deposium MCP API,
+   * including their names, descriptions, categories, and input schemas.
+   *
+   * @returns Promise resolving to an array of tool descriptions
+   *
+   * @throws Error if the API call fails
+   *
+   * @example
+   * ```typescript
+   * const tools = await client.listTools();
+   *
+   * // Display tools by category
+   * const categories = new Map<string, MCPTool[]>();
+   * tools.forEach(tool => {
+   *   const cat = tool.name.split('_')[0];
+   *   if (!categories.has(cat)) categories.set(cat, []);
+   *   categories.get(cat)!.push(tool);
+   * });
+   *
+   * for (const [category, categoryTools] of categories) {
+   *   console.log(`${category}: ${categoryTools.length} tools`);
+   * }
+   * ```
    */
   async listTools(): Promise<MCPTool[]> {
     const requestId = generateRequestId();
@@ -276,7 +444,27 @@ export class MCPClient {
   }
 
   /**
-   * Check Deposium API health (validates API key and MCP backend connectivity)
+   * Check Deposium API health
+   *
+   * Performs a health check on the Deposium API, validating the API key
+   * and checking connectivity to all backend services.
+   *
+   * @returns Promise resolving to the health status of all services
+   *
+   * @throws Error if the API is unreachable or authentication fails
+   *
+   * @example
+   * ```typescript
+   * const health = await client.health();
+   *
+   * console.log(`Overall status: ${health.status}`);
+   *
+   * if (health.services) {
+   *   health.services.forEach(service => {
+   *     console.log(`${service.name}: ${service.status}`);
+   *   });
+   * }
+   * ```
    */
   async health(): Promise<MCPHealthResponse> {
     const requestId = generateRequestId();
