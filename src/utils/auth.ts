@@ -1,6 +1,7 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { getApiKey, setApiKey, hasApiKey } from './config';
+import { getErrorMessage, hasErrorCauseWithCode } from './errors';
 
 /**
  * Prompt user for API key
@@ -55,9 +56,12 @@ export async function validateApiKeyWithServer(baseUrl: string, apiKey: string):
 
     const data = (await response.json()) as { valid?: boolean };
     return data.valid === true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check for connection errors (ECONNREFUSED, etc.)
-    if (error.cause?.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+    if (
+      hasErrorCauseWithCode(error, 'ECONNREFUSED') ||
+      getErrorMessage(error).includes('ECONNREFUSED')
+    ) {
       throw new Error(`Cannot connect to Deposium API at ${baseUrl}`);
     }
     // Re-throw other errors
@@ -81,9 +85,11 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
 
       // If key is invalid, notify user and continue to re-authentication
       console.log(chalk.yellow('\n⚠️  Stored API key is no longer valid\n'));
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If there's a connection error or other issue, we'll try to proceed with stored key
-      console.log(chalk.yellow('\n⚠️  Could not validate stored API key: ' + error.message));
+      console.log(
+        chalk.yellow('\n⚠️  Could not validate stored API key: ' + getErrorMessage(error))
+      );
       console.log(chalk.gray('Attempting to continue with stored key...\n'));
       return existingKey;
     }
@@ -114,13 +120,13 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
           console.log(chalk.red('\n❌ Authentication failed - maximum attempts reached\n'));
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (attempt < maxAttempts) {
         console.log(
-          chalk.red(`\n❌ Error: ${error.message} (attempt ${attempt}/${maxAttempts})\n`)
+          chalk.red(`\n❌ Error: ${getErrorMessage(error)} (attempt ${attempt}/${maxAttempts})\n`)
         );
       } else {
-        console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
+        console.log(chalk.red(`\n❌ Error: ${getErrorMessage(error)}\n`));
       }
     }
   }

@@ -8,14 +8,33 @@ const CLI_NAME = '@deposium/cli';
 
 export interface MCPToolCall {
   name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  arguments: Record<string, any>;
+  arguments: Record<string, unknown>;
 }
 
 export interface MCPToolResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content: any;
+  content: unknown;
   isError?: boolean;
+}
+
+export interface MCPTool {
+  name: string;
+  description?: string;
+  category?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
+export interface MCPHealthService {
+  name: string;
+  status: 'healthy' | 'online' | 'offline' | 'degraded' | string;
+  latency?: number;
+  message?: string;
+}
+
+export interface MCPHealthResponse {
+  status: string;
+  services?: MCPHealthService[];
+  version?: string;
+  timestamp?: string;
 }
 
 export interface MCPClientOptions {
@@ -214,8 +233,7 @@ export class MCPClient {
    * Note: This calls through the SolidStart proxy using a special list_tools request.
    * The proxy forwards to the MCP backend which returns available tools.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async listTools(): Promise<any[]> {
+  async listTools(): Promise<MCPTool[]> {
     const requestId = generateRequestId();
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -260,8 +278,7 @@ export class MCPClient {
   /**
    * Check Deposium API health (validates API key and MCP backend connectivity)
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async health(): Promise<any> {
+  async health(): Promise<MCPHealthResponse> {
     const requestId = generateRequestId();
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {

@@ -4,6 +4,7 @@ import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 
 export const benchmarkCommand = new Command('benchmark')
   .alias('bench')
@@ -59,8 +60,8 @@ benchmarkCommand
       } else {
         formatOutput(result.content, options.format);
       }
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -143,8 +144,8 @@ benchmarkCommand
       } else {
         formatOutput(result.content, options.format);
       }
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -247,8 +248,8 @@ benchmarkCommand
       } else {
         formatOutput(result.content, options.format);
       }
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -310,8 +311,8 @@ benchmarkCommand
             duration: data.duration_seconds,
           });
         }
-      } catch (error: any) {
-        console.log(chalk.yellow(`  ⚠️  ${model}: ${error.message}`));
+      } catch (error: unknown) {
+        console.log(chalk.yellow(`  ⚠️  ${model}: ${getErrorMessage(error)}`));
       }
     }
 

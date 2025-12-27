@@ -6,6 +6,7 @@ import { formatOutput, createTitleBox } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
 import { startChat } from './chat';
+import { getErrorMessage } from './utils/command-helpers';
 
 export async function startInteractive(): Promise<void> {
   console.log(createTitleBox('INTERACTIVE MODE', 'Menu-driven access to all Deposium features'));
@@ -120,8 +121,8 @@ export async function startInteractive(): Promise<void> {
           await handleTools(client);
           break;
       }
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
     }
 
     console.log(''); // Empty line for spacing

@@ -4,6 +4,7 @@ import { MCPClient } from '../client/mcp-client';
 import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { ensureAuthenticated } from '../utils/auth';
+import { getErrorMessage } from '../utils/command-helpers';
 
 export const duckdbCommand = new Command('duckdb')
   .alias('db')
@@ -41,8 +42,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -84,8 +85,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -129,8 +130,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -167,8 +168,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -205,8 +206,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });
@@ -234,8 +235,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: any) {
-      console.error(chalk.red('\n❌ Error:'), error.message);
+    } catch (error: unknown) {
+      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       process.exit(1);
     }
   });

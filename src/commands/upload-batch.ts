@@ -15,6 +15,7 @@ import * as path from 'path';
 import * as mimeTypes from 'mime-types';
 import { getConfig } from '../utils/config';
 import { divider, createInfoBox } from '../utils/formatter';
+import { getErrorMessage } from '../utils/command-helpers';
 
 interface FileInfo {
   path: string;
@@ -136,9 +137,9 @@ export const uploadBatchCommand = new Command('upload-batch')
 
     try {
       files = await glob(pattern, { absolute: true, nodir: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail('Failed to process pattern');
-      console.log(chalk.red(`Error: ${error.message}`));
+      console.log(chalk.red(`Error: ${getErrorMessage(error)}`));
       process.exit(1);
     }
 
@@ -157,8 +158,8 @@ export const uploadBatchCommand = new Command('upload-batch')
       try {
         const info = await getFileInfo(file);
         fileInfos.push(info);
-      } catch (error: any) {
-        console.log(chalk.yellow(`⚠️  Skipping ${file}: ${error.message}`));
+      } catch (error: unknown) {
+        console.log(chalk.yellow(`⚠️  Skipping ${file}: ${getErrorMessage(error)}`));
       }
     }
 
@@ -218,7 +219,9 @@ export const uploadBatchCommand = new Command('upload-batch')
 
     const oversizedFiles = fileInfos.filter((f) => f.size > MAX_INLINE_SIZE);
     if (oversizedFiles.length > 0) {
-      console.log(chalk.red(`\n❌ Some files exceed inline upload limit (${formatBytes(MAX_INLINE_SIZE)}):`));
+      console.log(
+        chalk.red(`\n❌ Some files exceed inline upload limit (${formatBytes(MAX_INLINE_SIZE)}):`)
+      );
       oversizedFiles.forEach((f) => {
         console.log(chalk.yellow(`  - ${f.name} (${formatBytes(f.size)})`));
       });
@@ -266,7 +269,9 @@ export const uploadBatchCommand = new Command('upload-batch')
           const errorJson = JSON.parse(errorBody);
           errorMessage = errorJson.error || errorJson.message || errorMessage;
           if (errorJson.details) {
-            errorMessage += ': ' + (Array.isArray(errorJson.details) ? errorJson.details.join(', ') : errorJson.details);
+            errorMessage +=
+              ': ' +
+              (Array.isArray(errorJson.details) ? errorJson.details.join(', ') : errorJson.details);
           }
         } catch {
           if (errorBody) errorMessage += `: ${errorBody.substring(0, 200)}`;
@@ -283,13 +288,17 @@ export const uploadBatchCommand = new Command('upload-batch')
       console.log('\n' + divider('Results', 'light'));
       console.log('');
 
-      const successFiles = result.files.filter((f) => f.status === 'uploaded' || f.status === 'completed');
+      const successFiles = result.files.filter(
+        (f) => f.status === 'uploaded' || f.status === 'completed'
+      );
       const failedFiles = result.files.filter((f) => f.status === 'failed');
 
       if (successFiles.length > 0) {
         console.log(chalk.green(`✅ Uploaded: ${successFiles.length} file(s)`));
         successFiles.forEach((f) => {
-          console.log(chalk.gray(`   - ${f.name}`) + (f.file_id ? chalk.cyan(` (ID: ${f.file_id})`) : ''));
+          console.log(
+            chalk.gray(`   - ${f.name}`) + (f.file_id ? chalk.cyan(` (ID: ${f.file_id})`) : '')
+          );
         });
       }
 
@@ -307,21 +316,30 @@ export const uploadBatchCommand = new Command('upload-batch')
       console.log(chalk.gray(`  Total size:   ${result.total_size_mb.toFixed(2)} MB`));
       console.log(chalk.cyan(`  Cost:         ${formatCost(result.total_cost_cents)}`));
       console.log('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       batchSpinner.fail('Batch upload failed');
 
-      if (error.message.includes('401') || error.message.includes('Authentication')) {
+      if (
+        getErrorMessage(error).includes('401') ||
+        getErrorMessage(error).includes('Authentication')
+      ) {
         console.log(chalk.red('\n❌ Authentication failed'));
         console.log(chalk.yellow('Check your API key and try again.\n'));
-      } else if (error.message.includes('402') || error.message.includes('Insufficient credits')) {
+      } else if (
+        getErrorMessage(error).includes('402') ||
+        getErrorMessage(error).includes('Insufficient credits')
+      ) {
         console.log(chalk.red('\n❌ Insufficient credits'));
         console.log(chalk.yellow('Add more credits to your account and try again.\n'));
-      } else if (error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed')) {
+      } else if (
+        getErrorMessage(error).includes('ECONNREFUSED') ||
+        getErrorMessage(error).includes('fetch failed')
+      ) {
         console.log(chalk.red('\n❌ Cannot connect to Deposium API'));
         console.log(chalk.gray(`  URL: ${apiUrl}`));
         console.log(chalk.yellow('\nMake sure the server is running.\n'));
       } else {
-        console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
+        console.log(chalk.red(`\n❌ Error: ${getErrorMessage(error)}\n`));
       }
 
       process.exit(1);
