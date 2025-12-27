@@ -111,33 +111,33 @@ DEPOSIUM_API_URL=https://api.deposium.com  # Good
 
 ```bash
 # Run full test suite before committing
-pnpm test
+npm test
 
 # Run specific test file
-pnpm test -- auth.test.ts
+npm test -- auth.test.ts
 
 # Watch mode during development
-pnpm test -- --watch
+npm test -- --watch
 ```
 
 ### Type Safety
 
 ```bash
 # Check types before building
-pnpm typecheck
+npm run typecheck
 
 # Build with type checking
-pnpm build
+npm run build
 ```
 
 ### Code Style
 
 ```bash
 # Auto-fix linting issues
-pnpm lint:fix
+npm run lint:fix
 
 # Format code
-pnpm format
+npm run format
 ```
 
 ---
@@ -184,7 +184,7 @@ ENV DEPOSIUM_API_KEY=""
 ENV DEPOSIUM_API_URL="https://api.deposium.com"
 ENV LOG_LEVEL="info"
 
-RUN npm install -g deposium-cli
+RUN npm install -g @deposium/cli
 CMD ["deposium", "health"]
 ```
 

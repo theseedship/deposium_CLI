@@ -382,7 +382,7 @@ For new features:
 ## 📚 Additional Resources
 
 - **Main Repo**: [[private-server-repo]](https://github.com/theseedship/[private-server-repo])
-- **Documentation**: [deposium.vip/docs](https://deposium.vip/docs)
+- **Documentation**: [docs/](.) - Local documentation
 - **Issues**: [GitHub Issues](https://github.com/theseedship/deposium_CLI/issues)
 
 ## 🙏 Thank You!

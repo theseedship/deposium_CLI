@@ -10,37 +10,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - MindsDB integration commands
 - Macro management commands
+- Interactive TUI mode
+- Plugin system for custom commands
 
-## [1.2.0] - 2025-12-21
-
-### Added
-- **Benchmark Commands**
-  - `deposium benchmark list` - List available benchmark categories
-  - `deposium benchmark run` - Run LLM benchmarks
-  - `deposium benchmark corpus` - Evaluate corpus quality
-  - `deposium benchmark compare` - Compare model performance
-
-### Fixed
-- Async cache service initialization in MCP client
-
-## [1.1.0] - 2025-11-16
+## [1.0.0] - 2024-12-27
 
 ### Added
-- **Space Management**
-  - `deposium spaces list` - List all spaces
-  - `deposium spaces create` - Create new space
-  - `deposium spaces delete` - Delete space
+- **Core Commands**
+  - Authentication (`deposium auth login`, `deposium auth logout`)
+  - Configuration management (`deposium config set/get/delete/reset`)
+  - Health check (`deposium health`)
+  - Tools listing (`deposium tools`)
 
-- **Document Operations**
-  - `deposium docs upload` - Upload documents
-  - `deposium docs list` - List documents in space
-  - `deposium docs search` - Search across documents
+- **Search Commands**
+  - `deposium search` - Multi-mode search (vector, FTS, fuzzy, graph)
+  - `deposium graph` - Knowledge graph operations
+  - `deposium corpus` - Corpus statistics
 
-### Changed
-- Improved error messages with actionable suggestions
-- Added progress indicators for long operations
+- **AI Commands**
+  - `deposium compound` - Compound AI reasoning
+  - `deposium intelligence` - Intelligence analysis
+  - `deposium dspy` - DSPy pipeline execution
+  - `deposium leanrag` - LeanRAG operations
 
-## [1.0.0] - 2025-10-01
+- **Data Commands**
+  - `deposium upload-batch` - Batch document uploads
+  - `deposium evaluate` - RAG evaluation
+  - `deposium benchmark` - Model benchmarking
+
+- **Infrastructure**
+  - 137 unit/integration tests (Vitest)
+  - Structured logging with levels
+  - Retry logic with exponential backoff
+  - Graceful shutdown handlers
+  - HTTPS validation in production
+  - CI/CD with GitHub Actions
+
+## [0.1.0] - 2024-10-01
 
 ### Added
 - **Initial Release**
@@ -55,5 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-- [README](README.md) - Installation and usage guide
-- [Commands Reference](src/commands/) - Command implementations
+- [README](../README.md) - Installation and usage guide
+- [ROADMAP](../ROADMAP.md) - Future plans and best practices
+- [Contributing](CONTRIBUTING.md) - Contribution guidelines

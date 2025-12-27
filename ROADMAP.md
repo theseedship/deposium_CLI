@@ -2,7 +2,7 @@
 
 Enterprise-grade CLI for Deposium MCP API.
 
-## Current State (v2.0)
+## Current State (v1.0.0)
 
 | Metric           | Status         |
 | ---------------- | -------------- |
@@ -60,13 +60,13 @@ Enterprise-grade CLI for Deposium MCP API.
 
 ```bash
 # Before every commit
-pnpm test
+npm test
 
 # Check types
-pnpm typecheck
+npm run typecheck
 
 # Lint and format
-pnpm lint:fix
+npm run lint:fix
 ```
 
 ### Security
@@ -126,13 +126,13 @@ src/__tests__/commands/
 
 ```bash
 # All tests
-pnpm test
+npm test
 
 # With coverage
-pnpm test -- --coverage
+npm test -- --coverage
 
 # Watch mode
-pnpm test -- --watch
+npm test -- --watch
 ```
 
 ---
@@ -144,7 +144,7 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 ### Quick Start
 
 1. Fork and clone
-2. `pnpm install`
+2. `npm install`
 3. Create feature branch
 4. Write tests
 5. Submit PR
