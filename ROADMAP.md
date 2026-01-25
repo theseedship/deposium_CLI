@@ -31,7 +31,7 @@ Enterprise-grade CLI for Deposium MCP API.
 
 - [ ] Interactive TUI mode (full-screen interface)
 - [ ] Offline mode with local cache and sync
-- [ ] Multi-file batch processing
+- [x] Multi-file batch processing
 - [ ] Custom output templates
 - [ ] WebSocket support for real-time updates
 
@@ -139,7 +139,7 @@ npm test -- --watch
 
 ## Contributing
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+See [docs/development/contributing.md](docs/development/contributing.md) for guidelines.
 
 ### Quick Start
 
