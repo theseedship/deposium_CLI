@@ -207,7 +207,7 @@ export const graphCommand = new Command('graph')
               target_id: to,
               min_hops: parseInt(options.minHops, 10),
               max_hops: parseInt(options.maxHops, 10),
-              avoid_cycles: options.avoidCycles || false,
+              avoid_cycles: options.avoidCycles ?? false,
             },
             { spinner: true }
           );
@@ -249,7 +249,7 @@ export const graphCommand = new Command('graph')
               space_id: options.space,
               node_id: nodeId,
               k: parseInt(options.hops, 10),
-              include_properties: options.includeProperties || false,
+              include_properties: options.includeProperties ?? false,
             },
             { spinner: true }
           );

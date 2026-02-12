@@ -58,7 +58,7 @@ let config: LoggerConfig = {
   level: (process.env.LOG_LEVEL as LogLevel) ?? 'info',
   json: process.env.LOG_JSON === 'true',
   fileOutput: process.env.LOG_FILE === 'true',
-  filePath: process.env.LOG_PATH || DEFAULT_LOG_PATH,
+  filePath: process.env.LOG_PATH ?? DEFAULT_LOG_PATH,
   timestamps: true,
   silent: false,
 };

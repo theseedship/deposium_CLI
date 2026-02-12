@@ -157,7 +157,7 @@ duckdbCommand
         'duckdb.expose',
         {
           database_path: options.database,
-          readonly: options.readonly || false,
+          readonly: options.readonly ?? false,
         },
         { spinner: !options.silent }
       );

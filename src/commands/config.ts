@@ -90,13 +90,13 @@ export const configCommand = new Command('config')
           const baseUrl = getBaseUrl(config);
 
           console.log(chalk.cyan('api-key:'), maskedApiKey);
-          console.log(chalk.cyan('deposium-url:'), config.deposiumUrl || chalk.gray('not set'));
-          console.log(chalk.cyan('mcp-url:'), config.mcpUrl || chalk.gray('not set (deprecated)'));
+          console.log(chalk.cyan('deposium-url:'), config.deposiumUrl ?? chalk.gray('not set'));
+          console.log(chalk.cyan('mcp-url:'), config.mcpUrl ?? chalk.gray('not set (deprecated)'));
           console.log(chalk.cyan('effective-url:'), baseUrl);
-          console.log(chalk.cyan('default-tenant:'), config.defaultTenant || chalk.gray('not set'));
-          console.log(chalk.cyan('default-space:'), config.defaultSpace || chalk.gray('not set'));
-          console.log(chalk.cyan('output-format:'), config.outputFormat || chalk.gray('not set'));
-          console.log(chalk.cyan('silent-mode:'), config.silentMode || chalk.gray('not set'));
+          console.log(chalk.cyan('default-tenant:'), config.defaultTenant ?? chalk.gray('not set'));
+          console.log(chalk.cyan('default-space:'), config.defaultSpace ?? chalk.gray('not set'));
+          console.log(chalk.cyan('output-format:'), config.outputFormat ?? chalk.gray('not set'));
+          console.log(chalk.cyan('silent-mode:'), config.silentMode ?? chalk.gray('not set'));
           console.log('');
           console.log(chalk.gray('Config file:'), getConfigPath());
           console.log('');

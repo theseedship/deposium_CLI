@@ -152,7 +152,7 @@ benchmarkCommand
         console.log(`  ${chalk.cyan('Provider:')} ${data.provider}`);
         console.log(`  ${chalk.cyan('Model:')} ${data.model}`);
         console.log(`  ${chalk.cyan('Samples:')} ${data.samples_evaluated}`);
-        console.log(`  ${chalk.cyan('Duration:')} ${data.duration_seconds?.toFixed(2) || 'N/A'}s`);
+        console.log(`  ${chalk.cyan('Duration:')} ${data.duration_seconds?.toFixed(2) ?? 'N/A'}s`);
         console.log(`  ${chalk.cyan('Timestamp:')} ${data.timestamp}`);
 
         if (data.metrics && Object.keys(data.metrics).length > 0) {
@@ -253,10 +253,10 @@ benchmarkCommand
 
         console.log(chalk.bold('\n📊 Corpus Evaluation Results\n'));
         console.log(`  ${chalk.cyan('Score:')} ${chalk[scoreColor](`${scorePercent}%`)}`);
-        console.log(`  ${chalk.cyan('Tenant:')} ${data.metrics?.tenant_id || options.tenant}`);
-        console.log(`  ${chalk.cyan('Space:')} ${data.metrics?.space_id || options.space}`);
+        console.log(`  ${chalk.cyan('Tenant:')} ${data.metrics?.tenant_id ?? options.tenant}`);
+        console.log(`  ${chalk.cyan('Space:')} ${data.metrics?.space_id ?? options.space}`);
         console.log(`  ${chalk.cyan('Samples:')} ${data.samples_evaluated}`);
-        console.log(`  ${chalk.cyan('Duration:')} ${data.duration_seconds?.toFixed(2) || 'N/A'}s`);
+        console.log(`  ${chalk.cyan('Duration:')} ${data.duration_seconds?.toFixed(2) ?? 'N/A'}s`);
 
         if (data.metrics) {
           console.log(chalk.bold('\n📈 Quality Metrics:'));

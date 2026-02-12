@@ -96,7 +96,7 @@ export function getBaseUrl(
   cfg?: DeposiumConfig,
   options: { validateSecurity?: boolean; silent?: boolean } = {}
 ): string {
-  const c = cfg || getConfig();
+  const c = cfg ?? getConfig();
   const url = c.deposiumUrl ?? c.mcpUrl ?? 'http://localhost:3003';
 
   // Validate URL security by default (can be disabled for testing)

@@ -62,7 +62,7 @@ export const toolsCommand = new Command('tools')
         if (!categories.has(category)) {
           categories.set(category, []);
         }
-        categories.get(category)!.push(tool);
+        categories.get(category)?.push(tool);
       });
 
       // Display tools by category
@@ -87,7 +87,7 @@ export const toolsCommand = new Command('tools')
         });
 
         categoryTools.forEach((tool) => {
-          table.push([chalk.white(tool.name), chalk.gray(tool.description || 'No description')]);
+          table.push([chalk.white(tool.name), chalk.gray(tool.description ?? 'No description')]);
         });
 
         console.log(table.toString());

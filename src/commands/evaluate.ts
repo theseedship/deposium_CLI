@@ -31,7 +31,7 @@ evaluateCommand
         'eval_metrics',
         {
           userId: options.userId,
-          includeGlobal: options.includeGlobal || false,
+          includeGlobal: options.includeGlobal ?? false,
         },
         { spinner: !options.silent }
       );

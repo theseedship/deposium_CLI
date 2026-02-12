@@ -33,7 +33,7 @@ logsCommand
         {
           level: options.level,
           limit: parseInt(options.limit, 10),
-          tail: options.tail || false,
+          tail: options.tail ?? false,
         },
         { spinner: !options.silent }
       );

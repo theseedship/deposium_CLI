@@ -37,9 +37,9 @@ export const searchCommand = new Command('search')
           space_id: options.space,
           query_text: query,
           use_vector_rel: options.vector !== undefined ? options.vector : true,
-          use_fts: options.fts || false,
-          use_fuzzy: options.fuzzy || false,
-          use_graph: options.graph || false,
+          use_fts: options.fts ?? false,
+          use_fuzzy: options.fuzzy ?? false,
+          use_graph: options.graph ?? false,
           top_k: parseInt(options.topK, 10),
         },
         { spinner: !options.silent }

@@ -368,7 +368,7 @@ export class MCPClient {
         // New proxy returns { result, isError } format
         if (response.data.isError) {
           return {
-            content: response.data.result || response.data.error,
+            content: response.data.result ?? response.data.error,
             isError: true,
           };
         }
@@ -468,7 +468,7 @@ export class MCPClient {
           return [];
         }
 
-        return response.data.result?.tools || response.data.result || [];
+        return response.data.result?.tools ?? response.data.result ?? [];
       } catch (error) {
         const axiosError = error as AxiosError;
         if (
@@ -543,7 +543,7 @@ export class MCPClient {
           if (axiosError.response?.status === 401) {
             throw new Error(
               'Authentication failed (401)\n' +
-                ((axiosError.response?.data as { message?: string })?.message ||
+                ((axiosError.response?.data as { message?: string })?.message ??
                   'Invalid or missing API key')
             );
           }
