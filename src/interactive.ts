@@ -8,6 +8,24 @@ import { ChatHistory } from './utils/chat-history';
 import { startChat } from './chat';
 import { getErrorMessage } from './utils/command-helpers';
 
+/** Prompt for tenant and space IDs with defaults from config */
+async function promptTenantSpace(): Promise<{ tenant: string; space: string }> {
+  return inquirer.prompt([
+    {
+      type: 'input',
+      name: 'tenant',
+      message: 'Tenant ID:',
+      default: getConfig().defaultTenant ?? 'default',
+    },
+    {
+      type: 'input',
+      name: 'space',
+      message: 'Space ID:',
+      default: getConfig().defaultSpace ?? 'default',
+    },
+  ]);
+}
+
 export async function startInteractive(): Promise<void> {
   console.log(createTitleBox('INTERACTIVE MODE', 'Menu-driven access to all Deposium features'));
 
@@ -70,57 +88,27 @@ export async function startInteractive(): Promise<void> {
       break;
     }
 
+    const handlers: Record<string, () => Promise<void>> = {
+      chat: () => startChat(),
+      search: () => handleSearch(client),
+      graph: () => handleGraph(client),
+      corpus: () => handleCorpus(client),
+      compound: () => handleCompound(client, compoundChatHistory),
+      health: () => handleHealth(client),
+      intelligence: () => handleIntelligence(client),
+      dspy: () => handleDSPy(client),
+      leanrag: () => handleLeanRAG(client),
+      mermaid: () => handleMermaid(client),
+      evaluate: () => handleEvaluate(client),
+      queryhistory: () => handleQueryHistory(client),
+      logs: () => handleLogs(client),
+      duckdb: () => handleDuckDB(client),
+      ui: () => handleUI(client),
+      tools: () => handleTools(client),
+    };
+
     try {
-      switch (command) {
-        case 'chat':
-          await startChat();
-          break;
-        case 'search':
-          await handleSearch(client);
-          break;
-        case 'graph':
-          await handleGraph(client);
-          break;
-        case 'corpus':
-          await handleCorpus(client);
-          break;
-        case 'compound':
-          await handleCompound(client, compoundChatHistory);
-          break;
-        case 'health':
-          await handleHealth(client);
-          break;
-        case 'intelligence':
-          await handleIntelligence(client);
-          break;
-        case 'dspy':
-          await handleDSPy(client);
-          break;
-        case 'leanrag':
-          await handleLeanRAG(client);
-          break;
-        case 'mermaid':
-          await handleMermaid(client);
-          break;
-        case 'evaluate':
-          await handleEvaluate(client);
-          break;
-        case 'queryhistory':
-          await handleQueryHistory(client);
-          break;
-        case 'logs':
-          await handleLogs(client);
-          break;
-        case 'duckdb':
-          await handleDuckDB(client);
-          break;
-        case 'ui':
-          await handleUI(client);
-          break;
-        case 'tools':
-          await handleTools(client);
-          break;
-      }
+      await handlers[command]?.();
     } catch (error: unknown) {
       console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
     }
@@ -130,25 +118,10 @@ export async function startInteractive(): Promise<void> {
 }
 
 async function handleSearch(client: MCPClient): Promise<void> {
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'query',
-      message: 'Enter search query:',
-    },
-    {
-      type: 'input',
-      name: 'tenant',
-      message: 'Tenant ID:',
-      default: getConfig().defaultTenant ?? 'default',
-    },
-    {
-      type: 'input',
-      name: 'space',
-      message: 'Space ID:',
-      default: getConfig().defaultSpace ?? 'default',
-    },
+  const { query } = await inquirer.prompt([
+    { type: 'input', name: 'query', message: 'Enter search query:' },
   ]);
+  const answers = { query, ...(await promptTenantSpace()) };
 
   const result = await client.callTool(
     'search_hub',
@@ -177,20 +150,7 @@ async function handleGraph(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'tenant',
-      message: 'Tenant ID:',
-      default: getConfig().defaultTenant ?? 'default',
-    },
-    {
-      type: 'input',
-      name: 'space',
-      message: 'Space ID:',
-      default: getConfig().defaultSpace ?? 'default',
-    },
-  ]);
+  const answers = await promptTenantSpace();
 
   // Map action names to MCP tool names
   const toolMap: Record<string, string> = {
@@ -216,20 +176,7 @@ async function handleGraph(client: MCPClient): Promise<void> {
 }
 
 async function handleCorpus(client: MCPClient): Promise<void> {
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'tenant',
-      message: 'Tenant ID:',
-      default: getConfig().defaultTenant ?? 'default',
-    },
-    {
-      type: 'input',
-      name: 'space',
-      message: 'Space ID:',
-      default: getConfig().defaultSpace ?? 'default',
-    },
-  ]);
+  const answers = await promptTenantSpace();
 
   const result = await client.callTool(
     'corpus_stats',
@@ -399,25 +346,10 @@ async function handleDSPy(client: MCPClient): Promise<void> {
 }
 
 async function handleLeanRAG(client: MCPClient): Promise<void> {
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'query',
-      message: 'Enter search query:',
-    },
-    {
-      type: 'input',
-      name: 'tenant',
-      message: 'Tenant ID:',
-      default: getConfig().defaultTenant ?? 'default',
-    },
-    {
-      type: 'input',
-      name: 'space',
-      message: 'Space ID:',
-      default: getConfig().defaultSpace ?? 'default',
-    },
+  const { query } = await inquirer.prompt([
+    { type: 'input', name: 'query', message: 'Enter search query:' },
   ]);
+  const answers = { query, ...(await promptTenantSpace()) };
 
   const result = await client.callTool(
     'leanrag_retrieve',
@@ -447,20 +379,7 @@ async function handleMermaid(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'tenant',
-      message: 'Tenant ID:',
-      default: getConfig().defaultTenant ?? 'default',
-    },
-    {
-      type: 'input',
-      name: 'space',
-      message: 'Space ID:',
-      default: getConfig().defaultSpace ?? 'default',
-    },
-  ]);
+  const answers = await promptTenantSpace();
 
   const result = await client.callTool(
     action === 'parse' ? 'mermaid_parse' : 'mermaid_query',

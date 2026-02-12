@@ -363,7 +363,7 @@ export class MCPClient {
           }
         );
 
-        if (spinner) spinner.succeed(`Tool ${chalk.green(toolName)} completed`);
+        spinner?.succeed(`Tool ${chalk.green(toolName)} completed`);
 
         // New proxy returns { result, isError } format
         if (response.data.isError) {
@@ -387,9 +387,8 @@ export class MCPClient {
           attempt < this.maxRetries
         ) {
           const delay = this.retryBaseDelay * Math.pow(2, attempt); // Exponential backoff
-          if (spinner) {
+          if (spinner)
             spinner.text = `Retry ${attempt + 1}/${this.maxRetries} for ${chalk.cyan(toolName)} (waiting ${delay}ms)...`;
-          }
           await sleep(delay);
           continue;
         }
@@ -400,8 +399,12 @@ export class MCPClient {
     }
 
     // Handle the final error
-    if (spinner) spinner.fail(`Tool ${chalk.red(toolName)} failed`);
+    spinner?.fail(`Tool ${chalk.red(toolName)} failed`);
+    return this.handleCallToolError(lastError, requestId);
+  }
 
+  /** Handle final error from callTool after retries exhausted */
+  private handleCallToolError(lastError: Error | null, requestId: string): MCPToolResult {
     if (axios.isAxiosError(lastError)) {
       const { result, shouldThrow, errorToThrow } = createAxiosErrorResult(
         lastError,
