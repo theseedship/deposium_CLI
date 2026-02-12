@@ -53,9 +53,9 @@ interface BatchUploadResponse {
 function getApiUrl(options: BatchUploadOptions): string {
   // Priority: CLI option > Environment variable > Config > Default
   return (
-    options.apiUrl ||
-    process.env.DEPOSIUM_API_URL ||
-    process.env.DEPOSIUM_URL ||
+    options.apiUrl ??
+    process.env.DEPOSIUM_API_URL ??
+    process.env.DEPOSIUM_URL ??
     'http://localhost:3003'
   );
 }
@@ -65,7 +65,7 @@ function getApiUrl(options: BatchUploadOptions): string {
  */
 function getApiKey(options: BatchUploadOptions): string | undefined {
   const config = getConfig();
-  return options.apiKey || process.env.DEPOSIUM_API_KEY || config.apiKey;
+  return options.apiKey ?? process.env.DEPOSIUM_API_KEY ?? config.apiKey;
 }
 
 /**
@@ -267,7 +267,7 @@ export const uploadBatchCommand = new Command('upload-batch')
 
         try {
           const errorJson = JSON.parse(errorBody);
-          errorMessage = errorJson.error || errorJson.message || errorMessage;
+          errorMessage = errorJson.error ?? errorJson.message ?? errorMessage;
           if (errorJson.details) {
             errorMessage +=
               ': ' +
@@ -305,7 +305,7 @@ export const uploadBatchCommand = new Command('upload-batch')
       if (failedFiles.length > 0) {
         console.log(chalk.red(`\n❌ Failed: ${failedFiles.length} file(s)`));
         failedFiles.forEach((f) => {
-          console.log(chalk.yellow(`   - ${f.name}: ${f.error || 'Unknown error'}`));
+          console.log(chalk.yellow(`   - ${f.name}: ${f.error ?? 'Unknown error'}`));
         });
       }
 

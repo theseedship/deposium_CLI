@@ -37,7 +37,7 @@ leanragCommand
           space_id: options.space,
           query_text: query,
           top_k: parseInt(options.topK, 10),
-          rerank: options.rerank || false,
+          rerank: options.rerank ?? false,
         },
         { spinner: !options.silent }
       );

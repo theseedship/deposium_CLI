@@ -610,7 +610,7 @@ async function handleTools(client: MCPClient): Promise<void> {
     if (!categories.has(category)) {
       categories.set(category, []);
     }
-    categories.get(category)!.push(tool);
+    categories.get(category)?.push(tool);
   });
 
   // Display summary
