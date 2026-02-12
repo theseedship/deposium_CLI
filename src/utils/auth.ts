@@ -75,7 +75,7 @@ export async function validateApiKeyWithServer(baseUrl: string, apiKey: string):
 export async function ensureAuthenticated(baseUrl: string): Promise<string> {
   // Check if we already have a stored API key
   if (hasApiKey()) {
-    const existingKey = getApiKey()!;
+    const existingKey = getApiKey() as string;
 
     try {
       const isValid = await validateApiKeyWithServer(baseUrl, existingKey);

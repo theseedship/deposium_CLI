@@ -4,7 +4,6 @@ import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
 import boxen from 'boxen';
 import gradient from 'gradient-string';
-import { getErrorMessage } from './errors';
 
 /** Text block from compound AI response */
 interface TextBlock {
@@ -43,14 +42,6 @@ interface GraphEdge {
   to?: string;
   label?: string;
   type?: string;
-}
-
-/** Error with HTTP response */
-interface HttpError extends Error {
-  response?: {
-    status: number;
-    data?: { message?: string };
-  };
 }
 
 // Lazy initialization of marked with terminal rendering
@@ -97,7 +88,7 @@ function formatTable(data: unknown): void {
     }
 
     // Create table with first object's keys as headers
-    const headers = Object.keys(data[0] || {});
+    const headers = Object.keys(data[0] ?? {});
     const table = new Table({
       head: headers.map((h) => chalk.cyan(h)),
       style: {
@@ -438,7 +429,7 @@ export function formatGraphTree(nodes: GraphNode[], edges: GraphEdge[]): void {
   const nodeMap: Map<string, GraphNode> = new Map();
 
   nodes.forEach((node) => {
-    const nodeId = node.id || node.node_id || node.name || '';
+    const nodeId = node.id ?? node.node_id ?? node.name ?? '';
     nodeMap.set(nodeId, node);
     if (!adjacencyList.has(nodeId)) {
       adjacencyList.set(nodeId, []);
@@ -446,8 +437,8 @@ export function formatGraphTree(nodes: GraphNode[], edges: GraphEdge[]): void {
   });
 
   edges.forEach((edge) => {
-    const from = edge.source || edge.from || '';
-    const to = edge.target || edge.to || '';
+    const from = edge.source ?? edge.from ?? '';
+    const to = edge.target ?? edge.to ?? '';
     if (!adjacencyList.has(from)) {
       adjacencyList.set(from, []);
     }
@@ -457,7 +448,7 @@ export function formatGraphTree(nodes: GraphNode[], edges: GraphEdge[]): void {
   // Find root nodes (nodes with no incoming edges)
   const hasIncoming = new Set<string>();
   edges.forEach((edge) => {
-    const to = edge.target || edge.to || '';
+    const to = edge.target ?? edge.to ?? '';
     hasIncoming.add(to);
   });
 
@@ -498,8 +489,8 @@ function displayTreeNode(
   visited.add(nodeId);
 
   const node = nodeMap.get(nodeId);
-  const label = node?.label || node?.name || nodeId;
-  const nodeType = node?.type || node?.node_type;
+  const label = node?.label ?? node?.name ?? nodeId;
+  const nodeType = node?.type ?? node?.node_type;
 
   // Display node with color based on type
   let nodeDisplay = label;
@@ -511,7 +502,7 @@ function displayTreeNode(
   console.log(prefix + connector + chalk.cyan(nodeDisplay));
 
   // Get children
-  const children = adjacencyList.get(nodeId) || [];
+  const children = adjacencyList.get(nodeId) ?? [];
 
   // Display children
   children.forEach((childId, index) => {

@@ -39,7 +39,7 @@ dspyCommand
           query,
           userId: options.userId,
           params,
-          evaluateResult: options.evaluate || false,
+          evaluateResult: options.evaluate ?? false,
         },
         { spinner: !options.silent }
       );
@@ -77,7 +77,7 @@ dspyCommand
         'dspy_analyze',
         {
           query,
-          includeTemplates: options.includeTemplates || false,
+          includeTemplates: options.includeTemplates ?? false,
         },
         { spinner: !options.silent }
       );

@@ -59,7 +59,7 @@ process.on('SIGINT', () => handleShutdown('SIGINT'));
 process.on('uncaughtException', (error: Error) => {
   console.error(chalk.red('\n❌ Unexpected error:'), getErrorMessage(error));
   if (process.env.DEBUG) {
-    console.error(chalk.gray(error.stack || ''));
+    console.error(chalk.gray(error.stack ?? ''));
   }
   process.exit(1);
 });
@@ -68,7 +68,7 @@ process.on('unhandledRejection', (reason: unknown) => {
   const message = reason instanceof Error ? reason.message : String(reason);
   console.error(chalk.red('\n❌ Unhandled promise rejection:'), message);
   if (process.env.DEBUG && reason instanceof Error) {
-    console.error(chalk.gray(reason.stack || ''));
+    console.error(chalk.gray(reason.stack ?? ''));
   }
   process.exit(1);
 });
