@@ -460,25 +460,27 @@ export function formatGraphTree(nodes: GraphNode[], edges: GraphEdge[]): void {
 
   // Display tree for each root
   const visited = new Set<string>();
+  const ctx: TreeContext = { nodeMap, adjacencyList, visited };
   nodesToDisplay.forEach((rootId, index) => {
     if (index > 0) console.log('');
-    displayTreeNode(rootId, nodeMap, adjacencyList, '', true, visited);
+    displayTreeNode(rootId, ctx, '', true);
   });
 
   console.log('');
 }
 
+/** Context for tree node display */
+interface TreeContext {
+  nodeMap: Map<string, GraphNode>;
+  adjacencyList: Map<string, string[]>;
+  visited: Set<string>;
+}
+
 /**
  * Recursively display tree node
  */
-function displayTreeNode(
-  nodeId: string,
-  nodeMap: Map<string, GraphNode>,
-  adjacencyList: Map<string, string[]>,
-  prefix: string,
-  isLast: boolean,
-  visited: Set<string>
-): void {
+function displayTreeNode(nodeId: string, ctx: TreeContext, prefix: string, isLast: boolean): void {
+  const { nodeMap, adjacencyList, visited } = ctx;
   if (visited.has(nodeId)) {
     console.log(
       prefix + (isLast ? '└── ' : '├── ') + chalk.gray(nodeId) + chalk.yellow(' (circular)')
@@ -508,7 +510,12 @@ function displayTreeNode(
   children.forEach((childId, index) => {
     const isLastChild = index === children.length - 1;
     const newPrefix = prefix + (isLast ? '    ' : '│   ');
-    displayTreeNode(childId, nodeMap, adjacencyList, newPrefix, isLastChild, new Set(visited));
+    displayTreeNode(
+      childId,
+      { nodeMap, adjacencyList, visited: new Set(visited) },
+      newPrefix,
+      isLastChild
+    );
   });
 }
 

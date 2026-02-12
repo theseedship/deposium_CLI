@@ -108,6 +108,132 @@ function formatCost(cents: number): string {
   return `€${(cents / 100).toFixed(2)}`;
 }
 
+const MAX_INLINE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_BATCH_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILES = 10;
+
+/** Resolve glob pattern to validated file infos */
+async function resolveFiles(pattern: string): Promise<FileInfo[]> {
+  const spinner = ora('Finding files...').start();
+
+  let files: string[];
+  try {
+    files = await glob(pattern, { absolute: true, nodir: true });
+  } catch (error: unknown) {
+    spinner.fail('Failed to process pattern');
+    console.log(chalk.red(`Error: ${getErrorMessage(error)}`));
+    process.exit(1);
+  }
+
+  if (files.length === 0) {
+    spinner.fail('No files found matching pattern');
+    console.log(chalk.yellow(`\nPattern: ${pattern}`));
+    console.log(chalk.gray('Make sure the path is correct and files exist.\n'));
+    process.exit(1);
+  }
+
+  spinner.succeed(`Found ${files.length} file(s)`);
+
+  const fileInfos: FileInfo[] = [];
+  for (const file of files) {
+    try {
+      fileInfos.push(await getFileInfo(file));
+    } catch (error: unknown) {
+      console.log(chalk.yellow(`⚠️  Skipping ${file}: ${getErrorMessage(error)}`));
+    }
+  }
+
+  if (fileInfos.length === 0) {
+    console.log(chalk.red('\n❌ No valid files to upload\n'));
+    process.exit(1);
+  }
+
+  return fileInfos;
+}
+
+/** Validate file size limits */
+function validateLimits(fileInfos: FileInfo[], totalSize: number): void {
+  if (fileInfos.length > MAX_FILES) {
+    console.log(chalk.red(`\n❌ Too many files (max ${MAX_FILES})`));
+    console.log(chalk.gray('Split your upload into multiple batches.\n'));
+    process.exit(1);
+  }
+
+  if (totalSize > MAX_BATCH_SIZE) {
+    console.log(chalk.red(`\n❌ Total size exceeds limit (max ${formatBytes(MAX_BATCH_SIZE)})`));
+    console.log(chalk.gray('Split your upload into multiple batches.\n'));
+    process.exit(1);
+  }
+
+  const oversizedFiles = fileInfos.filter((f) => f.size > MAX_INLINE_SIZE);
+  if (oversizedFiles.length > 0) {
+    console.log(
+      chalk.red(`\n❌ Some files exceed inline upload limit (${formatBytes(MAX_INLINE_SIZE)}):`)
+    );
+    oversizedFiles.forEach((f) => {
+      console.log(chalk.yellow(`  - ${f.name} (${formatBytes(f.size)})`));
+    });
+    console.log(chalk.gray('Presigned URL uploads are not yet supported.\n'));
+    process.exit(1);
+  }
+}
+
+/** Display upload results */
+function displayResults(result: BatchUploadResponse): void {
+  console.log('\n' + divider('Results', 'light'));
+  console.log('');
+
+  const successFiles = result.files.filter(
+    (f) => f.status === 'uploaded' || f.status === 'completed'
+  );
+  const failedFiles = result.files.filter((f) => f.status === 'failed');
+
+  if (successFiles.length > 0) {
+    console.log(chalk.green(`✅ Uploaded: ${successFiles.length} file(s)`));
+    successFiles.forEach((f) => {
+      console.log(
+        chalk.gray(`   - ${f.name}`) + (f.file_id ? chalk.cyan(` (ID: ${f.file_id})`) : '')
+      );
+    });
+  }
+
+  if (failedFiles.length > 0) {
+    console.log(chalk.red(`\n❌ Failed: ${failedFiles.length} file(s)`));
+    failedFiles.forEach((f) => {
+      console.log(chalk.yellow(`   - ${f.name}: ${f.error ?? 'Unknown error'}`));
+    });
+  }
+
+  console.log('');
+  console.log(createInfoBox('Batch Info', '', successFiles.length > 0 ? 'success' : 'error'));
+  console.log(chalk.gray(`  Batch ID:     ${result.batch_id}`));
+  console.log(chalk.gray(`  Status:       ${result.status}`));
+  console.log(chalk.gray(`  Total size:   ${result.total_size_mb.toFixed(2)} MB`));
+  console.log(chalk.cyan(`  Cost:         ${formatCost(result.total_cost_cents)}`));
+  console.log('');
+}
+
+/** Handle upload error with user-friendly messages */
+function handleUploadError(error: unknown, apiUrl: string): never {
+  const msg = getErrorMessage(error);
+
+  if (msg.includes('401') || msg.includes('Authentication')) {
+    console.log(chalk.red('\n❌ Authentication failed'));
+    console.log(chalk.yellow('Check your API key and try again.\n'));
+  } else if (msg.includes('402') || msg.includes('Insufficient credits')) {
+    console.log(chalk.red('\n❌ Insufficient credits'));
+    console.log(chalk.yellow('Add more credits to your account and try again.\n'));
+  } else if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
+    console.log(chalk.red('\n❌ Cannot connect to Deposium API'));
+    console.log(chalk.gray(`  URL: ${apiUrl}`));
+    console.log(chalk.yellow('\nMake sure the server is running.\n'));
+  } else {
+    console.log(chalk.red(`\n❌ Error: ${msg}\n`));
+  }
+
+  process.exit(1);
+}
+
 export const uploadBatchCommand = new Command('upload-batch')
   .description('Upload multiple files to Deposium')
   .argument('<pattern>', 'Glob pattern for files (e.g., "./docs/*.pdf")')
@@ -131,109 +257,36 @@ export const uploadBatchCommand = new Command('upload-batch')
 
     console.log(chalk.bold('\n📦 Deposium Batch Upload\n'));
 
-    // Expand glob pattern
-    const spinner = ora('Finding files...').start();
-    let files: string[];
-
-    try {
-      files = await glob(pattern, { absolute: true, nodir: true });
-    } catch (error: unknown) {
-      spinner.fail('Failed to process pattern');
-      console.log(chalk.red(`Error: ${getErrorMessage(error)}`));
-      process.exit(1);
-    }
-
-    if (files.length === 0) {
-      spinner.fail('No files found matching pattern');
-      console.log(chalk.yellow(`\nPattern: ${pattern}`));
-      console.log(chalk.gray('Make sure the path is correct and files exist.\n'));
-      process.exit(1);
-    }
-
-    spinner.succeed(`Found ${files.length} file(s)`);
-
-    // Get file info
-    const fileInfos: FileInfo[] = [];
-    for (const file of files) {
-      try {
-        const info = await getFileInfo(file);
-        fileInfos.push(info);
-      } catch (error: unknown) {
-        console.log(chalk.yellow(`⚠️  Skipping ${file}: ${getErrorMessage(error)}`));
-      }
-    }
-
-    if (fileInfos.length === 0) {
-      console.log(chalk.red('\n❌ No valid files to upload\n'));
-      process.exit(1);
-    }
-
-    // Calculate totals
+    const fileInfos = await resolveFiles(pattern);
     const totalSize = fileInfos.reduce((sum, f) => sum + f.size, 0);
     const estimatedCostCents = Math.max(1, Math.ceil((totalSize / (1024 * 1024)) * 0.1));
 
-    // Display file list
+    // Display file list and summary
     console.log(divider('Files to Upload', 'light'));
     console.log('');
     fileInfos.forEach((file) => {
       console.log(chalk.gray(`  - ${file.name} (${formatBytes(file.size)})`));
     });
     console.log('');
-
-    // Display summary
     console.log(createInfoBox('Summary', '', 'info'));
     console.log(chalk.white(`  Files:        ${fileInfos.length}`));
     console.log(chalk.white(`  Total size:   ${formatBytes(totalSize)}`));
     console.log(chalk.cyan(`  Est. cost:    ${formatCost(estimatedCostCents)}`));
-    if (options.spaceId) {
-      console.log(chalk.gray(`  Space ID:     ${options.spaceId}`));
-    }
-    if (options.folderId) {
-      console.log(chalk.gray(`  Folder ID:    ${options.folderId}`));
-    }
+    if (options.spaceId) console.log(chalk.gray(`  Space ID:     ${options.spaceId}`));
+    if (options.folderId) console.log(chalk.gray(`  Folder ID:    ${options.folderId}`));
     console.log('');
 
-    // Dry run - stop here
     if (options.dryRun) {
       console.log(chalk.yellow('🔍 Dry run - no files uploaded'));
       console.log(chalk.gray('Remove --dry-run to actually upload files.\n'));
       process.exit(0);
     }
 
-    // Check file size limits
-    const MAX_INLINE_SIZE = 10 * 1024 * 1024; // 10MB
-    const MAX_BATCH_SIZE = 100 * 1024 * 1024; // 100MB
-    const MAX_FILES = 10;
+    validateLimits(fileInfos, totalSize);
 
-    if (fileInfos.length > MAX_FILES) {
-      console.log(chalk.red(`\n❌ Too many files (max ${MAX_FILES})`));
-      console.log(chalk.gray('Split your upload into multiple batches.\n'));
-      process.exit(1);
-    }
-
-    if (totalSize > MAX_BATCH_SIZE) {
-      console.log(chalk.red(`\n❌ Total size exceeds limit (max ${formatBytes(MAX_BATCH_SIZE)})`));
-      console.log(chalk.gray('Split your upload into multiple batches.\n'));
-      process.exit(1);
-    }
-
-    const oversizedFiles = fileInfos.filter((f) => f.size > MAX_INLINE_SIZE);
-    if (oversizedFiles.length > 0) {
-      console.log(
-        chalk.red(`\n❌ Some files exceed inline upload limit (${formatBytes(MAX_INLINE_SIZE)}):`)
-      );
-      oversizedFiles.forEach((f) => {
-        console.log(chalk.yellow(`  - ${f.name} (${formatBytes(f.size)})`));
-      });
-      console.log(chalk.gray('Presigned URL uploads are not yet supported.\n'));
-      process.exit(1);
-    }
-
-    // Prepare batch request
     const batchSpinner = ora('Preparing batch upload...').start();
 
     try {
-      // Read all files and encode as base64
       const filesWithContent = await Promise.all(
         fileInfos.map(async (file) => ({
           name: file.name,
@@ -245,26 +298,18 @@ export const uploadBatchCommand = new Command('upload-batch')
 
       batchSpinner.text = 'Uploading to Deposium...';
 
-      // Make API request
       const response = await fetch(`${apiUrl}/api/v2/files/batch-upload`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
         body: JSON.stringify({
           files: filesWithContent,
-          options: {
-            space_id: options.spaceId,
-            folder_id: options.folderId,
-          },
+          options: { space_id: options.spaceId, folder_id: options.folderId },
         }),
       });
 
       if (!response.ok) {
         const errorBody = await response.text();
         let errorMessage = `HTTP ${response.status}`;
-
         try {
           const errorJson = JSON.parse(errorBody);
           errorMessage = errorJson.error ?? errorJson.message ?? errorMessage;
@@ -276,72 +321,14 @@ export const uploadBatchCommand = new Command('upload-batch')
         } catch {
           if (errorBody) errorMessage += `: ${errorBody.substring(0, 200)}`;
         }
-
         throw new Error(errorMessage);
       }
 
       const result = (await response.json()) as BatchUploadResponse;
-
       batchSpinner.succeed('Batch upload completed!');
-
-      // Display results
-      console.log('\n' + divider('Results', 'light'));
-      console.log('');
-
-      const successFiles = result.files.filter(
-        (f) => f.status === 'uploaded' || f.status === 'completed'
-      );
-      const failedFiles = result.files.filter((f) => f.status === 'failed');
-
-      if (successFiles.length > 0) {
-        console.log(chalk.green(`✅ Uploaded: ${successFiles.length} file(s)`));
-        successFiles.forEach((f) => {
-          console.log(
-            chalk.gray(`   - ${f.name}`) + (f.file_id ? chalk.cyan(` (ID: ${f.file_id})`) : '')
-          );
-        });
-      }
-
-      if (failedFiles.length > 0) {
-        console.log(chalk.red(`\n❌ Failed: ${failedFiles.length} file(s)`));
-        failedFiles.forEach((f) => {
-          console.log(chalk.yellow(`   - ${f.name}: ${f.error ?? 'Unknown error'}`));
-        });
-      }
-
-      console.log('');
-      console.log(createInfoBox('Batch Info', '', successFiles.length > 0 ? 'success' : 'error'));
-      console.log(chalk.gray(`  Batch ID:     ${result.batch_id}`));
-      console.log(chalk.gray(`  Status:       ${result.status}`));
-      console.log(chalk.gray(`  Total size:   ${result.total_size_mb.toFixed(2)} MB`));
-      console.log(chalk.cyan(`  Cost:         ${formatCost(result.total_cost_cents)}`));
-      console.log('');
+      displayResults(result);
     } catch (error: unknown) {
       batchSpinner.fail('Batch upload failed');
-
-      if (
-        getErrorMessage(error).includes('401') ||
-        getErrorMessage(error).includes('Authentication')
-      ) {
-        console.log(chalk.red('\n❌ Authentication failed'));
-        console.log(chalk.yellow('Check your API key and try again.\n'));
-      } else if (
-        getErrorMessage(error).includes('402') ||
-        getErrorMessage(error).includes('Insufficient credits')
-      ) {
-        console.log(chalk.red('\n❌ Insufficient credits'));
-        console.log(chalk.yellow('Add more credits to your account and try again.\n'));
-      } else if (
-        getErrorMessage(error).includes('ECONNREFUSED') ||
-        getErrorMessage(error).includes('fetch failed')
-      ) {
-        console.log(chalk.red('\n❌ Cannot connect to Deposium API'));
-        console.log(chalk.gray(`  URL: ${apiUrl}`));
-        console.log(chalk.yellow('\nMake sure the server is running.\n'));
-      } else {
-        console.log(chalk.red(`\n❌ Error: ${getErrorMessage(error)}\n`));
-      }
-
-      process.exit(1);
+      handleUploadError(error, apiUrl);
     }
   });

@@ -53,15 +53,13 @@ export const authCommand = new Command('auth')
                 )
               );
               process.exit(0);
-            } else {
-              if (attempt < maxAttempts) {
-                console.log(
-                  chalk.red(`\n❌ Invalid API key (attempt ${attempt}/${maxAttempts})\n`)
-                );
-              } else {
-                console.log(chalk.red('\n❌ Invalid API key - maximum attempts reached'));
-              }
             }
+
+            const msg =
+              attempt < maxAttempts
+                ? `\n❌ Invalid API key (attempt ${attempt}/${maxAttempts})\n`
+                : '\n❌ Invalid API key - maximum attempts reached';
+            console.log(chalk.red(msg));
           } catch (error: unknown) {
             if (attempt < maxAttempts) {
               console.log(
