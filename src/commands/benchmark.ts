@@ -38,6 +38,32 @@ export const benchmarkCommand = new Command('benchmark')
   .alias('bench')
   .description('OpenBench LLM benchmarking and evaluation');
 
+/** Display corpus evaluation results in table format */
+function displayCorpusEvalResults(
+  data: BenchmarkRunResponse,
+  options: { tenant: string; space: string }
+): void {
+  const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
+  const scorePercent = (data.score * 100).toFixed(1);
+
+  console.log(chalk.bold('\n📊 Corpus Evaluation Results\n'));
+  console.log(`  ${chalk.cyan('Score:')} ${chalk[scoreColor](`${scorePercent}%`)}`);
+  console.log(`  ${chalk.cyan('Tenant:')} ${data.metrics?.tenant_id ?? options.tenant}`);
+  console.log(`  ${chalk.cyan('Space:')} ${data.metrics?.space_id ?? options.space}`);
+  console.log(`  ${chalk.cyan('Samples:')} ${data.samples_evaluated}`);
+  console.log(`  ${chalk.cyan('Duration:')} ${data.duration_seconds?.toFixed(2) ?? 'N/A'}s`);
+
+  if (!data.metrics) return;
+
+  console.log(chalk.bold('\n📈 Quality Metrics:'));
+  const { tenant_id: _tenantId, space_id: _spaceId, ...otherMetrics } = data.metrics;
+  for (const [key, value] of Object.entries(otherMetrics)) {
+    const display =
+      typeof value === 'number' ? (value as number).toFixed(3) : JSON.stringify(value);
+    console.log(`  ${chalk.gray(key)}: ${display}`);
+  }
+}
+
 // benchmark list - List available benchmarks
 benchmarkCommand
   .command('list')
@@ -247,30 +273,10 @@ benchmarkCommand
       // Parse and display results
       const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
 
-      if (options.format === 'table') {
-        const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
-        const scorePercent = (data.score * 100).toFixed(1);
-
-        console.log(chalk.bold('\n📊 Corpus Evaluation Results\n'));
-        console.log(`  ${chalk.cyan('Score:')} ${chalk[scoreColor](`${scorePercent}%`)}`);
-        console.log(`  ${chalk.cyan('Tenant:')} ${data.metrics?.tenant_id ?? options.tenant}`);
-        console.log(`  ${chalk.cyan('Space:')} ${data.metrics?.space_id ?? options.space}`);
-        console.log(`  ${chalk.cyan('Samples:')} ${data.samples_evaluated}`);
-        console.log(`  ${chalk.cyan('Duration:')} ${data.duration_seconds?.toFixed(2) ?? 'N/A'}s`);
-
-        if (data.metrics) {
-          console.log(chalk.bold('\n📈 Quality Metrics:'));
-          const { tenant_id: _tenantId, space_id: _spaceId, ...otherMetrics } = data.metrics;
-          for (const [key, value] of Object.entries(otherMetrics)) {
-            if (typeof value === 'number') {
-              console.log(`  ${chalk.gray(key)}: ${(value as number).toFixed(3)}`);
-            } else {
-              console.log(`  ${chalk.gray(key)}: ${JSON.stringify(value)}`);
-            }
-          }
-        }
-      } else {
+      if (options.format !== 'table') {
         formatOutput(result.content, options.format);
+      } else {
+        displayCorpusEvalResults(data, options);
       }
     } catch (error: unknown) {
       console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
