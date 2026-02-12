@@ -25,7 +25,7 @@ export async function startInteractive(): Promise<void> {
   while (true) {
     const { command } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'select',
         name: 'command',
         message: chalk.bold.cyan('Select an operation:'),
         choices: [
@@ -170,7 +170,7 @@ async function handleSearch(client: MCPClient): Promise<void> {
 async function handleGraph(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'Graph operation:',
       choices: ['analyze', 'components', 'path'],
@@ -330,7 +330,7 @@ async function handleHealth(client: MCPClient): Promise<void> {
 async function handleIntelligence(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'Intelligence operation:',
       choices: ['analyze', 'suggest', 'summarize', 'elicit'],
@@ -370,7 +370,7 @@ async function handleIntelligence(client: MCPClient): Promise<void> {
 async function handleDSPy(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'DSPy operation:',
       choices: ['route', 'analyze'],
@@ -440,7 +440,7 @@ async function handleLeanRAG(client: MCPClient): Promise<void> {
 async function handleMermaid(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'Mermaid operation:',
       choices: ['parse', 'query'],
@@ -481,7 +481,7 @@ async function handleMermaid(client: MCPClient): Promise<void> {
 async function handleEvaluate(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'Evaluation operation:',
       choices: ['metrics', 'dashboard', 'feedback'],
@@ -504,7 +504,7 @@ async function handleEvaluate(client: MCPClient): Promise<void> {
 async function handleQueryHistory(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'Query history operation:',
       choices: ['retrieve', 'stats'],
@@ -523,7 +523,7 @@ async function handleQueryHistory(client: MCPClient): Promise<void> {
 async function handleLogs(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'Logs operation:',
       choices: ['view', 'stats'],
@@ -546,7 +546,7 @@ async function handleLogs(client: MCPClient): Promise<void> {
 async function handleDuckDB(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'DuckDB operation:',
       choices: ['status', 'list tables'],
@@ -569,7 +569,7 @@ async function handleDuckDB(client: MCPClient): Promise<void> {
 async function handleUI(client: MCPClient): Promise<void> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'action',
       message: 'UI operation:',
       choices: ['dashboard', 'health monitor', 'tools explorer'],
