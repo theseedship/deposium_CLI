@@ -53,6 +53,7 @@ export function validateUrlSecurity(url: string, silent: boolean = false): void 
 export interface DeposiumConfig {
   deposiumUrl?: string; // Unified URL for Deposium API (SolidStart server)
   mcpUrl?: string; // @deprecated - Use deposiumUrl instead. Kept for backward compatibility.
+  mcpDirectUrl?: string; // Direct MCP server URL (bypasses SolidStart, used for chat streaming)
   apiKey?: string;
   defaultTenant?: string;
   defaultSpace?: string;
@@ -71,6 +72,7 @@ export function getConfig(): DeposiumConfig {
   return {
     deposiumUrl: process.env.DEPOSIUM_URL ?? config.get('deposiumUrl'),
     mcpUrl: process.env.DEPOSIUM_MCP_URL ?? config.get('mcpUrl'), // @deprecated
+    mcpDirectUrl: process.env.DEPOSIUM_MCP_DIRECT_URL ?? config.get('mcpDirectUrl'),
     apiKey: process.env.DEPOSIUM_API_KEY ?? config.get('apiKey'),
     defaultTenant: process.env.DEPOSIUM_TENANT ?? config.get('defaultTenant'),
     defaultSpace: process.env.DEPOSIUM_SPACE ?? config.get('defaultSpace'),
@@ -106,6 +108,17 @@ export function getBaseUrl(
   }
 
   return url;
+}
+
+/**
+ * Get the direct MCP server URL (bypasses SolidStart proxy)
+ * Used for chat streaming via /api/chat-stream SSE endpoint.
+ *
+ * Default: http://localhost:4001
+ */
+export function getMcpDirectUrl(cfg?: DeposiumConfig): string {
+  const c = cfg ?? getConfig();
+  return c.mcpDirectUrl ?? 'http://localhost:4001';
 }
 
 export function setConfig(key: keyof DeposiumConfig, value: DeposiumConfig[typeof key]): void {

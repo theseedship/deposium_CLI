@@ -104,6 +104,60 @@ export interface MCPHealthResponse {
   timestamp?: string;
 }
 
+// ============================================================================
+// SSE Event Types (matches MCP /api/chat-stream events)
+// ============================================================================
+
+export interface SSEMetadata {
+  intent: string;
+  confidence: number;
+  method: 'bed-llm' | 'keywords';
+  model: string;
+  language: string;
+  timestamp: string;
+}
+
+export interface SSEToolCall {
+  tool: string;
+  status: 'started' | 'completed';
+  duration_ms?: number;
+}
+
+export interface SSECitation {
+  document_id: string;
+  document_name: string;
+  page?: number;
+  snippet: string;
+  score?: number;
+  full_content?: string;
+}
+
+export interface SSEDone {
+  total_duration_ms: number;
+  tokens_generated?: number;
+  tools_called: string[];
+}
+
+export interface SSEError {
+  message: string;
+  error?: string;
+  code?: string;
+}
+
+export interface ChatStreamOptions {
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  spaceIds?: string[];
+  documentsOnly?: boolean;
+  language?: 'fr' | 'en';
+  confidenceThreshold?: number;
+  onToken: (token: string) => void;
+  onMetadata?: (data: SSEMetadata) => void;
+  onCitation?: (data: SSECitation) => void;
+  onToolCall?: (data: SSEToolCall) => void;
+  onDone?: (data: SSEDone) => void;
+  onError?: (data: SSEError) => void;
+}
+
 /**
  * Configuration options for MCPClient
  */
@@ -555,5 +609,139 @@ export class MCPClient {
       }
     }
     throw new Error('Max retries exceeded');
+  }
+
+  /**
+   * Stream chat responses from MCP /api/chat-stream via SSE.
+   * Connects directly to the MCP server (bypasses SolidStart proxy).
+   *
+   * @param mcpBaseUrl - Base URL of the MCP server (e.g., 'http://localhost:4001')
+   * @param message - User message to send
+   * @param options - Streaming callbacks and request options
+   */
+  async chatStream(mcpBaseUrl: string, message: string, options: ChatStreamOptions): Promise<void> {
+    const url = `${mcpBaseUrl.replace(/\/$/, '')}/api/chat-stream`;
+
+    const body = JSON.stringify({
+      message,
+      conversation_history: options.conversationHistory,
+      space_ids: options.spaceIds,
+      documents_only: options.documentsOnly,
+      language: options.language ?? 'fr',
+      confidence_threshold: options.confidenceThreshold,
+    });
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
+    };
+    if (this.apiKey) {
+      headers['X-API-Key'] = this.apiKey;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication failed (401)\nInvalid or missing API key for MCP server');
+      }
+      const text = await response.text().catch(() => '');
+      throw new Error(`MCP chat-stream error (${response.status}): ${text || response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body from MCP chat-stream');
+    }
+
+    // Parse SSE stream
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += value;
+
+      // Process complete SSE messages (separated by double newlines)
+      const parts = buffer.split('\n\n');
+      // Keep incomplete last part in buffer
+      buffer = parts.pop() ?? '';
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+
+        let eventType = '';
+        let dataStr = '';
+
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            dataStr = line.slice(6);
+          }
+          // Ignore comments (lines starting with ':') like heartbeats
+        }
+
+        if (!eventType || !dataStr) continue;
+
+        try {
+          const data = JSON.parse(dataStr);
+          this.dispatchSSEEvent(eventType, data, options);
+        } catch {
+          // Skip malformed JSON
+        }
+      }
+    }
+
+    // Process any remaining buffer
+    if (buffer.trim()) {
+      let eventType = '';
+      let dataStr = '';
+      for (const line of buffer.split('\n')) {
+        if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+        else if (line.startsWith('data: ')) dataStr = line.slice(6);
+      }
+      if (eventType && dataStr) {
+        try {
+          const data = JSON.parse(dataStr);
+          this.dispatchSSEEvent(eventType, data, options);
+        } catch {
+          // Skip malformed JSON
+        }
+      }
+    }
+  }
+
+  /** Dispatch a parsed SSE event to the appropriate callback */
+  private dispatchSSEEvent(
+    eventType: string,
+    data: Record<string, unknown>,
+    options: ChatStreamOptions
+  ): void {
+    switch (eventType) {
+      case 'token':
+        options.onToken((data as unknown as { token: string }).token ?? '');
+        break;
+      case 'metadata':
+        options.onMetadata?.(data as unknown as SSEMetadata);
+        break;
+      case 'citation':
+        options.onCitation?.(data as unknown as SSECitation);
+        break;
+      case 'tool_call':
+        options.onToolCall?.(data as unknown as SSEToolCall);
+        break;
+      case 'done':
+        options.onDone?.(data as unknown as SSEDone);
+        break;
+      case 'error':
+        options.onError?.(data as unknown as SSEError);
+        break;
+    }
   }
 }

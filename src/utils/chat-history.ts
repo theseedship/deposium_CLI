@@ -64,6 +64,15 @@ export class ChatHistory {
   }
 
   /**
+   * Get conversation history in the native format expected by MCP /api/chat-stream
+   */
+  toConversationHistory(
+    lastN: number = 10
+  ): Array<{ role: 'user' | 'assistant'; content: string }> {
+    return this.messages.slice(-lastN).map(({ role, content }) => ({ role, content }));
+  }
+
+  /**
    * Get all messages
    */
   getMessages(): ChatMessage[] {
