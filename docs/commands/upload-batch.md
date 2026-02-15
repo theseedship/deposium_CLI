@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Upload Batch Command
 
 The `upload-batch` command uploads multiple files to Deposium efficiently.

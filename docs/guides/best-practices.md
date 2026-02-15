@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Best Practices
 
 Tips and recommendations for using Deposium CLI effectively.
@@ -59,14 +61,11 @@ deposium search "query" --silent --format json | jq .
 DEPOSIUM_SILENT=true deposium upload file.pdf
 ```
 
-### Set Appropriate Timeouts
+### Use Silent Mode in CI/CD
 
 ```bash
-# For large operations
-export DEPOSIUM_TIMEOUT=600000  # 10 minutes
-
-# Quick health checks
-deposium health --timeout 5000
+# Avoid spinner output in CI
+DEPOSIUM_SILENT=true deposium search "query" --format json
 ```
 
 ---
@@ -88,7 +87,7 @@ export DEPOSIUM_API_KEY="your-key"
 ```bash
 # .env (add to .gitignore!)
 DEPOSIUM_API_KEY=your-key
-DEPOSIUM_API_URL=https://api.yourcompany.com
+DEPOSIUM_URL=https://api.yourcompany.com
 
 # Load in scripts
 source .env
@@ -99,8 +98,8 @@ deposium search "query"
 
 ```bash
 # Always use HTTPS in production
-DEPOSIUM_API_URL=https://api.deposium.com  # Good
-# DEPOSIUM_API_URL=http://api.deposium.com  # Rejected in production
+DEPOSIUM_URL=https://api.deposium.com  # Good
+# DEPOSIUM_URL=http://api.deposium.com  # Rejected in production
 ```
 
 ---
@@ -114,10 +113,10 @@ DEPOSIUM_API_URL=https://api.deposium.com  # Good
 npm test
 
 # Run specific test file
-npm test -- auth.test.ts
+npm test -- src/__tests__/auth.test.ts
 
 # Watch mode during development
-npm test -- --watch
+npm run test:watch
 ```
 
 ### Type Safety
@@ -150,7 +149,7 @@ npm run format
 | ----------------------- | ---------------------------------- |
 | `Authentication failed` | Check API key, run `deposium auth` |
 | `Connection refused`    | Verify server URL, check network   |
-| `Timeout exceeded`      | Increase `DEPOSIUM_TIMEOUT`        |
+| `Timeout exceeded`      | Check server and network           |
 | `Invalid JSON`          | Check input format with `--help`   |
 
 ### Debug Mode
@@ -181,7 +180,7 @@ DEBUG=true deposium search "query"
 
 ```dockerfile
 ENV DEPOSIUM_API_KEY=""
-ENV DEPOSIUM_API_URL="https://api.deposium.com"
+ENV DEPOSIUM_URL="https://api.deposium.com"
 ENV LOG_LEVEL="info"
 
 RUN npm install -g @deposium/cli

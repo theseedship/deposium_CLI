@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Logs Command
 
 The `logs` command group allows viewing, searching, and managing MCP server logs directly from the CLI.

@@ -21,7 +21,6 @@ Detailed documentation is available in the `docs/` directory:
 
 - **[Installation Guide](docs/guides/installation.md)**
 - **[Configuration Guide](docs/guides/configuration.md)**
-- **[Authentication Guide](docs/guides/authentication.md)**
 - **[Best Practices](docs/guides/best-practices.md)**
 
 ### Command Reference
@@ -67,4 +66,4 @@ See [Contributing Guide](docs/development/contributing.md) and [Development Guid
 
 ## 📄 License
 
-Proprietary - The Seed Ship
+MIT - The Seed Ship

@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Compound Command
 
 The `compound` command enables multi-tool reasoning and complex AI workflows using Groq.

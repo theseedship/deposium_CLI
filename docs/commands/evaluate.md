@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Evaluate Command
 
 The `evaluate` (or `eval`) command group provides tools for gathering metrics, generating dashboards, and submitting feedback to improve the system.
