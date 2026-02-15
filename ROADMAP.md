@@ -49,12 +49,11 @@ Enterprise-grade CLI for Deposium MCP API.
 
 ### Configuration
 
-| Practice          | Description                                                |
-| ----------------- | ---------------------------------------------------------- |
-| Use HTTPS         | Always use `https://` URLs in production                   |
-| Env vars priority | `DEPOSIUM_API_KEY` > config file > interactive prompt      |
-| Timeouts          | Set `DEPOSIUM_TIMEOUT` for long operations (default: 300s) |
-| Silent mode       | Use `--silent` in CI/CD pipelines                          |
+| Practice          | Description                                           |
+| ----------------- | ----------------------------------------------------- |
+| Use HTTPS         | Always use `https://` URLs in production              |
+| Env vars priority | `DEPOSIUM_API_KEY` > config file > interactive prompt |
+| Silent mode       | Use `--silent` or `DEPOSIUM_SILENT=true` in CI/CD     |
 
 ### Development
 
@@ -89,14 +88,15 @@ npm run lint:fix
 
 ## Environment Variables
 
-| Variable           | Description            | Default                    |
-| ------------------ | ---------------------- | -------------------------- |
-| `DEPOSIUM_API_KEY` | API authentication key | -                          |
-| `DEPOSIUM_API_URL` | MCP server URL         | `https://api.deposium.com` |
-| `DEPOSIUM_TENANT`  | Default tenant ID      | -                          |
-| `DEPOSIUM_SPACE`   | Default space ID       | -                          |
-| `DEPOSIUM_TIMEOUT` | Request timeout (ms)   | `300000`                   |
-| `LOG_LEVEL`        | Logging level          | `info`                     |
+| Variable           | Description            | Default                 |
+| ------------------ | ---------------------- | ----------------------- |
+| `DEPOSIUM_API_KEY` | API authentication key | -                       |
+| `DEPOSIUM_URL`     | Deposium server URL    | `http://localhost:3003` |
+| `DEPOSIUM_TENANT`  | Default tenant ID      | -                       |
+| `DEPOSIUM_SPACE`   | Default space ID       | -                       |
+| `DEPOSIUM_OUTPUT`  | Default output format  | `table`                 |
+| `DEPOSIUM_SILENT`  | Suppress output        | `false`                 |
+| `LOG_LEVEL`        | Logging level          | `info`                  |
 
 ---
 
@@ -129,10 +129,10 @@ src/__tests__/commands/
 npm test
 
 # With coverage
-npm test -- --coverage
+npm run test:coverage
 
 # Watch mode
-npm test -- --watch
+npm run test:watch
 ```
 
 ---

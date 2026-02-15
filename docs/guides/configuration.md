@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Configuration Guide
 
 Complete reference for configuring Deposium CLI.
@@ -13,17 +15,21 @@ Settings are loaded in this order (later sources override earlier):
 
 ## Environment Variables
 
-| Variable           | Description            | Default                    | Example                     |
-| ------------------ | ---------------------- | -------------------------- | --------------------------- |
-| `DEPOSIUM_API_KEY` | API authentication key | -                          | `sk-abc123...`              |
-| `DEPOSIUM_API_URL` | MCP server URL         | `https://api.deposium.com` | `https://api.mycompany.com` |
-| `DEPOSIUM_TENANT`  | Default tenant ID      | -                          | `tenant-123`                |
-| `DEPOSIUM_SPACE`   | Default space ID       | -                          | `space-456`                 |
-| `DEPOSIUM_TIMEOUT` | Request timeout (ms)   | `300000`                   | `600000`                    |
-| `LOG_LEVEL`        | Logging verbosity      | `info`                     | `debug`, `warn`, `error`    |
-| `LOG_JSON`         | JSON log format        | `false`                    | `true`                      |
-| `LOG_FILE`         | Enable file logging    | `false`                    | `true`                      |
-| `LOG_PATH`         | Log file location      | `~/.deposium/logs/cli.log` | `/var/log/deposium.log`     |
+| Variable                  | Description                   | Default                    | Example                     |
+| ------------------------- | ----------------------------- | -------------------------- | --------------------------- |
+| `DEPOSIUM_API_KEY`        | API authentication key        | -                          | `sk-abc123...`              |
+| `DEPOSIUM_URL`            | Deposium server URL           | `http://localhost:3003`    | `https://api.mycompany.com` |
+| `DEPOSIUM_MCP_DIRECT_URL` | Direct MCP server URL (chat)  | `http://localhost:4001`    | `https://mcp.mycompany.com` |
+| `DEPOSIUM_TENANT`         | Default tenant ID             | -                          | `tenant-123`                |
+| `DEPOSIUM_SPACE`          | Default space ID              | -                          | `space-456`                 |
+| `DEPOSIUM_OUTPUT`         | Default output format         | `table`                    | `json`, `markdown`          |
+| `DEPOSIUM_SILENT`         | Suppress non-essential output | `false`                    | `true`                      |
+| `LOG_LEVEL`               | Logging verbosity             | `info`                     | `debug`, `warn`, `error`    |
+| `LOG_JSON`                | JSON log format               | `false`                    | `true`                      |
+| `LOG_FILE`                | Enable file logging           | `false`                    | `true`                      |
+| `LOG_PATH`                | Log file location             | `~/.deposium/logs/cli.log` | `/var/log/deposium.log`     |
+
+> **Note:** `DEPOSIUM_MCP_URL` is deprecated. Use `DEPOSIUM_URL` instead.
 
 ## Configuration File
 
@@ -33,14 +39,26 @@ Location: `~/.deposium/config.json`
 
 ```json
 {
-  "apiUrl": "https://api.deposium.com",
+  "deposiumUrl": "https://api.deposium.com",
+  "mcpDirectUrl": "https://mcp.deposium.com",
   "defaultTenant": "my-tenant",
   "defaultSpace": "my-space",
-  "timeout": 300000,
-  "retryAttempts": 3,
-  "retryDelay": 1000
+  "outputFormat": "table",
+  "silentMode": false
 }
 ```
+
+### Valid Configuration Keys
+
+| Key             | Type    | Description                               |
+| --------------- | ------- | ----------------------------------------- |
+| `deposiumUrl`   | string  | Deposium server URL                       |
+| `mcpDirectUrl`  | string  | Direct MCP URL (chat streaming)           |
+| `apiKey`        | string  | API authentication key                    |
+| `defaultTenant` | string  | Default tenant ID                         |
+| `defaultSpace`  | string  | Default space ID                          |
+| `outputFormat`  | string  | Output format (`json`/`table`/`markdown`) |
+| `silentMode`    | boolean | Suppress non-essential output             |
 
 ### Managing Configuration
 
@@ -52,7 +70,7 @@ deposium config list
 deposium config set defaultTenant my-tenant
 
 # Get a specific value
-deposium config get apiUrl
+deposium config get deposiumUrl
 
 # Delete a value
 deposium config delete defaultSpace
@@ -99,26 +117,6 @@ export DEPOSIUM_SPACE=my-space
 ```bash
 # Override for single command
 deposium search "query" --tenant other-tenant --space other-space
-```
-
-## Timeout Configuration
-
-### Global Timeout
-
-```bash
-# Environment variable (milliseconds)
-export DEPOSIUM_TIMEOUT=600000  # 10 minutes
-
-# Configuration file
-deposium config set timeout 600000
-```
-
-### Per-Command Timeout
-
-Some commands support `--timeout`:
-
-```bash
-deposium health --timeout 5000
 ```
 
 ## Logging Configuration
@@ -184,18 +182,18 @@ export NODE_TLS_REJECT_UNAUTHORIZED=0
 
 ### Available Formats
 
-| Format    | Description                     |
-| --------- | ------------------------------- |
-| `table`   | Human-readable tables (default) |
-| `json`    | Machine-parseable JSON          |
-| `compact` | Minimal output                  |
+| Format     | Description                     |
+| ---------- | ------------------------------- |
+| `table`    | Human-readable tables (default) |
+| `json`     | Machine-parseable JSON          |
+| `markdown` | Markdown-formatted output       |
 
 ```bash
-# Set format
+# Set format per command
 deposium search "query" --format json
 
-# Default format via config
-deposium config set defaultFormat json
+# Default format via environment
+export DEPOSIUM_OUTPUT=json
 ```
 
 ## Silent Mode
@@ -216,17 +214,16 @@ export DEPOSIUM_SILENT=true
 
 ```bash
 # .env.development
-DEPOSIUM_API_URL=http://localhost:3003
+DEPOSIUM_URL=http://localhost:3003
 DEPOSIUM_API_KEY=dev-key
 LOG_LEVEL=debug
-DEPOSIUM_TIMEOUT=60000
 ```
 
 ### Production
 
 ```bash
 # .env.production
-DEPOSIUM_API_URL=https://api.deposium.com
+DEPOSIUM_URL=https://api.deposium.com
 DEPOSIUM_API_KEY=prod-key
 LOG_LEVEL=warn
 LOG_JSON=true
@@ -269,5 +266,5 @@ deposium auth
 
 ```bash
 # Full debug output
-LOG_LEVEL=debug DEBUG=true deposium search "query"
+LOG_LEVEL=debug deposium search "query"
 ```

@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # UI Command
 
 The `ui` command group provides access to interactive dashboards and visualizations powered by the Deposium MCP server.

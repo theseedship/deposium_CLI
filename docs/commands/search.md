@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Search Command
 
 The `search` command performs document search using various strategies (vector, full-text, fuzzy).

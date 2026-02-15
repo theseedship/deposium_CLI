@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # LeanRAG Command
 
 The `leanrag` command group provides optimized retrieval, aggregation, and analysis commands implementing the LeanRAG pattern.

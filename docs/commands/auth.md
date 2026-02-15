@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Authentication Command
 
 The `auth` command handles API key management and authentication with the Deposium MCP Server.

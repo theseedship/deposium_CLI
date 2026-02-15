@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # MCP Security Implementation Summary
 
 **Date:** November 20, 2025

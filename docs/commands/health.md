@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Health Command
 
 The `health` command checks the connectivity and status of the Deposium API and its services.
