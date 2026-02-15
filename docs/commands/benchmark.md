@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Benchmark Command
 
 The `benchmark` command runs OpenBench LLM benchmarking and evaluation.

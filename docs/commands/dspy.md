@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # DSPy Command
 
 The `dspy` command group handles intelligent query routing and optimization using the DSPy framework logic.

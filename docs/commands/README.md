@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Command Reference
 
 This directory contains detailed documentation for all Deposium CLI commands.

@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Query History Command
 
 The `query-history` (or `qh`) command group tracks and analyzes user query performance and history.

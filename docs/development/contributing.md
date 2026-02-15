@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Contributing to Deposium CLI
 
 Thank you for your interest in contributing to Deposium CLI! This document provides guidelines and instructions for contributing to the project.
@@ -23,7 +25,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 
 ### Prerequisites
 
-- **Node.js**: >= 20.x
+- **Node.js**: >= 22.x
 - **npm**: Latest version
 - **Git**: For version control
 
@@ -281,7 +283,7 @@ Every PR triggers automated checks on GitHub Actions:
 - ✅ Prettier check
 - ✅ TypeScript type checking
 - ✅ Tests execution
-- 🔄 Runs on Node 20.x and 22.x
+- 🔄 Runs on Node 22.x
 
 ### Build Job
 
@@ -348,12 +350,12 @@ Previously crashed on empty results. Now shows friendly message.
 npm test
 
 # Watch mode
-npm test -- --watch
+npm run test:watch
 ```
 
 ### Writing Tests
 
-- Place tests next to source files: `*.test.ts`
+- Place tests in `src/__tests__/` directory: `*.test.ts`
 - Use descriptive test names
 - Test edge cases and error conditions
 - Aim for high coverage on critical paths

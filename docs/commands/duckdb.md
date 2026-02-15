@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # DuckDB Command
 
 The `duckdb` (or `db`) command group integrates with the DuckDB MCP server for SQL querying, federation, and database management.

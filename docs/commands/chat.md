@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # AI Compound Chat Feature
 
 The AI Compound feature now supports conversation history, allowing you to have contextual back-and-forth conversations with the AI. There's now a dedicated **continuous chat mode** that works just like Claude Code's chat interface! 💬

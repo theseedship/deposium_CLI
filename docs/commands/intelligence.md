@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Intelligence Command
 
 The `intelligence` (or `smart`) command group offers AI-powered query analysis, suggestions, and result summarization.

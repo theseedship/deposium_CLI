@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Tools Command
 
 The `tools` command allows you to list and explore all available tools exposed by the connected Deposium MCP server.

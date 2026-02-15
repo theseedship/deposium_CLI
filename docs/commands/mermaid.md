@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Mermaid Command
 
 The `mermaid` command group enables extracting, generating, and querying Mermaid diagrams within documents.

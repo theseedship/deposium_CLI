@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/claude-code) when working 
 Deposium CLI is an enterprise-grade command-line interface for the Deposium MCP (Model Context Protocol) API. It provides 19 operational commands for document search, knowledge graph operations, AI workflows, and batch processing.
 
 **Package:** `@deposium/cli` v1.0.0
-**Runtime:** Node.js 20+ or Bun 1.0+
+**Runtime:** Node.js 22+ or Bun 1.0+
 **Test Framework:** Vitest (137 tests)
 
 ## Common Commands
@@ -85,7 +85,7 @@ export const myCommand = new Command('my-command').action(
 
 ### Configuration Priority
 
-1. Environment variables (`DEPOSIUM_API_KEY`, `DEPOSIUM_API_URL`, etc.)
+1. Environment variables (`DEPOSIUM_API_KEY`, `DEPOSIUM_URL`, etc.)
 2. Config file (`~/.deposium/config.json`)
 3. Interactive prompts
 
@@ -105,14 +105,16 @@ export const myCommand = new Command('my-command').action(
 
 ## Environment Variables
 
-| Variable           | Description            | Default                    |
-| ------------------ | ---------------------- | -------------------------- |
-| `DEPOSIUM_API_KEY` | API authentication key | -                          |
-| `DEPOSIUM_API_URL` | MCP server URL         | `https://api.deposium.com` |
-| `DEPOSIUM_TENANT`  | Default tenant ID      | -                          |
-| `DEPOSIUM_SPACE`   | Default space ID       | -                          |
-| `DEPOSIUM_TIMEOUT` | Request timeout (ms)   | `300000`                   |
-| `LOG_LEVEL`        | Logging level          | `info`                     |
+| Variable                  | Description                   | Default                 |
+| ------------------------- | ----------------------------- | ----------------------- |
+| `DEPOSIUM_API_KEY`        | API authentication key        | -                       |
+| `DEPOSIUM_URL`            | Deposium server URL           | `http://localhost:3003` |
+| `DEPOSIUM_MCP_DIRECT_URL` | Direct MCP URL (chat stream)  | `http://localhost:4001` |
+| `DEPOSIUM_TENANT`         | Default tenant ID             | -                       |
+| `DEPOSIUM_SPACE`          | Default space ID              | -                       |
+| `DEPOSIUM_OUTPUT`         | Default output format         | `table`                 |
+| `DEPOSIUM_SILENT`         | Suppress non-essential output | `false`                 |
+| `LOG_LEVEL`               | Logging level                 | `info`                  |
 
 ## Code Style
 
@@ -127,5 +129,5 @@ export const myCommand = new Command('my-command').action(
 - Main docs in `docs/` directory
 - `ROADMAP.md` - Vision and planned features
 - `docs/CHANGELOG.md` - Version history
-- `docs/CONFIGURATION.md` - Config guide
-- `docs/guides/BEST_PRACTICES.md` - Development tips
+- `docs/guides/configuration.md` - Config guide
+- `docs/guides/best-practices.md` - Development tips

@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Config Command
 
 The `config` command manages the local configuration for the Deposium CLI (e.g., default tenant, API URL).

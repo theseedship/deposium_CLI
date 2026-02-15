@@ -1,3 +1,5 @@
+> Revision: 15/02/2025
+
 # Installation Guide
 
 ## 📦 Installation Options
@@ -106,7 +108,7 @@ Creates a **tarball** (.tgz) exactly as npm publish would, then installs from it
 ```bash
 npm run build
 npm pack
-# Creates: deposium-cli-1.0.0.tgz
+# Creates: deposium-cli-1.0.0.tgz (scoped: @deposium/cli)
 
 npm install -g ./deposium-cli-1.0.0.tgz
 
