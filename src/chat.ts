@@ -77,7 +77,7 @@ export async function startChat(): Promise<void> {
           citations.push(citation);
         },
         onError: (err) => {
-          console.error(chalk.red('\n❌ ' + (err.message || err.error || 'Stream error')));
+          console.error(chalk.red('\n❌ ' + (err.message ?? err.error ?? 'Stream error')));
         },
       });
 
