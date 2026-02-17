@@ -619,6 +619,7 @@ export class MCPClient {
    * @param message - User message to send
    * @param options - Streaming callbacks and request options
    */
+  // eslint-disable-next-line complexity
   async chatStream(mcpBaseUrl: string, message: string, options: ChatStreamOptions): Promise<void> {
     const url = `${mcpBaseUrl.replace(/\/$/, '')}/api/chat-stream`;
 
