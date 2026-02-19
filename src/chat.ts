@@ -101,10 +101,7 @@ export async function startChat(): Promise<void> {
       process.stdout.write('\n');
       console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
       // Remove the failed user message from history
-      const messages = chatHistory.getMessages();
-      if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        messages.pop();
-      }
+      chatHistory.removeLastMessage();
     }
   }
 }
