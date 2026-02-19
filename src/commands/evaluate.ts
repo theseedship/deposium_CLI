@@ -192,7 +192,7 @@ evaluateCommand
       console.log(chalk.bold('\n🕸️  Generating graph visualization...\n'));
 
       const result = await client.callTool(
-        'generate_security_report',
+        'evaluate_graph',
         {
           tenant_id: options.tenant,
           space_id: options.space,
@@ -236,7 +236,7 @@ evaluateCommand
         : undefined;
 
       const result = await client.callTool(
-        'scan_vulnerabilities',
+        'evaluate_quality',
         {
           code,
           test_cases: testCases,
