@@ -105,7 +105,7 @@ export const corpusCommand = new Command('corpus')
           console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
 
           const result = await client.callTool(
-            'corpus.improve',
+            'corpus_improve',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -143,7 +143,7 @@ export const corpusCommand = new Command('corpus')
           console.log(chalk.bold('\n⚡ Starting real-time evaluation...\n'));
 
           const result = await client.callTool(
-            'corpus.realtime_eval',
+            'corpus_realtime_eval',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -181,7 +181,7 @@ export const corpusCommand = new Command('corpus')
           console.log(chalk.bold('\n🔍 Monitoring corpus quality...\n'));
 
           const result = await client.callTool(
-            'corpus.monitor',
+            'corpus_monitor',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -223,7 +223,7 @@ export const corpusCommand = new Command('corpus')
             : undefined;
 
           const result = await client.callTool(
-            'corpus.freshness',
+            'corpus_freshness',
             {
               tenant_id: options.tenant,
               space_id: options.space,
@@ -261,7 +261,7 @@ export const corpusCommand = new Command('corpus')
           console.log(chalk.bold('\n📉 Detecting concept drift...\n'));
 
           const result = await client.callTool(
-            'corpus.drift',
+            'corpus_drift',
             {
               tenant_id: options.tenant,
               space_id: options.space,
