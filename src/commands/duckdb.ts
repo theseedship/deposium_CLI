@@ -28,7 +28,7 @@ duckdbCommand
       console.log(chalk.bold('\n🦆 Starting DuckDB MCP server...\n'));
 
       const result = await client.callTool(
-        'duckdb.serve',
+        'duckdb_serve',
         {
           port: parseInt(options.port, 10),
           host: options.host,
@@ -71,7 +71,7 @@ duckdbCommand
       console.log(chalk.bold('\n🔗 Connecting to DuckDB...\n'));
 
       const result = await client.callTool(
-        'duckdb.connect',
+        'duckdb_connect',
         {
           connection_url: options.url,
           connection_name: options.name,
@@ -116,7 +116,7 @@ duckdbCommand
       const sources = safeParseJSON<Record<string, unknown>[]>(options.sources, '--sources');
 
       const result = await client.callTool(
-        'duckdb.federate',
+        'duckdb_federate',
         {
           query,
           sources,
@@ -154,7 +154,7 @@ duckdbCommand
       console.log(chalk.bold('\n📤 Exposing DuckDB via MCP...\n'));
 
       const result = await client.callTool(
-        'duckdb.expose',
+        'duckdb_expose',
         {
           database_path: options.database,
           readonly: options.readonly ?? false,
@@ -192,7 +192,7 @@ duckdbCommand
       console.log(chalk.bold('\n🔍 Executing MCP query...\n'));
 
       const result = await client.callTool(
-        'duckdb.query_mcp',
+        'duckdb_query_mcp',
         {
           query,
           connection_name: options.connection,
