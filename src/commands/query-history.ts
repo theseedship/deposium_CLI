@@ -31,7 +31,7 @@ queryHistoryCommand
       console.log(chalk.bold('\n📝 Logging query...\n'));
 
       const result = await client.callTool(
-        'query.log',
+        'query_log',
         {
           query,
           userId: options.userId,
@@ -73,7 +73,7 @@ queryHistoryCommand
       console.log(chalk.bold('\n💾 Exporting query history...\n'));
 
       const result = await client.callTool(
-        'query.export',
+        'query_export',
         {
           userId: options.userId,
           format: options.format,
@@ -115,7 +115,7 @@ queryHistoryCommand
       console.log(chalk.bold('\n📜 Retrieving query history...\n'));
 
       const result = await client.callTool(
-        'query.retrieve',
+        'query_retrieve',
         {
           userId: options.userId,
           limit: parseInt(options.limit, 10),
@@ -156,7 +156,7 @@ queryHistoryCommand
       console.log(chalk.bold('\n📊 Fetching query statistics...\n'));
 
       const result = await client.callTool(
-        'query.stats',
+        'query_stats',
         {
           userId: options.userId,
           time_range: options.timeRange,
@@ -204,7 +204,7 @@ queryHistoryCommand
       console.log(chalk.bold('\n🗑️  Cleaning up query history...\n'));
 
       const result = await client.callTool(
-        'query.cleanup',
+        'query_cleanup',
         {
           older_than_days: parseInt(options.olderThan, 10),
         },

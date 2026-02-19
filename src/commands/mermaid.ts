@@ -29,7 +29,7 @@ mermaidCommand
       console.log(chalk.bold('\n🔍 Parsing Mermaid diagrams...\n'));
 
       const result = await client.callTool(
-        'mermaid.parse',
+        'mermaid_parse',
         {
           tenant_id: options.tenant,
           space_id: options.space,
@@ -76,7 +76,7 @@ mermaidCommand
       const data = safeParseJSON<Record<string, unknown>>(options.data, '--data');
 
       const result = await client.callTool(
-        'mermaid.generate',
+        'mermaid_generate',
         {
           diagram_type: type,
           data,
@@ -118,7 +118,7 @@ mermaidCommand
       console.log(chalk.bold('\n🔎 Querying diagrams...\n'));
 
       const result = await client.callTool(
-        'mermaid.query',
+        'mermaid_query',
         {
           tenant_id: options.tenant,
           space_id: options.space,
