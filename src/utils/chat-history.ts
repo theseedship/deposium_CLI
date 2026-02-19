@@ -87,6 +87,13 @@ export class ChatHistory {
   }
 
   /**
+   * Remove the last message from history (used when a request fails)
+   */
+  removeLastMessage(): void {
+    this.messages.pop();
+  }
+
+  /**
    * Check if history is empty
    */
   isEmpty(): boolean {
