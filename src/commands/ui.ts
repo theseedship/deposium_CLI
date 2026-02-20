@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const uiCommand = new Command('ui').description(
   'Interactive UI dashboards and visualizations'
@@ -17,20 +14,15 @@ uiCommand
   .option('--port <number>', 'Server port', '8080')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🎨 Opening dashboard...\n'));
 
       const result = await client.callTool(
         'ui_show_dashboard',
-        {
-          port: parseInt(options.port, 10),
-        },
+        { port: parseInt(options.port, 10) },
         { spinner: !options.silent }
       );
 
@@ -40,11 +32,8 @@ uiCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // ui.show_search - Visual search interface
 uiCommand
@@ -53,20 +42,15 @@ uiCommand
   .option('--port <number>', 'Server port', '8081')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🔍 Opening search interface...\n'));
 
       const result = await client.callTool(
         'ui_show_search',
-        {
-          port: parseInt(options.port, 10),
-        },
+        { port: parseInt(options.port, 10) },
         { spinner: !options.silent }
       );
 
@@ -76,11 +60,8 @@ uiCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // ui.show_health - Real-time health monitor
 uiCommand
@@ -90,13 +71,10 @@ uiCommand
   .option('--refresh <seconds>', 'Refresh interval in seconds', '5')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n💚 Opening health monitor...\n'));
 
       const result = await client.callTool(
@@ -114,11 +92,8 @@ uiCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // ui.show_tools - MCP tools explorer
 uiCommand
@@ -127,20 +102,15 @@ uiCommand
   .option('--port <number>', 'Server port', '8083')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🛠️  Opening tools explorer...\n'));
 
       const result = await client.callTool(
         'ui_show_tools',
-        {
-          port: parseInt(options.port, 10),
-        },
+        { port: parseInt(options.port, 10) },
         { spinner: !options.silent }
       );
 
@@ -150,11 +120,8 @@ uiCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // ui.show_embeddings - Embeddings queue monitor
 uiCommand
@@ -164,13 +131,10 @@ uiCommand
   .option('--refresh <seconds>', 'Refresh interval in seconds', '10')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n⚡ Opening embeddings monitor...\n'));
 
       const result = await client.callTool(
@@ -188,8 +152,5 @@ uiCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );

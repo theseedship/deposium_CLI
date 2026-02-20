@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient, MCPHealthService } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
+import type { MCPHealthService } from '../client/mcp-client';
 import {
   formatOutput,
   displayStatus,
@@ -10,23 +9,16 @@ import {
   displayMetricBar,
   createInfoBox,
 } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, getErrorMessage } from '../utils/command-helpers';
 
 export const healthCommand = new Command('health')
   .description('Check Deposium API and services health')
   .option('-v, --verbose', 'Show detailed health information')
   .option('-f, --format <type>', 'Output format (json|table)', 'table')
   .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-
-    // Ensure user is authenticated
-    const apiKey = await ensureAuthenticated(baseUrl);
+    const { client, baseUrl } = await initializeCommand();
 
     try {
-      const client = new MCPClient(baseUrl, apiKey);
-
       console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
 
       // First check server connectivity

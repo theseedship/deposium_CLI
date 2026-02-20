@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const evaluateCommand = new Command('evaluate')
   .alias('eval')
@@ -18,13 +15,10 @@ evaluateCommand
   .option('--include-global', 'Include system-wide metrics')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📊 Fetching evaluation metrics...\n'));
 
       const result = await client.callTool(
@@ -42,11 +36,8 @@ evaluateCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // eval.dashboard - Generate evaluation dashboard
 evaluateCommand
@@ -56,13 +47,10 @@ evaluateCommand
   .option('--time-range <range>', 'Time range (24h|7d|30d)', '24h')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📈 Generating dashboard...\n'));
 
       const result = await client.callTool(
@@ -80,11 +68,8 @@ evaluateCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // eval.feedback - Submit quality feedback
 evaluateCommand
@@ -96,13 +81,10 @@ evaluateCommand
   .option('--feedback <text>', 'Feedback text')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       if (!options.queryId || !options.userId || !options.score) {
         console.error(chalk.red('❌ --query-id, --user-id, and --score are required'));
         process.exit(1);
@@ -127,11 +109,8 @@ evaluateCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // evaluate.code - E2B sandboxed code execution
 evaluateCommand
@@ -142,13 +121,10 @@ evaluateCommand
   .option('--timeout <ms>', 'Execution timeout in milliseconds', '30000')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (code: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (code: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n⚡ Executing code in sandbox...\n'));
 
       const result = await client.callTool(
@@ -167,35 +143,31 @@ evaluateCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // evaluate.graph - Graph visualization and metrics
 evaluateCommand
   .command('graph')
   .description('Generate graph visualization and quality metrics')
-  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
-  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
+  .option('-t, --tenant <id>', 'Tenant ID')
+  .option('-s, --space <id>', 'Space ID')
   .option('--max-nodes <number>', 'Maximum nodes to visualize', '100')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { config, client } = await initializeCommand();
+      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
+      const spaceId = options.space ?? config.defaultSpace ?? 'default';
 
-    try {
       console.log(chalk.bold('\n🕸️  Generating graph visualization...\n'));
 
       const result = await client.callTool(
         'evaluate_graph',
         {
-          tenant_id: options.tenant,
-          space_id: options.space,
+          tenant_id: tenantId,
+          space_id: spaceId,
           max_nodes: parseInt(options.maxNodes, 10),
         },
         { spinner: !options.silent }
@@ -207,11 +179,8 @@ evaluateCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // evaluate.quality - Code quality assessment
 evaluateCommand
@@ -222,13 +191,10 @@ evaluateCommand
   .option('--language <lang>', 'Programming language', 'javascript')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (code: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (code: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🔍 Assessing code quality...\n'));
 
       const testCases = options.testCases
@@ -251,8 +217,5 @@ evaluateCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );

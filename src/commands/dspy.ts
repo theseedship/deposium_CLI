@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const dspyCommand = new Command('dspy').description(
   'DSPy intelligent query routing and optimization'
@@ -20,13 +17,10 @@ dspyCommand
   .option('--evaluate', 'Evaluate result quality')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (query: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (query: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🧭 Routing query...\n'));
 
       const params = options.params
@@ -50,11 +44,8 @@ dspyCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // dspy.analyze - Query intent analysis
 dspyCommand
@@ -64,13 +55,10 @@ dspyCommand
   .option('--include-templates', 'Include query templates')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (query: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (query: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🔍 Analyzing query intent...\n'));
 
       const result = await client.callTool(
@@ -88,8 +76,5 @@ dspyCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );

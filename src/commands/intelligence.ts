@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const intelligenceCommand = new Command('intelligence')
   .alias('smart')
@@ -17,13 +14,10 @@ intelligenceCommand
   .argument('<query>', 'Query text to analyze')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (query: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (query: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🧠 Analyzing query intent...\n'));
 
       const result = await client.callTool(
@@ -38,36 +32,32 @@ intelligenceCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // smart.suggest - Auto-completion and suggestions
 intelligenceCommand
   .command('suggest')
   .description('Generate intelligent query suggestions and auto-completions')
   .argument('<partial>', 'Partial query text')
-  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
-  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
+  .option('-t, --tenant <id>', 'Tenant ID')
+  .option('-s, --space <id>', 'Space ID')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (partial: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (partial: string, options) => {
+      const { config, client } = await initializeCommand();
+      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
+      const spaceId = options.space ?? config.defaultSpace ?? 'default';
 
-    try {
       console.log(chalk.bold('\n💡 Generating suggestions...\n'));
 
       const result = await client.callTool(
         'smart_suggest',
         {
           partial_query: partial,
-          tenant_id: options.tenant,
-          space_id: options.space,
+          tenant_id: tenantId,
+          space_id: spaceId,
         },
         { spinner: !options.silent }
       );
@@ -78,11 +68,8 @@ intelligenceCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // smart.summarize - Result summarization
 intelligenceCommand
@@ -93,13 +80,10 @@ intelligenceCommand
   .option('--focus <text>', 'Focus area for summary')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'markdown')
   .option('--silent', 'Suppress progress messages')
-  .action(async (results: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (results: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📝 Summarizing results...\n'));
 
       // Parse results input
@@ -129,11 +113,8 @@ intelligenceCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // smart.elicit - Clarification detection
 intelligenceCommand
@@ -144,13 +125,10 @@ intelligenceCommand
   .option('--context <json>', 'Context JSON (previous queries, preferences, history)')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (query: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (query: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🤔 Checking for clarification needs...\n'));
 
       const context = options.context
@@ -173,8 +151,5 @@ intelligenceCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );

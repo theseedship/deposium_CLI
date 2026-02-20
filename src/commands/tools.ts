@@ -1,23 +1,18 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { MCPClient, MCPTool } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import type { MCPTool } from '../client/mcp-client';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const toolsCommand = new Command('tools')
   .description('List and explore available MCP tools')
   .option('-c, --category <name>', 'Filter by category')
   .option('-s, --search <term>', 'Search tool names/descriptions')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
 
       const tools = await client.listTools();
@@ -104,11 +99,8 @@ export const toolsCommand = new Command('tools')
 
       console.log(chalk.gray('\n💡 Tip: Use --search or --category to filter tools'));
       console.log(chalk.gray('💡 Tip: Use --json for machine-readable output\n'));
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 function getCategoryIcon(category: string): string {
   const icons: Record<string, string> = {
