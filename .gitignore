@@ -37,3 +37,4 @@ bun.lockb
 # Code quality tooling (local state)
 .daddy/
 .qlty/
+.gitnexus
