@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, getErrorMessage } from '../utils/command-helpers';
 
 /** OpenBench category information */
 interface BenchmarkCategory {
@@ -71,13 +68,10 @@ benchmarkCommand
   .option('--details', 'Include detailed information', true)
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       if (!options.silent) {
         console.log(chalk.bold('\n📋 Available OpenBench Categories\n'));
       }
@@ -112,11 +106,8 @@ benchmarkCommand
       } else {
         formatOutput(result.content, options.format);
       }
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // benchmark run - Run a standard benchmark
 benchmarkCommand
@@ -133,13 +124,10 @@ benchmarkCommand
   .option('--no-cache', 'Disable result caching')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       if (!options.silent) {
         console.log(chalk.bold('\n🏃 Running OpenBench Benchmark\n'));
         console.log(chalk.gray(`  Category: ${options.category}`));
@@ -195,35 +183,31 @@ benchmarkCommand
       } else {
         formatOutput(result.content, options.format);
       }
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // benchmark corpus - Evaluate a custom corpus
 benchmarkCommand
   .command('corpus')
   .description('Evaluate a Deposium corpus for search/retrieval quality')
-  .option('-t, --tenant <id>', 'Tenant ID', getConfig().defaultTenant ?? 'default')
-  .option('-s, --space <id>', 'Space ID', getConfig().defaultSpace ?? 'default')
+  .option('-t, --tenant <id>', 'Tenant ID')
+  .option('-s, --space <id>', 'Space ID')
   .option('-q, --queries <json>', 'Query-document pairs JSON file or inline JSON')
   .option('-p, --provider <name>', 'LLM provider', 'groq')
   .option('-m, --model <name>', 'Model name', 'llama-3.1-8b-instant')
   .option('-n, --samples <number>', 'Maximum samples', '100')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { config, client } = await initializeCommand();
+      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
+      const spaceId = options.space ?? config.defaultSpace ?? 'default';
 
-    try {
       if (!options.silent) {
         console.log(chalk.bold('\n🔬 Evaluating Corpus Quality\n'));
-        console.log(chalk.gray(`  Tenant: ${options.tenant}`));
-        console.log(chalk.gray(`  Space: ${options.space}\n`));
+        console.log(chalk.gray(`  Tenant: ${tenantId}`));
+        console.log(chalk.gray(`  Space: ${spaceId}\n`));
       }
 
       // Parse queries from JSON or file
@@ -255,8 +239,8 @@ benchmarkCommand
       const result = await client.callTool(
         'openbench_corpus_eval',
         {
-          tenant_id: options.tenant,
-          space_id: options.space,
+          tenant_id: tenantId,
+          space_id: spaceId,
           queries,
           provider: options.provider,
           model: options.model,
@@ -276,15 +260,12 @@ benchmarkCommand
       if (options.format !== 'table') {
         formatOutput(result.content, options.format);
       } else {
-        displayCorpusEvalResults(data, options);
+        displayCorpusEvalResults(data, { tenant: tenantId, space: spaceId });
       }
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
-// benchmark compare - Compare multiple models (future)
+// benchmark compare - Compare multiple models
 benchmarkCommand
   .command('compare')
   .description('Compare benchmark results across multiple models')
@@ -293,84 +274,83 @@ benchmarkCommand
   .option('-n, --samples <number>', 'Samples per model', '50')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    const models = options.models.split(',').map((m: string) => m.trim());
+      const models = options.models.split(',').map((m: string) => m.trim());
 
-    if (!options.silent) {
-      console.log(chalk.bold('\n🔄 Comparing Models\n'));
-      console.log(chalk.gray(`  Category: ${options.category}`));
-      console.log(chalk.gray(`  Models: ${models.join(', ')}\n`));
-    }
-
-    const results: Array<{ model: string; score: number; duration: number }> = [];
-
-    for (const model of models) {
-      try {
-        if (!options.silent) {
-          console.log(chalk.cyan(`  Running benchmark for ${model}...`));
-        }
-
-        // Determine provider from model name
-        let provider = 'groq';
-        if (model.includes('gpt')) provider = 'openai';
-        if (model.includes('claude')) provider = 'anthropic';
-
-        const result = await client.callTool(
-          'openbench_run',
-          {
-            category: options.category,
-            provider,
-            model,
-            sample_limit: parseInt(options.samples, 10),
-            use_cache: true,
-          },
-          { spinner: false }
-        );
-
-        if (!result.isError) {
-          const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
-          results.push({
-            model,
-            score: data.score,
-            duration: data.duration_seconds ?? 0,
-          });
-        }
-      } catch (error: unknown) {
-        console.log(chalk.yellow(`  ⚠️  ${model}: ${getErrorMessage(error)}`));
+      if (!options.silent) {
+        console.log(chalk.bold('\n🔄 Comparing Models\n'));
+        console.log(chalk.gray(`  Category: ${options.category}`));
+        console.log(chalk.gray(`  Models: ${models.join(', ')}\n`));
       }
-    }
 
-    // Sort by score and display comparison
-    results.sort((a, b) => b.score - a.score);
+      const results: Array<{ model: string; score: number; duration: number }> = [];
 
-    console.log(chalk.bold('\n📊 Comparison Results\n'));
-    console.log(
-      '  ' +
-        chalk.gray('Rank') +
-        '  ' +
-        chalk.gray('Model'.padEnd(30)) +
-        '  ' +
-        chalk.gray('Score') +
-        '  ' +
-        chalk.gray('Duration')
-    );
-    console.log('  ' + '-'.repeat(55));
+      for (const model of models) {
+        try {
+          if (!options.silent) {
+            console.log(chalk.cyan(`  Running benchmark for ${model}...`));
+          }
 
-    results.forEach((r, i) => {
-      const rank = (i + 1).toString().padStart(2);
-      const scoreColor = r.score >= 0.8 ? 'green' : r.score >= 0.6 ? 'yellow' : 'red';
-      const scoreStr = (r.score * 100).toFixed(1) + '%';
+          // Determine provider from model name
+          let provider = 'groq';
+          if (model.includes('gpt')) provider = 'openai';
+          if (model.includes('claude')) provider = 'anthropic';
+
+          const result = await client.callTool(
+            'openbench_run',
+            {
+              category: options.category,
+              provider,
+              model,
+              sample_limit: parseInt(options.samples, 10),
+              use_cache: true,
+            },
+            { spinner: false }
+          );
+
+          if (!result.isError) {
+            const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
+            results.push({
+              model,
+              score: data.score,
+              duration: data.duration_seconds ?? 0,
+            });
+          }
+        } catch (error: unknown) {
+          console.log(chalk.yellow(`  ⚠️  ${model}: ${getErrorMessage(error)}`));
+        }
+      }
+
+      // Sort by score and display comparison
+      results.sort((a, b) => b.score - a.score);
+
+      console.log(chalk.bold('\n📊 Comparison Results\n'));
       console.log(
-        `  ${rank}.  ${r.model.padEnd(30)}  ${chalk[scoreColor](scoreStr.padStart(6))}  ${r.duration?.toFixed(2) || 'N/A'}s`
+        '  ' +
+          chalk.gray('Rank') +
+          '  ' +
+          chalk.gray('Model'.padEnd(30)) +
+          '  ' +
+          chalk.gray('Score') +
+          '  ' +
+          chalk.gray('Duration')
       );
-    });
+      console.log('  ' + '-'.repeat(55));
 
-    if (options.format === 'json') {
-      console.log('\n' + JSON.stringify(results, null, 2));
-    }
-  });
+      results.forEach((r, i) => {
+        const rank = (i + 1).toString().padStart(2);
+        const scoreColor = r.score >= 0.8 ? 'green' : r.score >= 0.6 ? 'yellow' : 'red';
+        const scoreStr = (r.score * 100).toFixed(1) + '%';
+        console.log(
+          `  ${rank}.  ${r.model.padEnd(30)}  ${chalk[scoreColor](scoreStr.padStart(6))}  ${r.duration?.toFixed(2) || 'N/A'}s`
+        );
+      });
+
+      if (options.format === 'json') {
+        console.log('\n' + JSON.stringify(results, null, 2));
+      }
+    })
+  );
