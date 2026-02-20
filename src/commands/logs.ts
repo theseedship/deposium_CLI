@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const logsCommand = new Command('logs').description(
   'View, search, and analyze MCP server logs'
@@ -19,13 +16,10 @@ logsCommand
   .option('--tail', 'Tail logs in real-time')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📜 Viewing logs...\n'));
 
       const result = await client.callTool(
@@ -44,11 +38,8 @@ logsCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // log.stats - Log statistics
 logsCommand
@@ -57,13 +48,10 @@ logsCommand
   .option('--time-range <range>', 'Time range (1h|24h|7d|30d)', '24h')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📊 Fetching log statistics...\n'));
 
       const result = await client.callTool(
@@ -80,11 +68,8 @@ logsCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // clear.logs - Clear logs
 logsCommand
@@ -93,13 +78,10 @@ logsCommand
   .option('--confirm', 'Skip confirmation prompt')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       if (!options.confirm) {
         console.log(chalk.yellow('⚠️  This will clear all logs. Use --confirm to proceed.'));
         process.exit(0);
@@ -115,11 +97,8 @@ logsCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // search.logs - Search logs
 logsCommand
@@ -131,13 +110,10 @@ logsCommand
   .option('--context <lines>', 'Context lines before/after match', '2')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (pattern: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (pattern: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🔍 Searching logs...\n'));
 
       const result = await client.callTool(
@@ -157,8 +133,5 @@ logsCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );

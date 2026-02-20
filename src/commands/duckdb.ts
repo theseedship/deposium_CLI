@@ -1,10 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { ensureAuthenticated } from '../utils/auth';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 
 export const duckdbCommand = new Command('duckdb')
   .alias('db')
@@ -18,13 +15,10 @@ duckdbCommand
   .option('--host <host>', 'Server host', '0.0.0.0')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🦆 Starting DuckDB MCP server...\n'));
 
       const result = await client.callTool(
@@ -42,11 +36,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // duckdb.connect - Connect to external DuckDB
 duckdbCommand
@@ -56,13 +47,10 @@ duckdbCommand
   .option('--name <name>', 'Connection name', 'external')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       if (!options.url) {
         console.error(chalk.red('❌ --url is required'));
         process.exit(1);
@@ -85,11 +73,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // duckdb.federate - Federate query across multiple DuckDB instances
 duckdbCommand
@@ -99,13 +84,10 @@ duckdbCommand
   .option('--sources <json>', 'Data sources JSON array (required)')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (query: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (query: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       if (!options.sources) {
         console.error(chalk.red('❌ --sources is required'));
         process.exit(1);
@@ -130,11 +112,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // duckdb.expose - Expose local DuckDB via MCP
 duckdbCommand
@@ -144,13 +123,10 @@ duckdbCommand
   .option('--readonly', 'Expose as read-only')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📤 Exposing DuckDB via MCP...\n'));
 
       const result = await client.callTool(
@@ -168,11 +144,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // duckdb.query_mcp - Query via MCP protocol
 duckdbCommand
@@ -182,13 +155,10 @@ duckdbCommand
   .option('--connection <name>', 'Connection name', 'default')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (query: string, options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (query: string, options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n🔍 Executing MCP query...\n'));
 
       const result = await client.callTool(
@@ -206,11 +176,8 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );
 
 // duckdb.mcp_status - Get MCP server status
 duckdbCommand
@@ -218,13 +185,10 @@ duckdbCommand
   .description('Get DuckDB MCP server status')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
-  .action(async (options) => {
-    const config = getConfig();
-    const baseUrl = getBaseUrl(config);
-    const apiKey = await ensureAuthenticated(baseUrl);
-    const client = new MCPClient(baseUrl, apiKey);
+  .action(
+    withErrorHandling(async (options) => {
+      const { client } = await initializeCommand();
 
-    try {
       console.log(chalk.bold('\n📊 Fetching MCP server status...\n'));
 
       const result = await client.callTool('duckdb_mcp_status', {}, { spinner: !options.silent });
@@ -235,8 +199,5 @@ duckdbCommand
       }
 
       formatOutput(result.content, options.format);
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      process.exit(1);
-    }
-  });
+    })
+  );

@@ -1,27 +1,28 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient, MCPTool } from './client/mcp-client';
-import { getConfig, getBaseUrl } from './utils/config';
 import { formatOutput, createTitleBox } from './utils/formatter';
-import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
 import { startChat } from './chat';
-import { getErrorMessage } from './utils/command-helpers';
+import { initializeCommand, getErrorMessage } from './utils/command-helpers';
+import type { DeposiumConfig } from './utils/config';
 
 /** Prompt for tenant and space IDs with defaults from config */
-async function promptTenantSpace(): Promise<{ tenant: string; space: string }> {
+async function promptTenantSpace(
+  config: DeposiumConfig
+): Promise<{ tenant: string; space: string }> {
   return inquirer.prompt([
     {
       type: 'input',
       name: 'tenant',
       message: 'Tenant ID:',
-      default: getConfig().defaultTenant ?? 'default',
+      default: config.defaultTenant ?? 'default',
     },
     {
       type: 'input',
       name: 'space',
       message: 'Space ID:',
-      default: getConfig().defaultSpace ?? 'default',
+      default: config.defaultSpace ?? 'default',
     },
   ]);
 }
@@ -29,13 +30,7 @@ async function promptTenantSpace(): Promise<{ tenant: string; space: string }> {
 export async function startInteractive(): Promise<void> {
   console.log(createTitleBox('INTERACTIVE MODE', 'Menu-driven access to all Deposium features'));
 
-  const config = getConfig();
-  const baseUrl = getBaseUrl(config);
-
-  // Ensure user is authenticated
-  const apiKey = await ensureAuthenticated(baseUrl);
-
-  const client = new MCPClient(baseUrl, apiKey);
+  const { config, client } = await initializeCommand();
 
   // Initialize chat history for Compound AI
   const compoundChatHistory = new ChatHistory(10);
@@ -90,15 +85,15 @@ export async function startInteractive(): Promise<void> {
 
     const handlers: Record<string, () => Promise<void>> = {
       chat: () => startChat(),
-      search: () => handleSearch(client),
-      graph: () => handleGraph(client),
-      corpus: () => handleCorpus(client),
+      search: () => handleSearch(client, config),
+      graph: () => handleGraph(client, config),
+      corpus: () => handleCorpus(client, config),
       compound: () => handleCompound(client, compoundChatHistory),
       health: () => handleHealth(client),
       intelligence: () => handleIntelligence(client),
       dspy: () => handleDSPy(client),
-      leanrag: () => handleLeanRAG(client),
-      mermaid: () => handleMermaid(client),
+      leanrag: () => handleLeanRAG(client, config),
+      mermaid: () => handleMermaid(client, config),
       evaluate: () => handleEvaluate(client),
       queryhistory: () => handleQueryHistory(client),
       logs: () => handleLogs(client),
@@ -117,11 +112,11 @@ export async function startInteractive(): Promise<void> {
   }
 }
 
-async function handleSearch(client: MCPClient): Promise<void> {
+async function handleSearch(client: MCPClient, config: DeposiumConfig): Promise<void> {
   const { query } = await inquirer.prompt([
     { type: 'input', name: 'query', message: 'Enter search query:' },
   ]);
-  const answers = { query, ...(await promptTenantSpace()) };
+  const answers = { query, ...(await promptTenantSpace(config)) };
 
   const result = await client.callTool(
     'search_hub',
@@ -140,7 +135,7 @@ async function handleSearch(client: MCPClient): Promise<void> {
   }
 }
 
-async function handleGraph(client: MCPClient): Promise<void> {
+async function handleGraph(client: MCPClient, config: DeposiumConfig): Promise<void> {
   const { action } = await inquirer.prompt([
     {
       type: 'select',
@@ -150,7 +145,7 @@ async function handleGraph(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const answers = await promptTenantSpace();
+  const answers = await promptTenantSpace(config);
 
   // Map action names to MCP tool names
   const toolMap: Record<string, string> = {
@@ -175,8 +170,8 @@ async function handleGraph(client: MCPClient): Promise<void> {
   }
 }
 
-async function handleCorpus(client: MCPClient): Promise<void> {
-  const answers = await promptTenantSpace();
+async function handleCorpus(client: MCPClient, config: DeposiumConfig): Promise<void> {
+  const answers = await promptTenantSpace(config);
 
   const result = await client.callTool(
     'corpus_stats',
@@ -345,11 +340,11 @@ async function handleDSPy(client: MCPClient): Promise<void> {
   }
 }
 
-async function handleLeanRAG(client: MCPClient): Promise<void> {
+async function handleLeanRAG(client: MCPClient, config: DeposiumConfig): Promise<void> {
   const { query } = await inquirer.prompt([
     { type: 'input', name: 'query', message: 'Enter search query:' },
   ]);
-  const answers = { query, ...(await promptTenantSpace()) };
+  const answers = { query, ...(await promptTenantSpace(config)) };
 
   const result = await client.callTool(
     'leanrag_retrieve',
@@ -369,7 +364,7 @@ async function handleLeanRAG(client: MCPClient): Promise<void> {
   }
 }
 
-async function handleMermaid(client: MCPClient): Promise<void> {
+async function handleMermaid(client: MCPClient, config: DeposiumConfig): Promise<void> {
   const { action } = await inquirer.prompt([
     {
       type: 'select',
@@ -379,7 +374,7 @@ async function handleMermaid(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const answers = await promptTenantSpace();
+  const answers = await promptTenantSpace(config);
 
   const result = await client.callTool(
     action === 'parse' ? 'mermaid_parse' : 'mermaid_query',
