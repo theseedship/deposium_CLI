@@ -23,6 +23,7 @@ import { uploadBatchCommand } from './commands/upload-batch';
 import { benchmarkCommand } from './commands/benchmark';
 import { getConfig, getBaseUrl } from './utils/config';
 import { getErrorMessage } from './utils/command-helpers';
+import pkg from '../package.json';
 
 // ============================================================================
 // Graceful Shutdown Handlers
@@ -86,7 +87,7 @@ program
       '\n' +
       chalk.gray('Document search, graph queries, and AI workflows via Deposium API')
   )
-  .version('1.0.0')
+  .version(pkg.version)
   .hook('preAction', async () => {
     // Check if Deposium server URL is configured
     const config = getConfig();

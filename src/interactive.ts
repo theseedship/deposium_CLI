@@ -73,7 +73,7 @@ export async function startInteractive(): Promise<void> {
           { name: '🦆  DuckDB ' + chalk.gray('(database federation)'), value: 'duckdb' },
           new inquirer.Separator(chalk.gray('─── UI & Tools ───')),
           { name: '🎨  UI Dashboards ' + chalk.gray('(interactive interfaces)'), value: 'ui' },
-          { name: '🛠️  List Tools ' + chalk.gray('(see all 65 tools)'), value: 'tools' },
+          { name: '🛠️  List Tools ' + chalk.gray('(see all available tools)'), value: 'tools' },
           new inquirer.Separator(chalk.gray('─── System ───')),
           { name: '🏥  Health Check ' + chalk.gray('(service status)'), value: 'health' },
           new inquirer.Separator(),
