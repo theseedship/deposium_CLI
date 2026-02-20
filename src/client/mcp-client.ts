@@ -36,11 +36,13 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
 
+import pkg from '../../package.json';
+
 /** CLI version for User-Agent header */
-const CLI_VERSION = '1.0.0';
+const CLI_VERSION = pkg.version;
 
 /** CLI name for User-Agent header */
-const CLI_NAME = '@deposium/cli';
+const CLI_NAME = pkg.name;
 
 /**
  * Represents a tool call request
