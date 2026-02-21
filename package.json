@@ -80,6 +80,9 @@
     "node": ">=22",
     "bun": ">=1.0.0"
   },
+  "overrides": {
+    "minimatch": ">=10.2.1"
+  },
   "lint-staged": {
     "*.ts": [
       "eslint --fix",
