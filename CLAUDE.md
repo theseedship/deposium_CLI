@@ -8,7 +8,7 @@ Deposium CLI is an enterprise-grade command-line interface for the Deposium MCP 
 
 **Package:** `@deposium/cli` v1.0.0
 **Runtime:** Node.js 22+ or Bun 1.0+
-**Test Framework:** Vitest (137 tests)
+**Test Framework:** Vitest (142 tests)
 
 ## Common Commands
 
@@ -91,8 +91,10 @@ export const myCommand = new Command('my-command').action(
 
 ### Security Requirements
 
-- HTTPS is enforced in production (non-localhost URLs)
-- API keys stored in user config directory
+- HTTPS enforced: `enforceUrlSecurity()` throws for non-localhost HTTP (override with `--insecure`)
+- Config encrypted: `Conf({ encryptionKey })` with AES-256-GCM (key derived via scryptSync)
+- API key stored in separate `~/.deposium/credentials` (encrypted, chmod 0600)
+- Chat streams routed via Edge Runtime gateway (auth + rate-limiting)
 - JSON parsing uses Zod validation (`safeParseJSON`)
 - No hardcoded credentials
 
@@ -105,16 +107,18 @@ export const myCommand = new Command('my-command').action(
 
 ## Environment Variables
 
-| Variable                  | Description                   | Default                 |
-| ------------------------- | ----------------------------- | ----------------------- |
-| `DEPOSIUM_API_KEY`        | API authentication key        | -                       |
-| `DEPOSIUM_URL`            | Deposium server URL           | `http://localhost:3003` |
-| `DEPOSIUM_MCP_DIRECT_URL` | Direct MCP URL (chat stream)  | `http://localhost:4001` |
-| `DEPOSIUM_TENANT`         | Default tenant ID             | -                       |
-| `DEPOSIUM_SPACE`          | Default space ID              | -                       |
-| `DEPOSIUM_OUTPUT`         | Default output format         | `table`                 |
-| `DEPOSIUM_SILENT`         | Suppress non-essential output | `false`                 |
-| `LOG_LEVEL`               | Logging level                 | `info`                  |
+| Variable                  | Description                           | Default                 |
+| ------------------------- | ------------------------------------- | ----------------------- |
+| `DEPOSIUM_API_KEY`        | API authentication key                | -                       |
+| `DEPOSIUM_URL`            | Deposium server URL                   | `http://localhost:3003` |
+| `DEPOSIUM_EDGE_URL`       | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` |
+| `DEPOSIUM_MCP_DIRECT_URL` | @deprecated — use DEPOSIUM_EDGE_URL   | `http://localhost:4001` |
+| `DEPOSIUM_INSECURE`       | Allow HTTP to non-localhost (`true`)  | `false`                 |
+| `DEPOSIUM_TENANT`         | Default tenant ID                     | -                       |
+| `DEPOSIUM_SPACE`          | Default space ID                      | -                       |
+| `DEPOSIUM_OUTPUT`         | Default output format                 | `table`                 |
+| `DEPOSIUM_SILENT`         | Suppress non-essential output         | `false`                 |
+| `LOG_LEVEL`               | Logging level                         | `info`                  |
 
 ## Code Style
 

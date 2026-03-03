@@ -7,7 +7,7 @@
 
 import chalk from 'chalk';
 import { MCPClient, MCPClientOptions } from '../client/mcp-client';
-import { getConfig, getBaseUrl, DeposiumConfig } from './config';
+import { getConfig, getBaseUrl, isInsecureMode, DeposiumConfig } from './config';
 import { ensureAuthenticated } from './auth';
 import {
   getErrorMessage as _getErrorMessage,
@@ -27,7 +27,7 @@ export interface CommandContext {
 }
 
 export interface InitializeOptions extends MCPClientOptions {
-  /** Skip HTTPS validation warning (default: false) */
+  /** Skip TLS enforcement entirely (default: false, use for tests only) */
   skipSecurityValidation?: boolean;
 }
 
@@ -56,7 +56,7 @@ export async function initializeCommand(options: InitializeOptions = {}): Promis
   const config = getConfig();
   const baseUrl = getBaseUrl(config, {
     validateSecurity: !options.skipSecurityValidation,
-    silent: config.silentMode,
+    insecure: isInsecureMode(),
   });
   const apiKey = await ensureAuthenticated(baseUrl);
   const client = new MCPClient(baseUrl, apiKey, options);

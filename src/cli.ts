@@ -88,10 +88,18 @@ program
       chalk.gray('Document search, graph queries, and AI workflows via Deposium API')
   )
   .version(pkg.version)
+  .option('--insecure', 'Allow insecure HTTP connections to non-localhost servers')
   .hook('preAction', async () => {
+    // Propagate --insecure flag to env var so enforceUrlSecurity() can read it
+    const globalOpts = program.opts();
+    if (globalOpts.insecure) {
+      process.env.DEPOSIUM_INSECURE = 'true';
+    }
+
     // Check if Deposium server URL is configured
     const config = getConfig();
-    const baseUrl = getBaseUrl(config);
+    const insecure = globalOpts.insecure ?? process.env.DEPOSIUM_INSECURE === 'true';
+    const baseUrl = getBaseUrl(config, { insecure });
     // Skip config check for commands that don't use API, or if using default localhost
     const noApiCommands = ['config', 'auth', 'upload-batch'];
     if (!config.deposiumUrl && !config.mcpUrl && !noApiCommands.includes(program.args[0])) {
@@ -138,9 +146,10 @@ program
 program
   .command('chat')
   .description('Start AI chat mode (continuous conversation)')
-  .action(async () => {
+  .option('--direct', 'Bypass Edge Runtime, connect directly to MCP server (dev only)')
+  .action(async (options: { direct?: boolean }) => {
     const { startChat } = await import('./chat');
-    await startChat();
+    await startChat({ direct: options.direct });
   });
 
 // Parse arguments

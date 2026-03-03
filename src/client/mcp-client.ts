@@ -614,16 +614,25 @@ export class MCPClient {
   }
 
   /**
-   * Stream chat responses from MCP /api/chat-stream via SSE.
-   * Connects directly to the MCP server (bypasses SolidStart proxy).
+   * Stream chat responses via SSE.
    *
-   * @param mcpBaseUrl - Base URL of the MCP server (e.g., 'http://localhost:4001')
+   * Routes through the Edge Runtime gateway (auth + rate-limiting) by default.
+   * The Edge Runtime proxies to the MCP backend's /api/chat-stream.
+   *
+   * @param streamBaseUrl - Base URL for streaming (Edge Runtime or direct MCP)
    * @param message - User message to send
    * @param options - Streaming callbacks and request options
+   * @param options.directMcp - If true, use /api/chat-stream (direct MCP path)
    */
   // eslint-disable-next-line complexity
-  async chatStream(mcpBaseUrl: string, message: string, options: ChatStreamOptions): Promise<void> {
-    const url = `${mcpBaseUrl.replace(/\/$/, '')}/api/chat-stream`;
+  async chatStream(
+    streamBaseUrl: string,
+    message: string,
+    options: ChatStreamOptions & { directMcp?: boolean }
+  ): Promise<void> {
+    // Edge Runtime: /chat-stream | Direct MCP: /api/chat-stream
+    const streamPath = options.directMcp ? '/api/chat-stream' : '/chat-stream';
+    const url = `${streamBaseUrl.replace(/\/$/, '')}${streamPath}`;
 
     const body = JSON.stringify({
       message,
@@ -650,10 +659,18 @@ export class MCPClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error('Authentication failed (401)\nInvalid or missing API key for MCP server');
+        throw new Error('Authentication failed (401)\nInvalid or missing API key');
+      }
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After') ?? '60';
+        throw new Error(
+          `Rate limit exceeded (429)\n` +
+            `Retry after ${retryAfter} seconds.\n` +
+            `Contact your administrator to upgrade your rate-limit tier.`
+        );
       }
       const text = await response.text().catch(() => '');
-      throw new Error(`MCP chat-stream error (${response.status}): ${text || response.statusText}`);
+      throw new Error(`Chat stream error (${response.status}): ${text || response.statusText}`);
     }
 
     if (!response.body) {

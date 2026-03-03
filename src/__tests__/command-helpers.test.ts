@@ -26,7 +26,8 @@ const mockConfig = {
 vi.mock('../utils/config', () => ({
   getConfig: () => mockConfig,
   getBaseUrl: (cfg?: typeof mockConfig) => cfg?.deposiumUrl || 'http://localhost:3003',
-  validateUrlSecurity: () => {},
+  isInsecureMode: () => false,
+  enforceUrlSecurity: () => {},
 }));
 
 vi.mock('../utils/auth', () => ({

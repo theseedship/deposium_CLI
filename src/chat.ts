@@ -2,27 +2,46 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
 import type { SSECitation } from './client/mcp-client';
-import { getConfig, getBaseUrl, getMcpDirectUrl } from './utils/config';
+import { getConfig, getBaseUrl, getEdgeUrl, getMcpDirectUrl } from './utils/config';
 import { createTitleBox } from './utils/formatter';
 import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
 import { getErrorMessage } from './utils/command-helpers';
 
-export async function startChat(): Promise<void> {
+export interface ChatOptions {
+  /** Bypass Edge Runtime and connect directly to MCP server (dev only) */
+  direct?: boolean;
+}
+
+export async function startChat(options: ChatOptions = {}): Promise<void> {
   console.log(createTitleBox('AI CHAT', 'Streaming conversation with Deposium AI'));
   console.log(chalk.gray('Commands: /exit (quit) | /clear (reset) | /history (view)\n'));
 
   const config = getConfig();
   const baseUrl = getBaseUrl(config);
-  const mcpUrl = getMcpDirectUrl(config);
+
+  let streamUrl: string;
+  let directMcp = false;
+
+  if (options.direct) {
+    streamUrl = getMcpDirectUrl(config);
+    directMcp = true;
+    console.warn(
+      chalk.yellow(
+        '⚠️  --direct mode: bypassing Edge Runtime (no rate-limiting, no auth gateway)\n'
+      )
+    );
+    console.log(chalk.gray(`MCP direct: ${streamUrl}\n`));
+  } else {
+    streamUrl = getEdgeUrl(config);
+    console.log(chalk.gray(`Edge Runtime: ${streamUrl}\n`));
+  }
 
   // Ensure user is authenticated (validates via SolidStart)
   const apiKey = await ensureAuthenticated(baseUrl);
 
   const client = new MCPClient(baseUrl, apiKey);
   const chatHistory = new ChatHistory(10);
-
-  console.log(chalk.gray(`MCP: ${mcpUrl}\n`));
 
   while (true) {
     const { message } = await inquirer.prompt([
@@ -66,7 +85,8 @@ export async function startChat(): Promise<void> {
     const citations: SSECitation[] = [];
 
     try {
-      await client.chatStream(mcpUrl, trimmedMessage, {
+      await client.chatStream(streamUrl, trimmedMessage, {
+        directMcp,
         conversationHistory: chatHistory.toConversationHistory(6),
         language: 'fr',
         onToken: (token) => {
