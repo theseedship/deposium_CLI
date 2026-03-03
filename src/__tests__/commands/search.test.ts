@@ -25,6 +25,7 @@ vi.mock('../../utils/config', () => ({
     defaultSpace: 'test-space',
   }),
   getBaseUrl: vi.fn().mockReturnValue('http://localhost:3003'),
+  isInsecureMode: vi.fn().mockReturnValue(false),
 }));
 
 import { searchCommand } from '../../commands/search';

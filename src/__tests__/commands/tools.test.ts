@@ -24,6 +24,7 @@ vi.mock('../../utils/auth', () => ({
 vi.mock('../../utils/config', () => ({
   getConfig: vi.fn().mockReturnValue({}),
   getBaseUrl: vi.fn().mockReturnValue('http://localhost:3003'),
+  isInsecureMode: vi.fn().mockReturnValue(false),
 }));
 
 import { toolsCommand } from '../../commands/tools';
