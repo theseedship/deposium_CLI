@@ -1,4 +1,4 @@
-> Revision: 15/02/2025
+> Revision: 2026-04-06
 
 # Changelog
 
@@ -9,29 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Sprint secure-CLI-2026
+- **Security**: Config encryption via `Conf({ encryptionKey })` with AES-256-GCM (scryptSync machine-derived key)
+- **Security**: API key isolated in separate `~/.deposium/credentials` file (encrypted, chmod 0600)
+- **Security**: `enforceUrlSecurity()` — non-localhost HTTP connections refused by default
+- **Security**: `--insecure` global flag + `DEPOSIUM_INSECURE` env var for override
+- **Security**: Config directory chmod 0700, config files chmod 0600
+- **Security**: Automatic migration of plaintext config to encrypted (backup `.plaintext.bak`)
+- **Networking**: Chat streams routed via Edge Runtime gateway (`/chat-stream`) with auth + rate-limiting
+- **Networking**: `DEPOSIUM_EDGE_URL` env var + `edgeUrl` config key (default `localhost:9000`)
+- **Networking**: `--direct` flag on chat command for dev bypass (with warning)
+- **Networking**: 429 rate-limit handling with Retry-After header and tier info
+- **Deprecation**: `DEPOSIUM_MCP_DIRECT_URL` / `mcpDirectUrl` marked deprecated (use `DEPOSIUM_EDGE_URL`)
+
 ### Changed
 - **Dependencies**: Major upgrades - conf 13->15, glob 11->13, mime-types 2->3, inquirer 12->13
 - **Dependencies**: Patch/minor updates for all packages, 0 npm audit vulnerabilities
+- **Dependencies**: Security overrides: minimatch >=10.2.4 (ReDoS), rollup >=4.59.0 (path traversal)
 - **Node.js**: Minimum version bumped from 20 to 22 (engines field + CI)
-- **CI**: Removed Node 20 from matrix, single Node 22 target
-- **CI**: Fixed TruffleHog secret scanning (duplicate flag error)
 - **Code quality**: Resolved all ESLint warnings (67 -> 0) via `||` -> `??` and complexity refactoring
-- **Documentation**: Full audit and update of all docs against codebase (revision 15/02/2025)
-- **Documentation**: Added missing graph subcommands (search, multihop, variable-path, khop)
-- **Documentation**: Added missing corpus subcommands (improve, realtime-eval, monitor, freshness, drift)
-- **Documentation**: Fixed environment variable names (`DEPOSIUM_URL` instead of `DEPOSIUM_API_URL`)
+- **Code quality**: Removed dead logger module (344L) + dead code cleanup
+- **Testing**: 142 tests (was 137), added TLS enforcement, SSE streaming, encryption, credentials tests
+- **Documentation**: Full audit of all docs against codebase (revision 2026-04-06)
+- **Documentation**: Removed dead logger references (LOG_LEVEL, LOG_JSON, LOG_FILE, LOG_PATH)
 
 ### Fixed
+- CVE fix: minimatch ReDoS (CVE-2026-26996)
+- CVE fix: rollup path traversal
 - CVE fix: axios <=1.13.4 DoS via `__proto__` (GHSA-43fc-jf86-j433)
-- CVE fix: @isaacs/brace-expansion 5.0.0 ReDoS (GHSA-7h2j-956f-4vf2)
-- Refactored `interactive.ts` for inquirer v13 (`type: 'list'` -> `type: 'select'`)
-- Reduced cyclomatic complexity in 6 files (upload-batch, interactive, benchmark, mcp-client, formatter, auth)
-
-### Planned
-- MindsDB integration commands
-- Macro management commands
-- Interactive TUI mode
-- Plugin system for custom commands
+- `--silent` no longer suppresses security warnings/errors
 
 ## [1.0.0] - 2024-12-27
 

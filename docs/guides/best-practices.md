@@ -1,4 +1,4 @@
-> Revision: 15/02/2025
+> Revision: 2026-04-06
 
 # Best Practices
 
@@ -94,13 +94,25 @@ source .env
 deposium search "query"
 ```
 
-### Validate URLs
+### TLS Enforcement
 
 ```bash
-# Always use HTTPS in production
+# HTTPS is enforced for non-localhost URLs
 DEPOSIUM_URL=https://api.deposium.com  # Good
-# DEPOSIUM_URL=http://api.deposium.com  # Rejected in production
+
+# HTTP to non-localhost is rejected by default
+# DEPOSIUM_URL=http://api.deposium.com  # Throws error
+
+# Override for staging/self-signed certs (with warning)
+deposium --insecure health
+# Or: DEPOSIUM_INSECURE=true deposium health
 ```
+
+### Encrypted Configuration
+
+Configuration files (`~/.deposium/config.json`, `~/.deposium/credentials`)
+are encrypted with AES-256-GCM. API keys are stored in a separate
+`credentials` file (chmod 0600) to prevent accidental exposure.
 
 ---
 
@@ -145,22 +157,13 @@ npm run format
 
 ### Common Error Solutions
 
-| Error                   | Solution                           |
-| ----------------------- | ---------------------------------- |
-| `Authentication failed` | Check API key, run `deposium auth` |
-| `Connection refused`    | Verify server URL, check network   |
-| `Timeout exceeded`      | Check server and network           |
-| `Invalid JSON`          | Check input format with `--help`   |
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-LOG_LEVEL=debug deposium search "query"
-
-# View full error stack traces
-DEBUG=true deposium search "query"
-```
+| Error                              | Solution                                          |
+| ---------------------------------- | ------------------------------------------------- |
+| `Authentication failed`            | Check API key, run `deposium auth`                |
+| `Connection refused`               | Verify server URL, check network                  |
+| `Insecure HTTP connection refused` | Use HTTPS or pass `--insecure`                    |
+| `Rate limit exceeded (429)`        | Wait for Retry-After period, or upgrade plan tier |
+| `Timeout exceeded`                 | Check server and network                          |
 
 ---
 
@@ -222,36 +225,15 @@ env:
 
 ---
 
-## Logging Configuration
-
-### Log Levels
+## Output Formats
 
 ```bash
-# Debug (verbose)
-LOG_LEVEL=debug deposium search "query"
+# Machine-parseable JSON (ideal for scripts/CI)
+deposium search "query" --format json | jq .
 
-# Info (default)
-LOG_LEVEL=info deposium search "query"
+# Table (default, human-readable)
+deposium search "query" --format table
 
-# Warn (minimal)
-LOG_LEVEL=warn deposium search "query"
-
-# Error only
-LOG_LEVEL=error deposium search "query"
-```
-
-### Log to File
-
-```bash
-# Enable file logging
-LOG_FILE=true deposium search "query"
-
-# Custom log path
-LOG_PATH=/var/log/deposium.log deposium search "query"
-```
-
-### JSON Logs (for parsing)
-
-```bash
-LOG_JSON=true deposium search "query" 2>&1 | jq .
+# Markdown
+deposium search "query" --format markdown
 ```
