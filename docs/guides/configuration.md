@@ -1,4 +1,4 @@
-> Revision: 15/02/2025
+> Revision: 2026-04-06
 
 # Configuration Guide
 
@@ -15,37 +15,34 @@ Settings are loaded in this order (later sources override earlier):
 
 ## Environment Variables
 
-| Variable                  | Description                   | Default                    | Example                     |
-| ------------------------- | ----------------------------- | -------------------------- | --------------------------- |
-| `DEPOSIUM_API_KEY`        | API authentication key        | -                          | `sk-abc123...`              |
-| `DEPOSIUM_URL`            | Deposium server URL           | `http://localhost:3003`    | `https://api.mycompany.com` |
-| `DEPOSIUM_MCP_DIRECT_URL` | Direct MCP server URL (chat)  | `http://localhost:4001`    | `https://mcp.mycompany.com` |
-| `DEPOSIUM_TENANT`         | Default tenant ID             | -                          | `tenant-123`                |
-| `DEPOSIUM_SPACE`          | Default space ID              | -                          | `space-456`                 |
-| `DEPOSIUM_OUTPUT`         | Default output format         | `table`                    | `json`, `markdown`          |
-| `DEPOSIUM_SILENT`         | Suppress non-essential output | `false`                    | `true`                      |
-| `LOG_LEVEL`               | Logging verbosity             | `info`                     | `debug`, `warn`, `error`    |
-| `LOG_JSON`                | JSON log format               | `false`                    | `true`                      |
-| `LOG_FILE`                | Enable file logging           | `false`                    | `true`                      |
-| `LOG_PATH`                | Log file location             | `~/.deposium/logs/cli.log` | `/var/log/deposium.log`     |
+| Variable            | Description                           | Default                 | Example                     |
+| ------------------- | ------------------------------------- | ----------------------- | --------------------------- |
+| `DEPOSIUM_API_KEY`  | API authentication key                | -                       | `sk-abc123...`              |
+| `DEPOSIUM_URL`      | Deposium server URL                   | `http://localhost:3003` | `https://api.mycompany.com` |
+| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.vip` |
+| `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 | `true`                      |
+| `DEPOSIUM_TENANT`   | Default tenant ID                     | -                       | `tenant-123`                |
+| `DEPOSIUM_SPACE`    | Default space ID                      | -                       | `space-456`                 |
+| `DEPOSIUM_OUTPUT`   | Default output format                 | `table`                 | `json`, `markdown`          |
+| `DEPOSIUM_SILENT`   | Suppress non-essential output         | `false`                 | `true`                      |
 
-> **Note:** `DEPOSIUM_MCP_URL` is deprecated. Use `DEPOSIUM_URL` instead.
+> **Note:** `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated. Use `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` instead.
 
 ## Configuration File
 
-Location: `~/.deposium/config.json`
+Location: `~/.deposium/config.json` (encrypted AES-256-GCM)
+
+The configuration file is automatically encrypted using a machine-derived key
+(`scryptSync` with hostname + username). Existing plaintext configs are migrated
+automatically on first run (backup saved as `.plaintext.bak`).
 
 ### Full Example
 
-```json
-{
-  "deposiumUrl": "https://api.deposium.com",
-  "mcpDirectUrl": "https://mcp.deposium.com",
-  "defaultTenant": "my-tenant",
-  "defaultSpace": "my-space",
-  "outputFormat": "table",
-  "silentMode": false
-}
+```bash
+# Set values via CLI (stored encrypted)
+deposium config set deposiumUrl https://api.deposium.com
+deposium config set edgeUrl https://edge.deposium.vip
+deposium config set defaultTenant my-tenant
 ```
 
 ### Valid Configuration Keys
@@ -53,12 +50,13 @@ Location: `~/.deposium/config.json`
 | Key             | Type    | Description                               |
 | --------------- | ------- | ----------------------------------------- |
 | `deposiumUrl`   | string  | Deposium server URL                       |
-| `mcpDirectUrl`  | string  | Direct MCP URL (chat streaming)           |
-| `apiKey`        | string  | API authentication key                    |
+| `edgeUrl`       | string  | Edge Runtime gateway URL                  |
 | `defaultTenant` | string  | Default tenant ID                         |
 | `defaultSpace`  | string  | Default space ID                          |
 | `outputFormat`  | string  | Output format (`json`/`table`/`markdown`) |
 | `silentMode`    | boolean | Suppress non-essential output             |
+
+> **Note:** `mcpDirectUrl` is deprecated. Use `edgeUrl` instead.
 
 ### Managing Configuration
 
@@ -93,10 +91,11 @@ export DEPOSIUM_API_KEY="your-api-key"
 
 ### Token Storage
 
-API keys are stored in `~/.deposium/config.json`. Ensure this file is:
+API keys are stored in a separate encrypted file: `~/.deposium/credentials`
+(AES-256-GCM, chmod 0600). This file is separate from config to allow sharing
+configuration without exposing credentials.
 
-- Not committed to version control
-- Has appropriate permissions (`chmod 600`)
+The `~/.deposium/` directory is automatically set to chmod 0700.
 
 ## Tenant and Space
 
@@ -119,46 +118,25 @@ export DEPOSIUM_SPACE=my-space
 deposium search "query" --tenant other-tenant --space other-space
 ```
 
-## Logging Configuration
-
-### Log Levels
-
-| Level   | Description               |
-| ------- | ------------------------- |
-| `debug` | Verbose debugging info    |
-| `info`  | Normal operation messages |
-| `warn`  | Warnings only             |
-| `error` | Errors only               |
-
-```bash
-# Set via environment
-export LOG_LEVEL=debug
-
-# Or per-command
-LOG_LEVEL=debug deposium search "query"
-```
-
-### File Logging
-
-```bash
-# Enable
-export LOG_FILE=true
-
-# Custom path
-export LOG_PATH=/var/log/deposium.log
-```
-
-### JSON Output
-
-```bash
-# Enable JSON logs
-export LOG_JSON=true
-
-# Parse with jq
-LOG_JSON=true deposium search "query" 2>&1 | jq .
-```
-
 ## Network Configuration
+
+### TLS Enforcement
+
+Non-localhost HTTP connections are **refused by default** in production.
+The CLI throws an error with actionable guidance:
+
+```bash
+# This will be rejected:
+DEPOSIUM_URL=http://api.example.com deposium health
+# Error: Insecure HTTP connection refused for api.example.com
+
+# Override for staging/self-signed certs:
+deposium --insecure health
+# Or via env var:
+DEPOSIUM_INSECURE=true deposium health
+```
+
+Localhost URLs (`localhost`, `127.0.0.1`, `*.local`) are always allowed over HTTP.
 
 ### Proxy Support
 
@@ -169,13 +147,6 @@ export HTTPS_PROXY=http://proxy.company.com:8080
 
 # No proxy for specific hosts
 export NO_PROXY=localhost,127.0.0.1,.internal.com
-```
-
-### SSL/TLS
-
-```bash
-# Disable certificate verification (NOT recommended for production)
-export NODE_TLS_REJECT_UNAUTHORIZED=0
 ```
 
 ## Output Formats
@@ -215,8 +186,8 @@ export DEPOSIUM_SILENT=true
 ```bash
 # .env.development
 DEPOSIUM_URL=http://localhost:3003
+DEPOSIUM_EDGE_URL=http://localhost:9000
 DEPOSIUM_API_KEY=dev-key
-LOG_LEVEL=debug
 ```
 
 ### Production
@@ -224,10 +195,8 @@ LOG_LEVEL=debug
 ```bash
 # .env.production
 DEPOSIUM_URL=https://api.deposium.com
+DEPOSIUM_EDGE_URL=https://edge.deposium.vip
 DEPOSIUM_API_KEY=prod-key
-LOG_LEVEL=warn
-LOG_JSON=true
-LOG_FILE=true
 ```
 
 ### CI/CD
@@ -235,8 +204,8 @@ LOG_FILE=true
 ```bash
 # GitHub Actions / GitLab CI
 DEPOSIUM_API_KEY=${{ secrets.DEPOSIUM_API_KEY }}
+DEPOSIUM_URL=https://api.deposium.com
 DEPOSIUM_SILENT=true
-LOG_JSON=true
 ```
 
 ## Troubleshooting
@@ -257,14 +226,6 @@ deposium health --verbose
 # Reset to defaults
 deposium config reset
 
-# Clear authentication
-rm ~/.deposium/config.json
+# Re-authenticate
 deposium auth
-```
-
-### Debug Mode
-
-```bash
-# Full debug output
-LOG_LEVEL=debug deposium search "query"
 ```

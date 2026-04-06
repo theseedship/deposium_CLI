@@ -1,12 +1,14 @@
-> Revision: 15/02/2025
+> Revision: 2026-04-06
 
-# AI Compound Chat Feature
+# AI Chat Mode
 
-The AI Compound feature now supports conversation history, allowing you to have contextual back-and-forth conversations with the AI. There's now a dedicated **continuous chat mode** that works just like Claude Code's chat interface! 💬
+Interactive streaming conversation with Deposium AI. Chat streams are routed
+via the **Edge Runtime gateway** (auth + rate-limiting) by default.
 
 ## How It Works
 
-The chat system maintains a history of the last 10 messages (5 exchanges) and provides context from the last 6 messages to the AI with each new query. This allows the AI to:
+The chat system maintains a conversation history and provides context from recent
+messages to the AI with each new query. This allows the AI to:
 
 - Remember previous questions and answers
 - Build upon earlier context
@@ -22,12 +24,30 @@ The easiest way to chat with the AI - a dedicated chat interface:
 deposium chat
 ```
 
+Options:
+
+- `--direct` — Bypass Edge Runtime, connect directly to MCP server (dev only)
+
 This opens a continuous chat interface where you can:
 
 - Type messages continuously without returning to menus
 - Use `/exit` to quit
 - Use `/clear` to clear conversation history
 - Use `/history` to view past messages
+
+### Edge Runtime Routing
+
+By default, chat streams route through the Edge Runtime gateway which provides:
+
+- **Authentication** (API key validation via SHA-256)
+- **Rate limiting** (free: 60/min, pro: 300/min, enterprise: 1000/min)
+- **SSE proxy** to the MCP backend
+
+For local development, use `--direct` to bypass the gateway:
+
+```bash
+deposium chat --direct
+```
 
 **Example:**
 
@@ -163,8 +183,9 @@ $ deposium compound analyze "New topic about databases" --clear
 
 - **Storage**: In-memory (resets when CLI exits)
 - **Max messages**: 10 total messages
-- **Context window**: 6 most recent messages
-- **Format**: Plain text with role prefixes (User: / Assistant:)
+- **Context window**: 6 most recent messages sent to backend
+- **Streaming**: SSE via Edge Runtime (`/chat-stream`) or direct MCP (`/api/chat-stream`)
+- **Rate limiting**: 429 responses display Retry-After and tier info
 
 ## Tips
 
