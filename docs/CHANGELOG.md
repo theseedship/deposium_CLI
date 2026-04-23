@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Phase I Item 5 (2026-04-23)
+- **HITL**: `chat_prompt` SSE event type + `onChatPrompt` callback in `MCPClient` (`src/client/mcp-client.ts`)
+- **HITL**: `MCPClient.resumeAgent(url, correlationId, { value | values })` — POST to `/api/agent-resume`, streams the continuation
+- **HITL**: `deposium chat --on-ambiguous=<prompt|fail|dump|pick-first>` (TTY-aware default)
+- **HITL**: `inquirer` picker rendering for `type='choice'` and `type='confirm'` prompts
+- **Testing**: 14 new tests in `src/__tests__/chat-hitl.test.ts` (mode dispatch, TTY defaults, resumeAgent POST shape, SSE chat_prompt parsing)
+- **Docs**: `docs/guides/on-ambiguous-flag.md` — user-facing policy reference
+
 ### Added — Sprint secure-CLI-2026
 - **Security**: Config encryption via `Conf({ encryptionKey })` with AES-256-GCM (scryptSync machine-derived key)
 - **Security**: API key isolated in separate `~/.deposium/credentials` file (encrypted, chmod 0600)

@@ -146,6 +146,35 @@ export interface SSEError {
   code?: string;
 }
 
+/**
+ * HITL chat_prompt event — emitted when the pipeline pauses for user input
+ * (intent disambiguation, step confirmation, scratchpad form, ...).
+ *
+ * The CLI responds by POSTing to `/api/agent-resume` with
+ * `{ correlation_id, response: { value } }` (or `{ values }` for forms),
+ * which opens a fresh SSE stream that continues the pipeline.
+ */
+export interface SSEChatPromptOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+export interface SSEChatPrompt {
+  prompt_id: string;
+  type: 'choice' | 'confirm' | 'form';
+  title?: string;
+  message?: string;
+  config?: {
+    options?: SSEChatPromptOption[];
+    layout?: 'horizontal' | 'vertical';
+    fields?: Array<Record<string, unknown>>;
+  };
+  correlation_id: string;
+  waiting_for?: string;
+  step_id?: string;
+}
+
 export interface ChatStreamOptions {
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
   spaceIds?: string[];
@@ -158,6 +187,18 @@ export interface ChatStreamOptions {
   onToolCall?: (data: SSEToolCall) => void;
   onDone?: (data: SSEDone) => void;
   onError?: (data: SSEError) => void;
+  onChatPrompt?: (data: SSEChatPrompt) => void;
+}
+
+/**
+ * Payload accepted by POST /api/agent-resume.
+ *
+ * - `value`: single-answer choice/confirm response (e.g. `"web_search"`, `"approve"`)
+ * - `values`: multi-field form response (e.g. `{ theme: "titre_propriete" }`)
+ */
+export interface AgentResumePayload {
+  value?: string;
+  values?: Record<string, string>;
 }
 
 /**
@@ -624,7 +665,6 @@ export class MCPClient {
    * @param options - Streaming callbacks and request options
    * @param options.directMcp - If true, use /api/chat-stream (direct MCP path)
    */
-  // eslint-disable-next-line complexity
   async chatStream(
     streamBaseUrl: string,
     message: string,
@@ -643,6 +683,41 @@ export class MCPClient {
       confidence_threshold: options.confidenceThreshold,
     });
 
+    const response = await this.postStream(url, body, 'Chat stream');
+    await this.parseSSEStream(response, options);
+  }
+
+  /**
+   * Resume a paused agent pipeline by POSTing the user's decision to
+   * `/api/agent-resume`. The response is a fresh SSE stream that continues
+   * the pipeline (and may pause again with another `chat_prompt`).
+   *
+   * Phase I routes directly to MCPs (`/api/agent-resume`). Once Phase W.1
+   * lands the edge twin, this method will transparently use the edge URL.
+   *
+   * @param resumeBaseUrl - Base URL for the resume endpoint (MCPs direct)
+   * @param correlationId - Correlation ID from the original chat_prompt
+   * @param responsePayload - `{ value }` for choice/confirm, `{ values }` for forms
+   * @param options - SSE callbacks (same vocabulary as chatStream)
+   */
+  async resumeAgent(
+    resumeBaseUrl: string,
+    correlationId: string,
+    responsePayload: AgentResumePayload,
+    options: ChatStreamOptions
+  ): Promise<void> {
+    const url = `${resumeBaseUrl.replace(/\/$/, '')}/api/agent-resume`;
+    const body = JSON.stringify({
+      correlation_id: correlationId,
+      response: responsePayload,
+    });
+
+    const response = await this.postStream(url, body, 'Agent resume');
+    await this.parseSSEStream(response, options);
+  }
+
+  /** Shared POST for SSE endpoints — sets headers, handles 401/429/generic errors */
+  private async postStream(url: string, body: string, label: string): Promise<Response> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
@@ -651,11 +726,7 @@ export class MCPClient {
       headers['X-API-Key'] = this.apiKey;
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body,
-    });
+    const response = await fetch(url, { method: 'POST', headers, body });
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -670,15 +741,19 @@ export class MCPClient {
         );
       }
       const text = await response.text().catch(() => '');
-      throw new Error(`Chat stream error (${response.status}): ${text || response.statusText}`);
+      throw new Error(`${label} error (${response.status}): ${text || response.statusText}`);
     }
 
     if (!response.body) {
-      throw new Error('No response body from MCP chat-stream');
+      throw new Error(`No response body from ${label.toLowerCase()}`);
     }
 
-    // Parse SSE stream
-    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    return response;
+  }
+
+  /** Parse SSE stream and dispatch events. Shared between chatStream + resumeAgent. */
+  private async parseSSEStream(response: Response, options: ChatStreamOptions): Promise<void> {
+    const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = '';
 
     while (true) {
@@ -687,53 +762,37 @@ export class MCPClient {
 
       buffer += value;
 
-      // Process complete SSE messages (separated by double newlines)
       const parts = buffer.split('\n\n');
-      // Keep incomplete last part in buffer
       buffer = parts.pop() ?? '';
 
       for (const part of parts) {
-        if (!part.trim()) continue;
-
-        let eventType = '';
-        let dataStr = '';
-
-        for (const line of part.split('\n')) {
-          if (line.startsWith('event: ')) {
-            eventType = line.slice(7).trim();
-          } else if (line.startsWith('data: ')) {
-            dataStr = line.slice(6);
-          }
-          // Ignore comments (lines starting with ':') like heartbeats
-        }
-
-        if (!eventType || !dataStr) continue;
-
-        try {
-          const data = JSON.parse(dataStr);
-          this.dispatchSSEEvent(eventType, data, options);
-        } catch {
-          // Skip malformed JSON
-        }
+        this.handleSSEChunk(part, options);
       }
     }
 
-    // Process any remaining buffer
+    // Flush any trailing chunk that didn't end with \n\n (rare at stream close)
     if (buffer.trim()) {
-      let eventType = '';
-      let dataStr = '';
-      for (const line of buffer.split('\n')) {
-        if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-        else if (line.startsWith('data: ')) dataStr = line.slice(6);
-      }
-      if (eventType && dataStr) {
-        try {
-          const data = JSON.parse(dataStr);
-          this.dispatchSSEEvent(eventType, data, options);
-        } catch {
-          // Skip malformed JSON
-        }
-      }
+      this.handleSSEChunk(buffer, options);
+    }
+  }
+
+  private handleSSEChunk(part: string, options: ChatStreamOptions): void {
+    if (!part.trim()) return;
+
+    let eventType = '';
+    let dataStr = '';
+    for (const line of part.split('\n')) {
+      if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+      else if (line.startsWith('data: ')) dataStr = line.slice(6);
+      // Ignore SSE comments (lines starting with ':') — heartbeats
+    }
+
+    if (!eventType || !dataStr) return;
+
+    try {
+      this.dispatchSSEEvent(eventType, JSON.parse(dataStr), options);
+    } catch {
+      // Skip malformed JSON — a warning event will follow if it matters
     }
   }
 
@@ -761,6 +820,9 @@ export class MCPClient {
         break;
       case 'error':
         options.onError?.(data as unknown as SSEError);
+        break;
+      case 'chat_prompt':
+        options.onChatPrompt?.(data as unknown as SSEChatPrompt);
         break;
     }
   }

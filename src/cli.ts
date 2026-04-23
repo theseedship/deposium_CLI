@@ -143,13 +143,35 @@ program
   });
 
 // Chat mode
+const VALID_ON_AMBIGUOUS = ['prompt', 'fail', 'dump', 'pick-first'] as const;
+type OnAmbiguousMode = (typeof VALID_ON_AMBIGUOUS)[number];
+
 program
   .command('chat')
   .description('Start AI chat mode (continuous conversation)')
   .option('--direct', 'Bypass Edge Runtime, connect directly to MCP server (dev only)')
-  .action(async (options: { direct?: boolean }) => {
+  .option(
+    '--on-ambiguous <mode>',
+    `HITL policy when the server pauses for input — one of: ${VALID_ON_AMBIGUOUS.join('|')}. ` +
+      `Defaults to 'prompt' in a TTY, 'fail' otherwise.`
+  )
+  .action(async (options: { direct?: boolean; onAmbiguous?: string }) => {
+    let onAmbiguous: OnAmbiguousMode | undefined;
+    if (options.onAmbiguous) {
+      if (!VALID_ON_AMBIGUOUS.includes(options.onAmbiguous as OnAmbiguousMode)) {
+        console.error(
+          chalk.red(
+            `❌ Invalid --on-ambiguous value: '${options.onAmbiguous}'. ` +
+              `Must be one of: ${VALID_ON_AMBIGUOUS.join(', ')}`
+          )
+        );
+        process.exit(2);
+      }
+      onAmbiguous = options.onAmbiguous as OnAmbiguousMode;
+    }
+
     const { startChat } = await import('./chat');
-    await startChat({ direct: options.direct });
+    await startChat({ direct: options.direct, onAmbiguous });
   });
 
 // Parse arguments
