@@ -26,7 +26,9 @@ linked above.
 
 ## Enforcement
 
-Issues can be reported confidentially to **conduct@deposium.vip**.
+Issues can be reported confidentially by joining our
+[Discord](https://discord.gg/88unzXDT) and DM'ing a maintainer with
+`[CONDUCT]` in the first message.
 
 All reports will be reviewed promptly and handled with discretion. Community
 maintainers who do not follow or enforce the Code of Conduct in good faith
