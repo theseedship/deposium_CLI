@@ -1,11 +1,12 @@
 # `--on-ambiguous` — HITL policy for `deposium chat`
 
-**Sprint**: Phase I Item 5 (2026-04-23) · [[internal-doc].md §Phase I](../../../[private-server-repo]/docs/2026/0-HITL-results/[internal-doc].md)
+> Revision: 2026-04-24 · Human-In-The-Loop policy for the CLI chat stream
 
 When the Deposium server is unsure how to handle a query, the agent runtime
 pauses and emits a `chat_prompt` SSE event asking the caller to pick an
-option (or confirm an action). In the browser, this renders as a `ChatBus`
-picker. In the CLI, `--on-ambiguous=<mode>` controls the response policy.
+option (or confirm an action). In the browser, this renders as an
+interactive picker. In the CLI, `--on-ambiguous=<mode>` controls the
+response policy.
 
 ## Modes
 
@@ -86,13 +87,12 @@ That stream may itself emit another `chat_prompt` (e.g. a confirmation
 step after disambiguation) — the CLI loops until the stream closes with
 `done`.
 
-> **Phase W.1 note**: resume currently routes directly to MCPs
-> (`$DEPOSIUM_MCP_DIRECT_URL/api/agent-resume`). Once the Edge Runtime
-> `/agent-resume` twin ships, the CLI will route through the edge
-> transparently with auth + rate-limiting.
+> **Note**: resume currently routes directly to the MCP server. Once the
+> Edge Runtime ships an `/agent-resume` twin, the CLI will route through
+> the edge transparently with auth + rate-limiting. Set via
+> `DEPOSIUM_EDGE_URL` when available.
 
 ## Related
 
-- [`[internal-doc].md`](../../../[private-server-repo]/docs/2026/0-HITL-results/[internal-doc].md) — full Phase I/W plan
-- [`[internal-phase-doc].md`](../../../[private-server-repo]/docs/2026/[internal-phase-doc].md) — server-side `intent_disambiguate` trigger
-- `src/chat.ts` · `src/client/mcp-client.ts` — CLI implementation
+- `src/chat.ts` · `src/client/mcp-client.ts` — CLI implementation of the
+  `--on-ambiguous` modes and the resume loop.

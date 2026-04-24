@@ -38,3 +38,6 @@ bun.lockb
 .daddy/
 .qlty/
 .gitnexus
+
+# Internal GitNexus indexing helper — regenerated locally
+AGENTS.md
