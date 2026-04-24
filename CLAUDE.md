@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/claude-code) when working 
 
 Deposium CLI is an enterprise-grade command-line interface for the Deposium MCP (Model Context Protocol) API. It provides 19 operational commands for document search, knowledge graph operations, AI workflows, and batch processing.
 
-**Package:** `@deposium/cli` v1.0.0
+**Package:** `@deposium/cli` v1.0.2
 **Runtime:** Node.js 22+ or Bun 1.0+
-**Test Framework:** Vitest (142 tests)
+**Test Framework:** Vitest (156 tests)
 
 ## Common Commands
 
@@ -38,10 +38,10 @@ npm run build:all        # Build for Linux, macOS, Windows
 ```
 src/
 ├── cli.ts                 # Main entry point, Commander.js setup
-├── chat.ts                # Interactive chat mode
+├── chat.ts                # Interactive chat mode (HITL --on-ambiguous)
 ├── interactive.ts         # Interactive prompts
 ├── client/
-│   └── mcp-client.ts      # MCP API client with retry logic
+│   └── mcp-client.ts      # MCP API client with retry logic + SSE streaming
 ├── commands/              # Command implementations (19 commands)
 │   ├── auth.ts            # Authentication (login/logout)
 │   ├── config.ts          # Configuration management
@@ -50,11 +50,11 @@ src/
 │   └── ...                # Other commands
 ├── utils/
 │   ├── auth.ts            # Token management
-│   ├── config.ts          # Config file handling
-│   ├── command-helpers.ts # Shared command utilities
-│   ├── formatter.ts       # Output formatting
-│   ├── logger.ts          # Structured logging
-│   └── errors.ts          # Error types
+│   ├── config.ts          # Encrypted config + credentials store
+│   ├── command-helpers.ts # initializeCommand, withErrorHandling, resolveTenantSpace
+│   ├── chat-history.ts    # In-session conversation history (chat + compound)
+│   ├── formatter.ts       # Output formatting (table/json/markdown)
+│   └── errors.ts          # Error type guards
 ├── types/                 # TypeScript declarations
 └── __tests__/             # Unit and integration tests
     └── commands/          # Command integration tests
@@ -118,7 +118,6 @@ export const myCommand = new Command('my-command').action(
 | `DEPOSIUM_SPACE`          | Default space ID                      | -                       |
 | `DEPOSIUM_OUTPUT`         | Default output format                 | `table`                 |
 | `DEPOSIUM_SILENT`         | Suppress non-essential output         | `false`                 |
-| `LOG_LEVEL`               | Logging level                         | `info`                  |
 
 ## Code Style
 
