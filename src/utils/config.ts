@@ -297,41 +297,83 @@ export function getEdgeUrl(cfg?: DeposiumConfig, options: { insecure?: boolean }
   return url;
 }
 
+/**
+ * Persist a single config value to the encrypted config file.
+ *
+ * Does not affect environment-variable overrides — `getConfig()` still
+ * prefers env vars at read time.
+ */
 export function setConfig(key: keyof DeposiumConfig, value: DeposiumConfig[typeof key]): void {
   config.set(key, value);
 }
 
+/**
+ * Remove a config key from the encrypted config file.
+ *
+ * If an env var with the same role is set, `getConfig()` will still
+ * return that value after deletion.
+ */
 export function deleteConfig(key: keyof DeposiumConfig): void {
   config.delete(key);
 }
 
+/**
+ * Wipe the entire config file. Does not touch the credentials store.
+ */
 export function resetConfig(): void {
   config.clear();
 }
 
+/**
+ * Absolute path to the encrypted config file (`~/.deposium/config.json`).
+ */
 export function getConfigPath(): string {
   return config.path;
 }
 
-// API Key helpers — stored in separate credentials file
+// API Key helpers — stored in separate credentials file (chmod 0600).
+
+/**
+ * Read the API key from the credentials store, falling back to the legacy
+ * `apiKey` field in the main config (kept for backward compatibility with
+ * pre-encryption installs).
+ *
+ * @returns API key string, or `undefined` if none is set.
+ */
 export function getApiKey(): string | undefined {
   // Priority: credentials store > legacy config store (backward compat)
   return credentials.get('apiKey') ?? config.get('apiKey');
 }
 
+/**
+ * Persist the API key to the credentials store (encrypted, chmod 0600).
+ * Always writes to credentials, never to the main config.
+ */
 export function setApiKey(key: string): void {
   credentials.set('apiKey', key);
 }
 
+/**
+ * Remove the API key from the credentials store.
+ * Does not touch the legacy `apiKey` field in the main config.
+ */
 export function deleteApiKey(): void {
   credentials.delete('apiKey');
 }
 
+/**
+ * Whether an API key is currently set (in either store).
+ *
+ * Treats empty string the same as missing.
+ */
 export function hasApiKey(): boolean {
   const key = getApiKey();
   return key !== undefined && key !== null && key !== '';
 }
 
+/**
+ * Absolute path to the encrypted credentials file (`~/.deposium/credentials`).
+ */
 export function getCredentialsPath(): string {
   return credentials.path;
 }
