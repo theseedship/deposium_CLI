@@ -319,6 +319,8 @@ export const uploadBatchCommand = new Command('upload-batch')
               (Array.isArray(errorJson.details) ? errorJson.details.join(', ') : errorJson.details);
           }
         } catch {
+          // Response body isn't JSON — append a truncated text excerpt so the
+          // user still sees context about the failure.
           if (errorBody) errorMessage += `: ${errorBody.substring(0, 200)}`;
         }
         throw new Error(errorMessage);

@@ -215,10 +215,11 @@ benchmarkCommand
 
       if (options.queries) {
         try {
-          // Try parsing as inline JSON first
           queries = safeParseJSON<typeof queries>(options.queries, '--queries');
         } catch {
-          // If that fails, try reading as file
+          // Inline JSON parse failed — treat --queries as a file path instead.
+          // If the file read or its parse fail, that error propagates up with
+          // clearer context ("--queries (file)") than the swallowed inline error.
           const fs = await import('fs/promises');
           const content = await fs.readFile(options.queries, 'utf-8');
           queries = safeParseJSON<typeof queries>(content, '--queries (file)');
