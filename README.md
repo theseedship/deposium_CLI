@@ -1,13 +1,13 @@
 # 🚀 Deposium CLI
 
-Official command-line interface for [Deposium MCP Server](https://github.com/theseedship/[private-server-repo]) - document search, graph queries, and AI workflows.
+Official command-line interface for [Deposium](https://deposium.ai) — document search, knowledge graphs, and AI workflows, from your terminal.
 
 **Version:** 1.0.0
 **Status:** Production Ready
 
 ## 📋 Overview
 
-Deposium CLI is a **lightweight wrapper** around the Deposium MCP Server that provides:
+Deposium CLI is the terminal interface to the Deposium platform. It exposes:
 
 - 🔍 **Search**: DuckDB VSS, FTS, and fuzzy matching
 - 🔗 **Graph**: Network analysis and path finding
@@ -64,6 +64,14 @@ See the [Installation Guide](docs/guides/installation.md) for Docker, Bun, and l
 
 See [Contributing Guide](docs/development/contributing.md) and [Development Guide](docs/development/ui-system.md) for details on how to get started.
 
+## 🔒 Security
+
+Found a vulnerability? See [SECURITY.md](SECURITY.md) for our disclosure policy.
+
+## 📜 Changelog
+
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for the release history.
+
 ## 📄 License
 
-MIT - The Seed Ship
+MIT - The Seed Ship. See [LICENSE](LICENSE).

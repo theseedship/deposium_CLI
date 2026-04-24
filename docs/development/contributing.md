@@ -383,9 +383,10 @@ For new features:
 
 ## 📚 Additional Resources
 
-- **Main Repo**: [[private-server-repo]](https://github.com/theseedship/[private-server-repo])
-- **Documentation**: [docs/](.) - Local documentation
+- **Website**: [deposium.ai](https://deposium.ai)
+- **Documentation**: [docs/](.) — local documentation
 - **Issues**: [GitHub Issues](https://github.com/theseedship/deposium_CLI/issues)
+- **Community**: [Discord](https://discord.gg/88unzXDT)
 
 ## 🙏 Thank You!
 
