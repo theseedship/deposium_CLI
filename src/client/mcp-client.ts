@@ -435,8 +435,7 @@ export class MCPClient {
    */
   async callTool(
     toolName: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args: Record<string, any>,
+    args: Record<string, unknown>,
     options: { silent?: boolean; spinner?: boolean } = {}
   ): Promise<MCPToolResult> {
     const spinner = options.spinner ? ora(`Calling ${chalk.cyan(toolName)}...`).start() : null;
