@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
 
 export const intelligenceCommand = new Command('intelligence')
   .alias('smart')
@@ -47,8 +47,7 @@ intelligenceCommand
   .action(
     withErrorHandling(async (partial: string, options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       console.log(chalk.bold('\n💡 Generating suggestions...\n'));
 

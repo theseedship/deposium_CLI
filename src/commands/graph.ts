@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
 
 export const graphCommand = new Command('graph')
   .description('Graph analysis and queries')
@@ -16,8 +16,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (pattern: string, options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🔍 Searching graph...\n'));
 
@@ -51,8 +50,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🔗 Analyzing Graph...\n'));
 
@@ -86,8 +84,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (from: string, to: string, options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold(`\n🛤️  Finding path: ${from} → ${to}...\n`));
 
@@ -126,8 +123,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🔀 Executing multi-hop query...\n'));
 
@@ -173,8 +169,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (from: string, to: string, options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold(`\n🔗 Finding variable paths: ${from} → ${to}...\n`));
 
@@ -213,8 +208,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (nodeId: string, options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold(`\n🎯 Analyzing ${options.hops}-hop neighborhood...\n`));
 
@@ -249,8 +243,7 @@ export const graphCommand = new Command('graph')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🧩 Finding Components...\n'));
 

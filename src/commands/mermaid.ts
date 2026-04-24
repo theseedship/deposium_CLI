@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
 
 export const mermaidCommand = new Command('mermaid').description(
   'Extract, generate, and query Mermaid diagrams'
@@ -19,8 +19,7 @@ mermaidCommand
   .action(
     withErrorHandling(async (options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       console.log(chalk.bold('\n🔍 Parsing Mermaid diagrams...\n'));
 
@@ -98,8 +97,7 @@ mermaidCommand
   .action(
     withErrorHandling(async (query: string, options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       console.log(chalk.bold('\n🔎 Querying diagrams...\n'));
 

@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, getErrorMessage } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  getErrorMessage,
+  resolveTenantSpace,
+} from '../utils/command-helpers';
 
 /** OpenBench category information */
 interface BenchmarkCategory {
@@ -201,8 +206,7 @@ benchmarkCommand
   .action(
     withErrorHandling(async (options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       if (!options.silent) {
         console.log(chalk.bold('\n🔬 Evaluating Corpus Quality\n'));

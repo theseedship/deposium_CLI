@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
 
 export const searchCommand = new Command('search')
   .description('Search documents using DuckDB VSS, FTS, or fuzzy matching')
@@ -18,8 +18,7 @@ export const searchCommand = new Command('search')
   .action(
     withErrorHandling(async (query: string, options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
 

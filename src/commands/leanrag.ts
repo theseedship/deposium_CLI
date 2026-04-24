@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, parseAPIResponse } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
 
 export const leanragCommand = new Command('leanrag').description(
   'Optimized LeanRAG retrieval and analysis'
@@ -21,8 +21,7 @@ leanragCommand
   .action(
     withErrorHandling(async (query: string, options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       console.log(chalk.bold('\n🎯 LeanRAG retrieval...\n'));
 
@@ -102,8 +101,7 @@ leanragCommand
   .action(
     withErrorHandling(async (query: string, options) => {
       const { config, client } = await initializeCommand();
-      const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-      const spaceId = options.space ?? config.defaultSpace ?? 'default';
+      const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
       console.log(chalk.bold('\n🔬 LeanRAG analysis...\n'));
 
