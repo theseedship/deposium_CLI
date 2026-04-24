@@ -1,4 +1,4 @@
-> Revision: 2026-04-06
+> Revision: 2026-04-24 (config keys are kebab-case — audit fix)
 
 # Configuration Guide
 
@@ -39,39 +39,43 @@ automatically on first run (backup saved as `.plaintext.bak`).
 ### Full Example
 
 ```bash
-# Set values via CLI (stored encrypted)
-deposium config set deposiumUrl https://api.deposium.com
-deposium config set edgeUrl https://edge.deposium.vip
-deposium config set defaultTenant my-tenant
+# Set values via CLI (stored encrypted). Keys are kebab-case.
+deposium config set api-key dep_live_...
+deposium config set deposium-url https://api.deposium.com
+deposium config set default-tenant my-tenant
 ```
 
 ### Valid Configuration Keys
 
-| Key             | Type    | Description                               |
-| --------------- | ------- | ----------------------------------------- |
-| `deposiumUrl`   | string  | Deposium server URL                       |
-| `edgeUrl`       | string  | Edge Runtime gateway URL                  |
-| `defaultTenant` | string  | Default tenant ID                         |
-| `defaultSpace`  | string  | Default space ID                          |
-| `outputFormat`  | string  | Output format (`json`/`table`/`markdown`) |
-| `silentMode`    | boolean | Suppress non-essential output             |
+Keys accepted by `deposium config set` (kebab-case on input, stored internally as camelCase):
 
-> **Note:** `mcpDirectUrl` is deprecated. Use `edgeUrl` instead.
+| Key              | Type    | Description                               |
+| ---------------- | ------- | ----------------------------------------- |
+| `api-key`        | string  | API authentication key (`dep_live_...`)   |
+| `deposium-url`   | string  | Deposium server URL                       |
+| `default-tenant` | string  | Default tenant ID                         |
+| `default-space`  | string  | Default space ID                          |
+| `output-format`  | string  | Output format (`json`/`table`/`markdown`) |
+| `silent-mode`    | boolean | Suppress non-essential output             |
+
+> **Note:** `mcp-url` is a deprecated alias for `deposium-url` — still accepted for backwards compatibility.
+>
+> The Edge Runtime URL (`DEPOSIUM_EDGE_URL` env var, used by `chat` + `auth`) is configurable **only via environment variable**, not via `deposium config set`. If you need to pin it, export `DEPOSIUM_EDGE_URL=…` in your shell profile.
 
 ### Managing Configuration
 
 ```bash
-# View current configuration
+# View current configuration (keys shown in camelCase — stored form)
 deposium config list
 
-# Set a value
-deposium config set defaultTenant my-tenant
+# Set a value (kebab-case on the command line)
+deposium config set default-tenant my-tenant
 
-# Get a specific value
-deposium config get deposiumUrl
+# Get a specific value (either case works for read)
+deposium config get deposium-url
 
 # Delete a value
-deposium config delete defaultSpace
+deposium config delete default-space
 
 # Reset to defaults
 deposium config reset
