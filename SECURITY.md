@@ -13,7 +13,12 @@ If you discover a security vulnerability in Deposium CLI, please **do not
 open a public issue**. Instead, report it privately so we can address it
 before disclosure.
 
-**Email**: `security@deposium.vip`
+**Preferred channels** (in order):
+
+1. [GitHub Security Advisories](https://github.com/theseedship/deposium_CLI/security/advisories/new)
+   — private, versioned, integrates with CVE
+2. Discord — join [https://discord.gg/88unzXDT](https://discord.gg/88unzXDT)
+   and DM a maintainer with `[SECURITY]` in the first message
 
 Include in your report:
 
@@ -49,7 +54,7 @@ In scope:
 Out of scope:
 
 - The Deposium server infrastructure (reachable via `DEPOSIUM_URL`) — report
-  those separately via the same email with `[SERVER]` in the subject line
+  those via the same channels with `[SERVER]` in the title/first message
 - Social engineering of npm / GitHub accounts
 - Vulnerabilities in third-party CLIs or tools unrelated to ours
 
