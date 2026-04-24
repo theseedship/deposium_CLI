@@ -1,5 +1,7 @@
 # Deposium CLI - Roadmap
 
+> Revision: 2026-04-24
+
 Enterprise-grade CLI for Deposium MCP API.
 
 ## Current State (v1.0.0)
