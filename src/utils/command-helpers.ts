@@ -15,7 +15,14 @@ import {
   hasErrorCauseWithCode,
 } from './errors';
 
-// Re-export error utilities for convenience
+/**
+ * Re-exports of error type guards and the error-message extractor from
+ * `./errors`. Re-exposed here so command authors can import everything
+ * they need from a single module (`command-helpers`) without learning
+ * the internal layout.
+ *
+ * See `./errors.ts` for full docs on each.
+ */
 export { isErrorWithCode, hasErrorCauseWithCode };
 export const getErrorMessage = _getErrorMessage;
 
