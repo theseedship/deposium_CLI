@@ -65,6 +65,34 @@ export async function initializeCommand(options: InitializeOptions = {}): Promis
 }
 
 /**
+ * Resolve tenant and space IDs from command options, config, and defaults.
+ *
+ * Priority (per field):
+ *   1. Command-line option (`--tenant`, `--space`)
+ *   2. Configured default (`defaultTenant`, `defaultSpace` in config)
+ *   3. Literal fallback (`'default'`)
+ *
+ * @param options - Command options object (must have optional tenant/space fields)
+ * @param config - Loaded config (usually from `initializeCommand()`)
+ * @returns Resolved `{ tenantId, spaceId }`
+ *
+ * @example
+ * ```typescript
+ * const { client, config } = await initializeCommand();
+ * const { tenantId, spaceId } = resolveTenantSpace(options, config);
+ * ```
+ */
+export function resolveTenantSpace(
+  options: { tenant?: string; space?: string },
+  config: DeposiumConfig
+): { tenantId: string; spaceId: string } {
+  return {
+    tenantId: options.tenant ?? config.defaultTenant ?? 'default',
+    spaceId: options.space ?? config.defaultSpace ?? 'default',
+  };
+}
+
+/**
  * Standard error handler for command actions
  *
  * Provides consistent error formatting across all commands.

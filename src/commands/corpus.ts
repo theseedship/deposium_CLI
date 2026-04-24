@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
 
 export const corpusCommand = new Command('corpus')
   .description('Corpus statistics and evaluation')
@@ -14,8 +14,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
 
@@ -47,8 +46,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🎯 Evaluating Corpus Quality...\n'));
 
@@ -81,8 +79,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
 
@@ -115,8 +112,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n⚡ Starting real-time evaluation...\n'));
 
@@ -149,8 +145,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🔍 Monitoring corpus quality...\n'));
 
@@ -183,8 +178,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n🆕 Checking corpus freshness...\n'));
 
@@ -221,8 +215,7 @@ export const corpusCommand = new Command('corpus')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
-          const tenantId = options.tenant ?? config.defaultTenant ?? 'default';
-          const spaceId = options.space ?? config.defaultSpace ?? 'default';
+          const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
           console.log(chalk.bold('\n📉 Detecting concept drift...\n'));
 
