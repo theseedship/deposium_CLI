@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-25
+
+### Added — Self-service management (3 new commands)
+
+#### `deposium space` — workspace management
+
+- `space list` (alias `ls`) — `GET /api/spaces`
+- `space show <id>` (alias `info`) — filter list client-side (server has no `GET /api/spaces/:id` yet)
+- `space create <name> [--description]` (alias `new`) — MCP `deposium_admin` macro with `operation=create_space` (experimental — depends on MCP layer accepting CLI keys)
+
+#### `deposium files` — document management
+
+- `files list [--space <id>] [--limit N] [--offset N]` (alias `ls`) — `GET /api/v1/documents/`
+- `files show <id>` (alias `info`) — `GET /api/v1/documents/:id`
+- `files check <id>` (alias `validate`) — MCP `check_file` tool (experimental, same caveat as `space create`)
+- `files rm <id>` (alias `delete`) — `DELETE /api/v1/documents/:id` with inquirer confirmation (use `-y` to skip)
+
+#### `deposium api-keys` — server-side API key management (plan-gated)
+
+- `api-keys list` (alias `ls`) — `GET /api/api-keys`
+- `api-keys create -n <name> [-s scopes] [-t tier]` (alias `new`) — `POST /api/api-keys` with one-time secret display
+- `api-keys delete <id>` (alias `rm`) — `DELETE /api/api-keys/:id` with confirmation
+- `api-keys rotate <id>` — `POST /api/api-keys/:id/rotate` with confirmation + new-secret display
+- `api-keys usage <id>` — `GET /api/api-keys/:id/usage`
+
+### Added — Client API surface
+
+- 5 new public interfaces in `src/client/mcp-client.ts`: `MCPSpace`, `MCPDocument`, `MCPDocumentDetail`, `MCPDocumentPagination`, `MCPApiKey`, `MCPApiKeyCreated`, `MCPApiKeyUsage`
+- 9 new client methods: `listSpaces`, `listDocuments`, `getDocument`, `deleteDocument`, `listApiKeys`, `createApiKey`, `deleteApiKey`, `rotateApiKey`, `getApiKeyUsage`
+- Internal `authenticatedRequest` helper that factorizes the retry-on-transient-errors loop + 401/404 error mapping (used by all new methods; older inline-retry methods kept as-is for now)
+
+### Added — Testing
+
+- 50 new tests across `space.test.ts` (14), `files.test.ts` (19), `api-keys.test.ts` (17)
+- Full suite: 270 → **320 tests** in 27 test files
+- `vitest.config.ts` with `testTimeout: 15000` (vitest 4.x default of 5s was tight under load)
+
+### Added — Documentation
+
+- `docs/commands/space.md`, `docs/commands/files.md`, `docs/commands/api-keys.md` — full per-command references
+- README + `docs/commands/README.md` updated for the 3 new commands
+- ROADMAP.md "Self-service management" section + v1.2 candidates moved (`files download`, connector commands, etc.)
+
 ## [1.0.4] - 2026-04-25
 
 ### Added — Test expansion

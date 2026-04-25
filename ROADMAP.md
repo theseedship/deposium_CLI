@@ -6,23 +6,29 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 
 ## Current State
 
-| Metric             | Status          |
-| ------------------ | --------------- |
-| Latest version     | v1.0.4 (npm)    |
-| Commands           | 19 operational  |
-| Tests              | 204 (Vitest)    |
-| Statement coverage | ~76%            |
-| Security Score     | 10/10 (0 vulns) |
-| License            | MIT             |
+| Metric             | Status              |
+| ------------------ | ------------------- |
+| Latest version     | v1.1.0 (npm)        |
+| Commands           | 22 operational      |
+| Tests              | 320 (Vitest)        |
+| Statement coverage | ~55% (full surface) |
+| Security Score     | 10/10 (0 vulns)     |
+| License            | MIT                 |
 
 ### Core Features
 
-- MCP API integration with 128+ tools
+- MCP API integration with 200+ server-side tools
 - Semantic, full-text, fuzzy, and graph search
-- Interactive chat mode with streaming via Edge Runtime
+- Interactive chat mode with streaming via Edge Runtime + HITL `--on-ambiguous`
 - Knowledge graph operations
 - Batch document uploads
 - DSPy and LeanRAG integration
+
+### Self-service management (v1.1)
+
+- `space` — list, show, create workspaces (delete pending server support)
+- `files` — list, show, validate, rm documents
+- `api-keys` — list, create, delete, rotate, usage stats (plan-gated)
 
 ### Security (completed: secure-CLI-2026)
 
@@ -31,12 +37,13 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 - TLS enforced on non-localhost URLs (`--insecure` to override)
 - Chat streams routed via Edge Runtime gateway (auth + rate-limiting)
 
-## Short-term (v1.1)
+## Short-term (v1.2 candidates)
 
-- [ ] Session compaction (token-aware chat history, inspired by claw-code)
-- [ ] Chat session persistence (resume after restart)
-- [ ] `/compact`, `/export`, `/cost` chat commands
+- [ ] `files download` once the server exposes API-key auth on `/api/download/*`
+- [ ] `space delete` + `space update` once MCP exposes those operations
+- [ ] Pre-upload validation pass via `check_file` integrated into `upload-batch`
 - [ ] Tab completion support
+- [ ] Connector commands (`deposium connectors data.gouv.fr`, `clinical`, `notion`, `leexi`)
 
 ## Medium-term (v1.2)
 
@@ -98,7 +105,7 @@ src/__tests__/commands/
 ### Running Tests
 
 ```bash
-npm test               # All tests (204)
+npm test               # All tests (320)
 npm run test:coverage  # With coverage
 npm run test:watch     # Watch mode
 ```
