@@ -722,3 +722,107 @@ describe('MCPClient', () => {
     });
   });
 });
+
+describe('MCPAuthError (structured 401 from /api/cli/mcp)', () => {
+  test('errorCode defaults to "unknown" when missing in body', async () => {
+    const { MCPAuthError } = await import('../client/mcp-client');
+    const err = new MCPAuthError({ message: 'Whatever' });
+    expect(err.errorCode).toBe('unknown');
+    expect(err.message).toContain('Whatever');
+  });
+
+  test('formats hint + docs into the message', async () => {
+    const { MCPAuthError } = await import('../client/mcp-client');
+    const err = new MCPAuthError({
+      message: 'Invalid API key format',
+      error_code: 'format_invalid',
+      hint: 'Key must match `dep_(live|test)_<43 base64url chars>`.',
+      docs: 'https://docs.deposium.io/api-authentication',
+    });
+    expect(err.errorCode).toBe('format_invalid');
+    expect(err.hint).toContain('dep_(live|test)');
+    expect(err.docsUrl).toBe('https://docs.deposium.io/api-authentication');
+    expect(err.message).toContain('💡');
+    expect(err.message).toContain('📖');
+    expect(err.name).toBe('MCPAuthError');
+  });
+
+  test('SSE 401 with structured body throws MCPAuthError', async () => {
+    const { MCPClient, MCPAuthError } = await import('../client/mcp-client');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      headers: new Headers(),
+      json: () =>
+        Promise.resolve({
+          error: 'MCP Auth Error',
+          message: 'Key revoked',
+          error_code: 'key_invalid',
+          hint: 'Generate a new key via `deposium api-keys create`.',
+        }),
+    } as Response);
+
+    const mockAxios = {
+      post: vi.fn(() => Promise.resolve({ data: {} })),
+      get: vi.fn(() => Promise.resolve({ data: {} })),
+      defaults: { headers: { common: {} } },
+    };
+    vi.spyOn(axios, 'create').mockReturnValue(
+      mockAxios as unknown as ReturnType<typeof axios.create>
+    );
+
+    const client = new MCPClient('http://localhost:3000', 'revoked-key');
+
+    let caught: unknown;
+    try {
+      await client.chatStream('http://localhost:9000', 'hi', { onToken: () => {} });
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBeInstanceOf(MCPAuthError);
+    const err = caught as InstanceType<typeof MCPAuthError>;
+    expect(err.errorCode).toBe('key_invalid');
+    expect(err.hint).toContain('api-keys create');
+
+    fetchSpy.mockRestore();
+  });
+
+  test('SSE 401 with non-structured body falls back to plain Error', async () => {
+    const { MCPClient, MCPAuthError } = await import('../client/mcp-client');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      headers: new Headers(),
+      json: () => Promise.resolve({ message: 'token expired' }),
+    } as Response);
+
+    const mockAxios = {
+      post: vi.fn(() => Promise.resolve({ data: {} })),
+      get: vi.fn(() => Promise.resolve({ data: {} })),
+      defaults: { headers: { common: {} } },
+    };
+    vi.spyOn(axios, 'create').mockReturnValue(
+      mockAxios as unknown as ReturnType<typeof axios.create>
+    );
+
+    const client = new MCPClient('http://localhost:3000', 'expired-key');
+
+    let caught: unknown;
+    try {
+      await client.chatStream('http://localhost:9000', 'hi', { onToken: () => {} });
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught).not.toBeInstanceOf(MCPAuthError);
+    expect((caught as Error).message).toContain('token expired');
+
+    fetchSpy.mockRestore();
+  });
+});
