@@ -295,6 +295,43 @@ export interface MCPDocumentPagination {
 }
 
 /**
+ * An API key as listed by `GET /api/api-keys`.
+ *
+ * The actual secret is never returned by the list endpoint — only the
+ * prefix (first chars), name, and metadata. The full secret is only
+ * returned once at creation time (`POST /api/api-keys`).
+ */
+export interface MCPApiKey {
+  id: string;
+  name: string;
+  prefix?: string;
+  scopes?: string[];
+  rate_limit_tier?: string;
+  created_at: string;
+  last_used_at?: string | null;
+  expires_at?: string | null;
+}
+
+/**
+ * Response from `POST /api/api-keys` — includes the full secret which is
+ * only returned once. Save it immediately; subsequent reads only return
+ * the prefix.
+ */
+export interface MCPApiKeyCreated extends MCPApiKey {
+  /** Full secret — shown ONCE at creation time. Save it. */
+  secret?: string;
+  key?: string;
+}
+
+/**
+ * Usage stats for an API key, from `GET /api/api-keys/:id/usage`.
+ *
+ * The exact shape is server-version-dependent; we expose it as a plain
+ * record so callers can inspect whatever the server returns.
+ */
+export type MCPApiKeyUsage = Record<string, unknown>;
+
+/**
  * Configuration options for MCPClient
  */
 export interface MCPClientOptions {
@@ -844,6 +881,60 @@ export class MCPClient {
    */
   async deleteDocument(id: number | string): Promise<unknown> {
     return this.authenticatedRequest('DELETE', `/api/v1/documents/${id}`);
+  }
+
+  /**
+   * List API keys belonging to the authenticated account.
+   * Calls `GET /api/api-keys`.
+   */
+  async listApiKeys(): Promise<MCPApiKey[]> {
+    const response = await this.authenticatedRequest<{ data: MCPApiKey[] }>('GET', '/api/api-keys');
+    return response.data;
+  }
+
+  /**
+   * Create a new API key. Calls `POST /api/api-keys`.
+   *
+   * The response includes the full secret value — this is the ONLY time
+   * the secret is returned by the server. Save it immediately.
+   *
+   * Plan-gated: requires the `api_access` feature on the account's plan.
+   * On insufficient plans the server returns `{ code: "FEATURE_LOCKED" }`.
+   */
+  async createApiKey(input: {
+    name: string;
+    scopes?: string[];
+    rate_limit_tier?: string;
+  }): Promise<MCPApiKeyCreated> {
+    return this.authenticatedRequest<MCPApiKeyCreated>('POST', '/api/api-keys', input);
+  }
+
+  /**
+   * Delete an API key. Calls `DELETE /api/api-keys/:id`.
+   * Irreversible.
+   */
+  async deleteApiKey(id: string): Promise<unknown> {
+    return this.authenticatedRequest('DELETE', `/api/api-keys/${id}`);
+  }
+
+  /**
+   * Rotate an API key — invalidates the old secret and generates a new one.
+   * Calls `POST /api/api-keys/:id/rotate`.
+   *
+   * The response includes the new secret value (one-time, save it).
+   */
+  async rotateApiKey(id: string): Promise<MCPApiKeyCreated> {
+    return this.authenticatedRequest<MCPApiKeyCreated>('POST', `/api/api-keys/${id}/rotate`);
+  }
+
+  /**
+   * Get usage stats for an API key. Calls `GET /api/api-keys/:id/usage`.
+   *
+   * Shape is server-version-dependent — typically includes counters per
+   * day/month and the last few requests.
+   */
+  async getApiKeyUsage(id: string): Promise<MCPApiKeyUsage> {
+    return this.authenticatedRequest<MCPApiKeyUsage>('GET', `/api/api-keys/${id}/usage`);
   }
 
   /**

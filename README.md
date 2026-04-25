@@ -28,7 +28,8 @@ Detailed documentation is available in the `docs/` directory:
 
 | Command                                             | Description                           |
 | :-------------------------------------------------- | :------------------------------------ |
-| **[auth](docs/commands/auth.md)**                   | Manage API keys and sessions          |
+| **[api-keys](docs/commands/api-keys.md)**           | Manage server-side API keys           |
+| **[auth](docs/commands/auth.md)**                   | Authenticate the CLI (local store)    |
 | **[benchmark](docs/commands/benchmark.md)**         | Run LLM benchmarks (OpenBench)        |
 | **[chat](docs/commands/chat.md)**                   | Interactive AI chat mode              |
 | **[compound](docs/commands/compound.md)**           | Multi-tool logic and reasoning        |

@@ -6,7 +6,8 @@ This directory contains detailed documentation for all Deposium CLI commands.
 
 ## Core Commands
 
-- **[auth](auth.md)**: Manage API keys and authentication sessions.
+- **[api-keys](api-keys.md)**: Manage server-side API keys (list/create/delete/rotate/usage).
+- **[auth](auth.md)**: Authenticate the CLI (local credentials store).
 - **[config](config.md)**: Manage local configuration settings.
 - **[health](health.md)**: Check connectivity and status of Deposium services.
 - **[logs](logs.md)**: View and search MCP server logs.
