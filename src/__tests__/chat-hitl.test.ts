@@ -302,6 +302,262 @@ describe('MCPClient.resumeAgent', () => {
 });
 
 // ============================================================================
+// runChatTurn — orchestrates initial stream + HITL resume loop
+// ============================================================================
+
+describe('runChatTurn', () => {
+  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    stdoutSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  /**
+   * Build a fake MCPClient just rich enough for runChatTurn to drive.
+   * Each "step" is a list of SSE-like events to deliver via the callbacks
+   * configured by runChatTurn. The client invokes them synchronously.
+   */
+  function makeFakeClient(steps: Array<Array<{ kind: string; data: unknown }>>) {
+    let stepIndex = 0;
+    const calls: { method: string; args: unknown[] }[] = [];
+
+    function deliver(events: Array<{ kind: string; data: unknown }>, opts: any) {
+      for (const ev of events) {
+        if (ev.kind === 'token') opts.onToken?.(ev.data as string);
+        else if (ev.kind === 'citation') opts.onCitation?.(ev.data);
+        else if (ev.kind === 'chat_prompt') opts.onChatPrompt?.(ev.data);
+        else if (ev.kind === 'error') opts.onError?.(ev.data);
+      }
+    }
+
+    return {
+      calls,
+      chatStream: vi.fn(async (streamUrl: string, message: string, opts: any) => {
+        calls.push({ method: 'chatStream', args: [streamUrl, message, opts] });
+        deliver(steps[stepIndex++] ?? [], opts);
+      }),
+      resumeAgent: vi.fn(async (url: string, cid: string, decision: unknown, opts: any) => {
+        calls.push({ method: 'resumeAgent', args: [url, cid, decision, opts] });
+        deliver(steps[stepIndex++] ?? [], opts);
+      }),
+    };
+  }
+
+  test('single turn (no chat_prompt) — calls chatStream once, returns full response', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'Hello ' },
+        { kind: 'token', data: 'world' },
+      ],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: false,
+      message: 'Hi',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    expect(response).toBe('Hello world');
+    expect(client.chatStream).toHaveBeenCalledTimes(1);
+    expect(client.resumeAgent).not.toHaveBeenCalled();
+  });
+
+  test('one chat_prompt → handle then resume once', async () => {
+    const { runChatTurn } = await import('../chat');
+    const choicePrompt = makeChoicePrompt();
+    const client = makeFakeClient([
+      // initial stream emits a token then pauses
+      [
+        { kind: 'token', data: 'Thinking... ' },
+        { kind: 'chat_prompt', data: choicePrompt },
+      ],
+      // resume stream emits final tokens
+      [{ kind: 'token', data: 'Done.' }],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'pick-first',
+    });
+
+    expect(response).toBe('Thinking... Done.');
+    expect(client.chatStream).toHaveBeenCalledTimes(1);
+    expect(client.resumeAgent).toHaveBeenCalledTimes(1);
+    // first option of choicePrompt is `rag`
+    const resumeCall = client.calls.find((c) => c.method === 'resumeAgent')!;
+    expect(resumeCall.args[1]).toBe(choicePrompt.correlation_id);
+    expect(resumeCall.args[2]).toEqual({ value: 'rag' });
+  });
+
+  test('chained chat_prompts (disambiguate → confirm → done) → resumes twice', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [{ kind: 'chat_prompt', data: makeChoicePrompt({ correlation_id: 'c1' }) }],
+      [{ kind: 'chat_prompt', data: makeConfirmPrompt({ correlation_id: 'c2' }) }],
+      [{ kind: 'token', data: 'final' }],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'pick-first',
+    });
+
+    expect(response).toBe('final');
+    expect(client.resumeAgent).toHaveBeenCalledTimes(2);
+    // first resume: choice → 'rag', second resume: confirm → 'approve'
+    const resumeCalls = client.calls.filter((c) => c.method === 'resumeAgent');
+    expect(resumeCalls[0].args[2]).toEqual({ value: 'rag' });
+    expect(resumeCalls[1].args[2]).toEqual({ value: 'approve' });
+  });
+
+  test('citations are collected and printed', async () => {
+    const { runChatTurn } = await import('../chat');
+    const citation = { document_name: 'doc-A.pdf', page: 12, content: 'snippet' };
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'answer' },
+        { kind: 'citation', data: citation },
+      ],
+    ]);
+
+    await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    const logs = consoleLogSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(logs).toContain('Sources');
+    expect(logs).toContain('doc-A.pdf');
+    expect(logs).toContain('p.12');
+  });
+
+  test('passes directMcp flag and streamUrl through to chatStream', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([[{ kind: 'token', data: 'ok' }]]);
+
+    await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://mcps:4001',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: true,
+      message: 'Q',
+      conversationHistory: [{ role: 'user', content: 'prev' }],
+      onAmbiguous: 'fail',
+    });
+
+    const [streamUrl, , opts] = client.calls[0].args as [string, string, Record<string, unknown>];
+    expect(streamUrl).toBe('http://mcps:4001');
+    expect(opts.directMcp).toBe(true);
+    expect(opts.conversationHistory).toEqual([{ role: 'user', content: 'prev' }]);
+    expect(opts.language).toBe('fr');
+  });
+
+  test('onError callback writes to console.error without aborting', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'partial ' },
+        { kind: 'error', data: { error: 'transient', message: 'flaky' } },
+        { kind: 'token', data: 'recovered' },
+      ],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    expect(response).toBe('partial recovered');
+    const errors = consoleErrorSpy.mock.calls.flat().map(String).join('\n');
+    expect(errors).toContain('flaky');
+  });
+
+  test('uses custom prompter for prompt mode', async () => {
+    const { runChatTurn } = await import('../chat');
+    const choicePrompt = makeChoicePrompt();
+    const client = makeFakeClient([
+      [{ kind: 'chat_prompt', data: choicePrompt }],
+      [{ kind: 'token', data: 'done' }],
+    ]);
+
+    const customPrompter = vi
+      .fn<(p: SSEChatPrompt) => Promise<AgentResumePayload>>()
+      .mockResolvedValue({ value: 'web_search' });
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      mcpDirectUrl: 'http://mcps:4001',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'prompt',
+      prompter: customPrompter,
+    });
+
+    expect(response).toBe('done');
+    expect(customPrompter).toHaveBeenCalledWith(choicePrompt);
+    const resumeCall = client.calls.find((c) => c.method === 'resumeAgent')!;
+    expect(resumeCall.args[2]).toEqual({ value: 'web_search' });
+  });
+
+  test('fail mode propagates the error from handleChatPrompt', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([[{ kind: 'chat_prompt', data: makeChoicePrompt() }]]);
+
+    await expect(
+      runChatTurn({
+        client: client as unknown as import('../client/mcp-client').MCPClient,
+        streamUrl: 'http://edge:9000',
+        mcpDirectUrl: 'http://mcps:4001',
+        directMcp: false,
+        message: 'Q',
+        conversationHistory: [],
+        onAmbiguous: 'fail',
+      })
+    ).rejects.toThrow(/Agent paused/);
+
+    expect(client.resumeAgent).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================================
 // Helpers
 // ============================================================================
 
