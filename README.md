@@ -2,8 +2,9 @@
 
 Official command-line interface for [Deposium](https://deposium.ai) — document search, knowledge graphs, and AI workflows, from your terminal.
 
-**Version:** 1.0.0
-**Status:** Production Ready
+[![npm](https://img.shields.io/npm/v/@deposium/cli.svg)](https://www.npmjs.com/package/@deposium/cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](package.json)
 
 ## 📋 Overview
 

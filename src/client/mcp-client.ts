@@ -110,6 +110,10 @@ export interface MCPHealthResponse {
 // SSE Event Types (matches MCP /api/chat-stream events)
 // ============================================================================
 
+/**
+ * `metadata` SSE event — emitted once at the start of a chat stream with
+ * the resolved intent and routing decision.
+ */
 export interface SSEMetadata {
   intent: string;
   confidence: number;
@@ -119,12 +123,20 @@ export interface SSEMetadata {
   timestamp: string;
 }
 
+/**
+ * `tool_call` SSE event — emitted when the agent invokes a tool, both at
+ * `started` and `completed` (with duration on completion).
+ */
 export interface SSEToolCall {
   tool: string;
   status: 'started' | 'completed';
   duration_ms?: number;
 }
 
+/**
+ * `citation` SSE event — a source document the agent referenced during
+ * response generation. Multiple citations may be emitted per turn.
+ */
 export interface SSECitation {
   document_id: string;
   document_name: string;
@@ -134,12 +146,20 @@ export interface SSECitation {
   full_content?: string;
 }
 
+/**
+ * `done` SSE event — emitted at the end of a stream with totals.
+ * Always the last event of a successful stream.
+ */
 export interface SSEDone {
   total_duration_ms: number;
   tokens_generated?: number;
   tools_called: string[];
 }
 
+/**
+ * `error` SSE event — non-fatal stream-level error. Streams may continue
+ * after an error event. For terminal errors, the connection is closed.
+ */
 export interface SSEError {
   message: string;
   error?: string;
@@ -153,6 +173,10 @@ export interface SSEError {
  * The CLI responds by POSTing to `/api/agent-resume` with
  * `{ correlation_id, response: { value } }` (or `{ values }` for forms),
  * which opens a fresh SSE stream that continues the pipeline.
+ */
+/**
+ * One option for `type='choice'` chat prompts.
+ * `value` is what gets sent back to the server in the resume payload.
  */
 export interface SSEChatPromptOption {
   value: string;
@@ -175,6 +199,12 @@ export interface SSEChatPrompt {
   step_id?: string;
 }
 
+/**
+ * Options accepted by `MCPClient.chatStream()` and `MCPClient.resumeAgent()`.
+ *
+ * Only `onToken` is required — everything else is opt-in for the events the
+ * caller cares about. Set callbacks default to no-op when not provided.
+ */
 export interface ChatStreamOptions {
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
   spaceIds?: string[];
