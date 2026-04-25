@@ -232,6 +232,20 @@ export interface AgentResumePayload {
 }
 
 /**
+ * A workspace ("space") as exposed by `GET /api/spaces`.
+ *
+ * Spaces are the primary unit of content organization on Deposium —
+ * documents, embeddings, graphs, and chat history are all scoped per space.
+ */
+export interface MCPSpace {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+/**
  * Configuration options for MCPClient
  */
 export interface MCPClientOptions {
@@ -669,6 +683,56 @@ export class MCPClient {
             );
           }
           // Check for authentication errors
+          if (axiosError.response?.status === 401) {
+            throw new Error(
+              'Authentication failed (401)\n' +
+                ((axiosError.response?.data as { message?: string })?.message ??
+                  'Invalid or missing API key')
+            );
+          }
+        }
+        throw error;
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
+  /**
+   * List all workspaces ("spaces") accessible to the authenticated user.
+   *
+   * Calls `GET /api/spaces`. Response is unwrapped from the `{ data, count }`
+   * envelope and returned as a plain array.
+   *
+   * @returns Array of spaces ordered by the server (typically by recency).
+   * @throws If authentication fails (401) or the API is unreachable.
+   */
+  async listSpaces(): Promise<MCPSpace[]> {
+    const requestId = generateRequestId();
+
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await this.client.get<{ data: MCPSpace[]; count: number }>('/api/spaces', {
+          headers: { 'X-Request-ID': requestId },
+        });
+        return response.data.data;
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (
+          axios.isAxiosError(axiosError) &&
+          isRetryableError(axiosError) &&
+          attempt < this.maxRetries
+        ) {
+          await sleep(this.retryBaseDelay * Math.pow(2, attempt));
+          continue;
+        }
+
+        if (axios.isAxiosError(axiosError)) {
+          if (axiosError.code === 'ECONNREFUSED') {
+            throw new Error(
+              `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+                'Make sure the Deposium server is running'
+            );
+          }
           if (axiosError.response?.status === 401) {
             throw new Error(
               'Authentication failed (401)\n' +

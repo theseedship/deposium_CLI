@@ -21,6 +21,7 @@ import { duckdbCommand } from './commands/duckdb';
 import { toolsCommand } from './commands/tools';
 import { uploadBatchCommand } from './commands/upload-batch';
 import { benchmarkCommand } from './commands/benchmark';
+import { spaceCommand } from './commands/space';
 import { getConfig, getBaseUrl } from './utils/config';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
@@ -131,6 +132,7 @@ program.addCommand(queryHistoryCommand);
 program.addCommand(duckdbCommand);
 program.addCommand(uploadBatchCommand);
 program.addCommand(benchmarkCommand);
+program.addCommand(spaceCommand);
 
 // Interactive mode
 program
