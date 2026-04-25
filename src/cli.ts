@@ -23,6 +23,7 @@ import { uploadBatchCommand } from './commands/upload-batch';
 import { benchmarkCommand } from './commands/benchmark';
 import { spaceCommand } from './commands/space';
 import { filesCommand } from './commands/files';
+import { apiKeysCommand } from './commands/api-keys';
 import { getConfig, getBaseUrl } from './utils/config';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
@@ -135,6 +136,7 @@ program.addCommand(uploadBatchCommand);
 program.addCommand(benchmarkCommand);
 program.addCommand(spaceCommand);
 program.addCommand(filesCommand);
+program.addCommand(apiKeysCommand);
 
 // Interactive mode
 program
