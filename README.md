@@ -20,9 +20,18 @@ Deposium CLI is the terminal interface to the Deposium platform. It exposes:
 
 Detailed documentation is available in the `docs/` directory:
 
+**User guides:**
+
 - **[Installation Guide](docs/guides/installation.md)**
 - **[Configuration Guide](docs/guides/configuration.md)**
-- **[Best Practices](docs/guides/best-practices.md)**
+- **[Best Practices](docs/guides/best-practices.md)** (incl. self-service workflows)
+- **[`--on-ambiguous` HITL flag](docs/guides/on-ambiguous-flag.md)**
+
+**For SDK / programmatic consumers:**
+
+- **[MCP Auth Error Codes](docs/development/error-codes.md)** — `MCPAuthError` class + stable `errorCode` enum
+- **[Contributing](docs/development/contributing.md)**
+- **[CHANGELOG](docs/CHANGELOG.md)**
 
 ### Command Reference
 
