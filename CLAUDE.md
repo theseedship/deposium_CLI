@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/claude-code) when working 
 
 Deposium CLI is an enterprise-grade command-line interface for the Deposium MCP (Model Context Protocol) API. It provides 22 operational commands for document search, knowledge graph operations, AI workflows, batch processing, and self-service management of spaces / documents / API keys.
 
-**Package:** `@deposium/cli` v1.1.3
+**Package:** `@deposium/cli` v1.1.5
 **Runtime:** Node.js 22+ or Bun 1.0+
-**Test Framework:** Vitest (324 tests)
+**Test Framework:** Vitest (328 tests)
 
 ## Common Commands
 
@@ -42,7 +42,7 @@ src/
 ├── interactive.ts         # Interactive prompts
 ├── client/
 │   └── mcp-client.ts      # MCP API client with retry logic + SSE streaming
-├── commands/              # Command implementations (19 commands)
+├── commands/              # Command implementations (22 commands)
 │   ├── auth.ts            # Authentication (login/logout)
 │   ├── config.ts          # Configuration management
 │   ├── search.ts          # Multi-mode search

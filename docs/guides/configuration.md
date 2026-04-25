@@ -101,6 +101,26 @@ configuration without exposing credentials.
 
 The `~/.deposium/` directory is automatically set to chmod 0700.
 
+### Resolution Priority
+
+`DEPOSIUM_API_KEY` env var **always wins** over the stored credential. CI/CD
+pipelines that export the env var bypass the interactive prompt and stored
+file entirely — useful for ephemeral runners.
+
+`deposium auth status` shows the active source:
+
+```text
+🔐 Authentication Status
+Deposium URL: https://api.deposium.com
+Authentication: ✅ Logged in
+API Key: dep_live_...
+Source: DEPOSIUM_API_KEY env var (overrides stored credentials)
+```
+
+`deposium auth logout` only removes the **stored** credential — it does not
+unset the env var. If `auth status` still shows "Logged in" after logout,
+the env var is set: `unset DEPOSIUM_API_KEY` to fully clear.
+
 ## Tenant and Space
 
 ### Setting Defaults

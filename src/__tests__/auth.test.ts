@@ -282,6 +282,73 @@ describe('auth.ts', () => {
       expect(setApiKey).not.toHaveBeenCalled();
     });
 
+    test('DEPOSIUM_API_KEY env var → returns it without server validation or prompting', async () => {
+      const previous = process.env.DEPOSIUM_API_KEY;
+      process.env.DEPOSIUM_API_KEY = 'env-key-12345';
+      // Even with no stored key and no fetch mock, env var should short-circuit.
+      vi.mocked(hasApiKey).mockReturnValue(false);
+      const fetchSpy = vi.fn();
+      globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+      try {
+        const result = await ensureAuthenticated('http://localhost:3000');
+        expect(result).toBe('env-key-12345');
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(inquirer.prompt).not.toHaveBeenCalled();
+        expect(setApiKey).not.toHaveBeenCalled();
+      } finally {
+        if (previous === undefined) delete process.env.DEPOSIUM_API_KEY;
+        else process.env.DEPOSIUM_API_KEY = previous;
+      }
+    });
+
+    test('DEPOSIUM_API_KEY env var trims whitespace', async () => {
+      const previous = process.env.DEPOSIUM_API_KEY;
+      process.env.DEPOSIUM_API_KEY = '  env-key-trimmed  ';
+      vi.mocked(hasApiKey).mockReturnValue(false);
+      globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
+
+      try {
+        const result = await ensureAuthenticated('http://localhost:3000');
+        expect(result).toBe('env-key-trimmed');
+      } finally {
+        if (previous === undefined) delete process.env.DEPOSIUM_API_KEY;
+        else process.env.DEPOSIUM_API_KEY = previous;
+      }
+    });
+
+    test('DEPOSIUM_API_KEY env var takes priority over stored key', async () => {
+      const previous = process.env.DEPOSIUM_API_KEY;
+      process.env.DEPOSIUM_API_KEY = 'env-key-wins';
+      vi.mocked(hasApiKey).mockReturnValue(true);
+      vi.mocked(getApiKey).mockReturnValue('stored-loses');
+      globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
+
+      try {
+        const result = await ensureAuthenticated('http://localhost:3000');
+        expect(result).toBe('env-key-wins');
+      } finally {
+        if (previous === undefined) delete process.env.DEPOSIUM_API_KEY;
+        else process.env.DEPOSIUM_API_KEY = previous;
+      }
+    });
+
+    test('empty DEPOSIUM_API_KEY env var falls through to stored-key flow', async () => {
+      const previous = process.env.DEPOSIUM_API_KEY;
+      process.env.DEPOSIUM_API_KEY = '   ';
+      vi.mocked(hasApiKey).mockReturnValue(true);
+      vi.mocked(getApiKey).mockReturnValue('stored-key');
+      mockFetchResponse(200, { valid: true });
+
+      try {
+        const result = await ensureAuthenticated('http://localhost:3000');
+        expect(result).toBe('stored-key');
+      } finally {
+        if (previous === undefined) delete process.env.DEPOSIUM_API_KEY;
+        else process.env.DEPOSIUM_API_KEY = previous;
+      }
+    });
+
     test('stored key invalid → falls through to prompt loop and saves new key', async () => {
       vi.mocked(hasApiKey).mockReturnValue(true);
       vi.mocked(getApiKey).mockReturnValue('stale-key');

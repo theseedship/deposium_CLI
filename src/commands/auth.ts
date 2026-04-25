@@ -108,15 +108,44 @@ export const authCommand = new Command('auth')
       try {
         const config = getConfig();
         const baseUrl = getBaseUrl(config);
+        const envKey = process.env.DEPOSIUM_API_KEY?.trim();
 
         console.log(chalk.bold('\n🔐 Authentication Status\n'));
 
         console.log(chalk.gray('Deposium URL: ') + chalk.cyan(baseUrl));
 
-        if (hasApiKey()) {
+        if (envKey) {
+          console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
+          console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(envKey)));
+          console.log(
+            chalk.gray('Source: ') +
+              chalk.yellow('DEPOSIUM_API_KEY env var') +
+              chalk.gray(' (overrides stored credentials)')
+          );
+
+          console.log(chalk.gray('\nValidating credentials...'));
+          try {
+            const { validateApiKeyWithServer } = await import('../utils/auth');
+            const isValid = await validateApiKeyWithServer(baseUrl, envKey);
+
+            if (isValid) {
+              console.log(chalk.green('✅ API key is valid\n'));
+            } else {
+              console.log(chalk.red('❌ API key is invalid'));
+              console.log(
+                chalk.gray('Update or unset ') +
+                  chalk.cyan('DEPOSIUM_API_KEY') +
+                  chalk.gray(' to fix\n')
+              );
+            }
+          } catch (error: unknown) {
+            console.log(chalk.yellow('⚠️  Could not validate: ' + getErrorMessage(error) + '\n'));
+          }
+        } else if (hasApiKey()) {
           const apiKey = getApiKey() ?? '';
           console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
           console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(apiKey)));
+          console.log(chalk.gray('Source: ') + chalk.cyan('stored credentials'));
 
           // Try to validate the key
           console.log(chalk.gray('\nValidating credentials...'));
