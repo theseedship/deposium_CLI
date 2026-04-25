@@ -246,6 +246,55 @@ export interface MCPSpace {
 }
 
 /**
+ * A document/file as listed by `GET /api/v1/documents/`.
+ *
+ * Documents can be regular files (PDFs, docs, etc.) or "connector" entries
+ * representing live data sources (e.g. web search, Notion, etc. — `doc_type`
+ * indicates which).
+ */
+export interface MCPDocument {
+  id: number;
+  file_name: string;
+  mime_type: string;
+  size: number;
+  doc_type: string;
+  doc_status: string;
+  num_pages: number;
+  characters_count: number;
+  keywords?: string[] | null;
+  is_private: boolean;
+  space_id?: string | null;
+  folder_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Full document detail returned by `GET /api/v1/documents/:id`.
+ *
+ * Adds storage metadata, search-enablement flags, connector config (when
+ * applicable), and the per-call access summary.
+ */
+export interface MCPDocumentDetail extends MCPDocument {
+  search_enabled?: boolean;
+  s3_path?: string | null;
+  bucket_name?: string | null;
+  bucket_path?: string | null;
+  file_infos?: Record<string, unknown>;
+  _access?: { type: string; can_edit: boolean; can_delete: boolean };
+}
+
+/**
+ * Pagination envelope returned alongside filtered document lists.
+ */
+export interface MCPDocumentPagination {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+/**
  * Configuration options for MCPClient
  */
 export interface MCPClientOptions {
@@ -739,6 +788,120 @@ export class MCPClient {
                 ((axiosError.response?.data as { message?: string })?.message ??
                   'Invalid or missing API key')
             );
+          }
+        }
+        throw error;
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
+  /**
+   * List documents/files. Calls `GET /api/v1/documents/`.
+   *
+   * Without a `spaceId` filter the server returns the user's full document
+   * catalog (across all spaces). With a `spaceId` filter the response also
+   * includes a pagination envelope.
+   *
+   * @param options.spaceId - Filter by space (UUID). Omit for full catalog.
+   * @param options.limit - Page size (server default 50)
+   * @param options.offset - Page offset
+   */
+  async listDocuments(
+    options: { spaceId?: string; limit?: number; offset?: number } = {}
+  ): Promise<{ items: MCPDocument[]; pagination?: MCPDocumentPagination }> {
+    const params = new URLSearchParams();
+    if (options.spaceId) params.set('space_id', options.spaceId);
+    if (options.limit !== undefined) params.set('limit', String(options.limit));
+    if (options.offset !== undefined) params.set('offset', String(options.offset));
+    const qs = params.toString();
+    const path = `/api/v1/documents/${qs ? '?' + qs : ''}`;
+
+    const data = await this.authenticatedRequest<{
+      ok: boolean;
+      data: { items: MCPDocument[]; pagination?: MCPDocumentPagination };
+    }>('GET', path);
+    return data.data;
+  }
+
+  /**
+   * Get full details of a single document by ID.
+   * Calls `GET /api/v1/documents/:id`.
+   */
+  async getDocument(id: number | string): Promise<MCPDocumentDetail> {
+    const data = await this.authenticatedRequest<{ ok: boolean; data: MCPDocumentDetail }>(
+      'GET',
+      `/api/v1/documents/${id}`
+    );
+    return data.data;
+  }
+
+  /**
+   * Delete a document by ID. Calls `DELETE /api/v1/documents/:id`.
+   *
+   * Returns the parsed response envelope (typically `{ ok: true }`). Throws
+   * on 4xx/5xx after retries.
+   */
+  async deleteDocument(id: number | string): Promise<unknown> {
+    return this.authenticatedRequest('DELETE', `/api/v1/documents/${id}`);
+  }
+
+  /**
+   * Internal: HTTP request with the standard retry-on-transient-errors loop
+   * + auth-error handling. Used by `listDocuments`, `getDocument`,
+   * `deleteDocument`. The older `health()`, `listTools()`, `listSpaces()`
+   * methods predate this helper and inline their own retry logic; they
+   * could be refactored onto this helper later.
+   */
+  private async authenticatedRequest<T = unknown>(
+    method: 'GET' | 'DELETE' | 'POST',
+    path: string,
+    body?: unknown
+  ): Promise<T> {
+    const requestId = generateRequestId();
+
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response =
+          method === 'GET'
+            ? await this.client.get<T>(path, { headers: { 'X-Request-ID': requestId } })
+            : method === 'DELETE'
+              ? await this.client.delete<T>(path, { headers: { 'X-Request-ID': requestId } })
+              : await this.client.post<T>(path, body, {
+                  headers: { 'X-Request-ID': requestId },
+                });
+        return response.data;
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (
+          axios.isAxiosError(axiosError) &&
+          isRetryableError(axiosError) &&
+          attempt < this.maxRetries
+        ) {
+          await sleep(this.retryBaseDelay * Math.pow(2, attempt));
+          continue;
+        }
+
+        if (axios.isAxiosError(axiosError)) {
+          if (axiosError.code === 'ECONNREFUSED') {
+            throw new Error(
+              `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+                'Make sure the Deposium server is running'
+            );
+          }
+          if (axiosError.response?.status === 401) {
+            throw new Error(
+              'Authentication failed (401)\n' +
+                ((axiosError.response?.data as { message?: string })?.message ??
+                  'Invalid or missing API key')
+            );
+          }
+          if (axiosError.response?.status === 404) {
+            const detail =
+              (axiosError.response?.data as { error?: string; message?: string })?.error ??
+              (axiosError.response?.data as { message?: string })?.message ??
+              `Resource not found: ${path}`;
+            throw new Error(`Not found (404): ${detail}`);
           }
         }
         throw error;

@@ -29,6 +29,7 @@ This directory contains detailed documentation for all Deposium CLI commands.
 
 - **[corpus](corpus.md)**: Corpus statistics and evaluation.
 - **[duckdb](duckdb.md)**: DuckDB connection, federation, and mcp-server.
+- **[files](files.md)**: Manage documents — list, show, check, rm.
 - **[space](space.md)**: Manage workspaces — list, show, create.
 - **[upload-batch](upload-batch.md)**: Batch file upload utility.
 - **[query-history](query-history.md)**: Track and analyze user query history.
