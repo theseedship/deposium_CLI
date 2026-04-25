@@ -826,3 +826,129 @@ describe('MCPAuthError (structured 401 from /api/cli/mcp)', () => {
     fetchSpy.mockRestore();
   });
 });
+
+// ============================================================================
+// Wire format guard — pins HTTP method + path + body shape for every public
+// MCPClient method. Refactors of authenticatedRequest / file splits MUST keep
+// these contracts intact (server-side endpoints depend on them).
+// ============================================================================
+describe('MCPClient — wire format guard', () => {
+  type AxiosLike = ReturnType<typeof axios.create>;
+
+  function makeWireSpy() {
+    const get = vi.fn().mockResolvedValue({ data: {} });
+    const post = vi.fn().mockResolvedValue({ data: {} });
+    const del = vi.fn().mockResolvedValue({ data: {} });
+    vi.spyOn(axios, 'create').mockReturnValue({
+      get,
+      post,
+      delete: del,
+      defaults: { headers: { common: {} } },
+    } as unknown as AxiosLike);
+    return { get, post, delete: del };
+  }
+
+  let spy: ReturnType<typeof makeWireSpy>;
+  let client: MCPClient;
+
+  beforeEach(() => {
+    spy = makeWireSpy();
+    client = new MCPClient('http://localhost:3000', 'api-key');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('callTool → POST /api/cli/mcp { tool, params }', async () => {
+    spy.post.mockResolvedValueOnce({ data: { result: {}, isError: false } });
+    await client.callTool('search_hub', { q: 'test' });
+    expect(spy.post).toHaveBeenCalledWith(
+      '/api/cli/mcp',
+      { tool: 'search_hub', params: { q: 'test' } },
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Request-ID': expect.any(String) }),
+      })
+    );
+  });
+
+  test('listSpaces → GET /api/spaces', async () => {
+    spy.get.mockResolvedValueOnce({ data: { data: [], count: 0 } });
+    await client.listSpaces();
+    expect(spy.get).toHaveBeenCalledWith(
+      '/api/spaces',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Request-ID': expect.any(String) }),
+      })
+    );
+  });
+
+  test('listDocuments() → GET /api/v1/documents/ (no query string)', async () => {
+    spy.get.mockResolvedValueOnce({ data: { ok: true, data: { items: [] } } });
+    await client.listDocuments();
+    expect(spy.get).toHaveBeenCalledWith('/api/v1/documents/', expect.anything());
+  });
+
+  test('listDocuments({spaceId, limit, offset}) builds query string in order', async () => {
+    spy.get.mockResolvedValueOnce({ data: { ok: true, data: { items: [] } } });
+    await client.listDocuments({ spaceId: 'sp1', limit: 10, offset: 20 });
+    expect(spy.get).toHaveBeenCalledWith(
+      '/api/v1/documents/?space_id=sp1&limit=10&offset=20',
+      expect.anything()
+    );
+  });
+
+  test('listDocuments({offset: 0}) keeps offset (treats 0 as a valid value)', async () => {
+    spy.get.mockResolvedValueOnce({ data: { ok: true, data: { items: [] } } });
+    await client.listDocuments({ offset: 0 });
+    expect(spy.get).toHaveBeenCalledWith('/api/v1/documents/?offset=0', expect.anything());
+  });
+
+  test('getDocument(id) → GET /api/v1/documents/:id', async () => {
+    spy.get.mockResolvedValueOnce({ data: { ok: true, data: { id: 42 } } });
+    await client.getDocument(42);
+    expect(spy.get).toHaveBeenCalledWith('/api/v1/documents/42', expect.anything());
+  });
+
+  test('deleteDocument(id) → DELETE /api/v1/documents/:id', async () => {
+    spy.delete.mockResolvedValueOnce({ data: { ok: true } });
+    await client.deleteDocument(42);
+    expect(spy.delete).toHaveBeenCalledWith('/api/v1/documents/42', expect.anything());
+  });
+
+  test('listApiKeys → GET /api/api-keys', async () => {
+    spy.get.mockResolvedValueOnce({ data: { data: [] } });
+    await client.listApiKeys();
+    expect(spy.get).toHaveBeenCalledWith('/api/api-keys', expect.anything());
+  });
+
+  test('createApiKey(input) → POST /api/api-keys with input as body', async () => {
+    spy.post.mockResolvedValueOnce({
+      data: { id: 'k1', secret: 's', name: 'my-key', scopes: ['read'] },
+    });
+    await client.createApiKey({ name: 'my-key', scopes: ['read'] });
+    expect(spy.post).toHaveBeenCalledWith(
+      '/api/api-keys',
+      { name: 'my-key', scopes: ['read'] },
+      expect.anything()
+    );
+  });
+
+  test('deleteApiKey(id) → DELETE /api/api-keys/:id', async () => {
+    spy.delete.mockResolvedValueOnce({ data: { ok: true } });
+    await client.deleteApiKey('k1');
+    expect(spy.delete).toHaveBeenCalledWith('/api/api-keys/k1', expect.anything());
+  });
+
+  test('rotateApiKey(id) → POST /api/api-keys/:id/rotate (no body)', async () => {
+    spy.post.mockResolvedValueOnce({ data: { id: 'k1', secret: 's2' } });
+    await client.rotateApiKey('k1');
+    expect(spy.post).toHaveBeenCalledWith('/api/api-keys/k1/rotate', undefined, expect.anything());
+  });
+
+  test('getApiKeyUsage(id) → GET /api/api-keys/:id/usage', async () => {
+    spy.get.mockResolvedValueOnce({ data: { count: 0 } });
+    await client.getApiKeyUsage('k1');
+    expect(spy.get).toHaveBeenCalledWith('/api/api-keys/k1/usage', expect.anything());
+  });
+});

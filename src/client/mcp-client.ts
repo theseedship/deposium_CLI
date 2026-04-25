@@ -2,7 +2,8 @@
  * MCP Client Module
  *
  * HTTP client for communicating with the Deposium MCP (Model Context Protocol) API.
- * Provides methods for calling tools, listing available tools, and health checks.
+ * Provides methods for calling tools, listing available tools, health checks,
+ * self-service workspace/document/API-key management, and SSE chat streaming.
  *
  * Features:
  * - Automatic retry with exponential backoff for transient errors
@@ -44,488 +45,60 @@ const CLI_VERSION = pkg.version;
 /** CLI name for User-Agent header */
 const CLI_NAME = pkg.name;
 
-/**
- * Represents a tool call request
- */
-export interface MCPToolCall {
-  /** Name of the tool to call */
-  name: string;
-  /** Arguments to pass to the tool */
-  arguments: Record<string, unknown>;
-}
+// Re-export public types from ./types so existing imports
+// `import { MCPTool } from './client/mcp-client'` keep working.
+export type {
+  MCPToolCall,
+  MCPToolResult,
+  MCPTool,
+  MCPHealthService,
+  MCPHealthResponse,
+  SSEMetadata,
+  SSEToolCall,
+  SSECitation,
+  SSEDone,
+  SSEError,
+  SSEChatPromptOption,
+  SSEChatPrompt,
+  ChatStreamOptions,
+  AgentResumePayload,
+  MCPSpace,
+  MCPDocument,
+  MCPDocumentDetail,
+  MCPDocumentPagination,
+  MCPApiKey,
+  MCPApiKeyCreated,
+  MCPApiKeyUsage,
+  MCPClientOptions,
+} from './types';
 
-/**
- * Result returned from a tool call
- */
-export interface MCPToolResult {
-  /** The response content from the tool */
-  content: unknown;
-  /** Whether the tool call resulted in an error */
-  isError?: boolean;
-}
+import type {
+  MCPToolResult,
+  MCPTool,
+  MCPHealthResponse,
+  SSEMetadata,
+  SSEToolCall,
+  SSECitation,
+  SSEDone,
+  SSEError,
+  SSEChatPrompt,
+  ChatStreamOptions,
+  AgentResumePayload,
+  MCPSpace,
+  MCPDocument,
+  MCPDocumentDetail,
+  MCPDocumentPagination,
+  MCPApiKey,
+  MCPApiKeyCreated,
+  MCPApiKeyUsage,
+  MCPClientOptions,
+} from './types';
 
-/**
- * Description of an available MCP tool
- */
-export interface MCPTool {
-  /** Unique tool identifier */
-  name: string;
-  /** Human-readable description */
-  description?: string;
-  /** Tool category (e.g., 'search', 'graph', 'compound') */
-  category?: string;
-  /** JSON Schema describing the tool's input parameters */
-  inputSchema?: Record<string, unknown>;
-}
+// Re-export auth-error types/class so existing imports still resolve.
+export { MCPAuthError, type MCPAuthErrorCode, buildAuthError } from './auth-error';
 
-/**
- * Status information for a Deposium service
- */
-export interface MCPHealthService {
-  /** Service name */
-  name: string;
-  /** Current status */
-  status: 'healthy' | 'online' | 'offline' | 'degraded' | string;
-  /** Response latency in milliseconds */
-  latency?: number;
-  /** Additional status message */
-  message?: string;
-}
-
-/**
- * Health check response from the Deposium API
- */
-export interface MCPHealthResponse {
-  /** Overall system status */
-  status: string;
-  /** Individual service statuses */
-  services?: MCPHealthService[];
-  /** API version */
-  version?: string;
-  /** Timestamp of the health check */
-  timestamp?: string;
-}
-
-// ============================================================================
-// SSE Event Types (matches MCP /api/chat-stream events)
-// ============================================================================
-
-/**
- * `metadata` SSE event — emitted once at the start of a chat stream with
- * the resolved intent and routing decision.
- */
-export interface SSEMetadata {
-  intent: string;
-  confidence: number;
-  method: 'bed-llm' | 'keywords';
-  model: string;
-  language: string;
-  timestamp: string;
-}
-
-/**
- * `tool_call` SSE event — emitted when the agent invokes a tool, both at
- * `started` and `completed` (with duration on completion).
- */
-export interface SSEToolCall {
-  tool: string;
-  status: 'started' | 'completed';
-  duration_ms?: number;
-}
-
-/**
- * `citation` SSE event — a source document the agent referenced during
- * response generation. Multiple citations may be emitted per turn.
- */
-export interface SSECitation {
-  document_id: string;
-  document_name: string;
-  page?: number;
-  snippet: string;
-  score?: number;
-  full_content?: string;
-}
-
-/**
- * `done` SSE event — emitted at the end of a stream with totals.
- * Always the last event of a successful stream.
- */
-export interface SSEDone {
-  total_duration_ms: number;
-  tokens_generated?: number;
-  tools_called: string[];
-}
-
-/**
- * `error` SSE event — non-fatal stream-level error. Streams may continue
- * after an error event. For terminal errors, the connection is closed.
- */
-export interface SSEError {
-  message: string;
-  error?: string;
-  code?: string;
-}
-
-/**
- * HITL chat_prompt event — emitted when the pipeline pauses for user input
- * (intent disambiguation, step confirmation, scratchpad form, ...).
- *
- * The CLI responds by POSTing to `/api/agent-resume` with
- * `{ correlation_id, response: { value } }` (or `{ values }` for forms),
- * which opens a fresh SSE stream that continues the pipeline.
- */
-/**
- * One option for `type='choice'` chat prompts.
- * `value` is what gets sent back to the server in the resume payload.
- */
-export interface SSEChatPromptOption {
-  value: string;
-  label: string;
-  description?: string;
-}
-
-export interface SSEChatPrompt {
-  prompt_id: string;
-  type: 'choice' | 'confirm' | 'form';
-  title?: string;
-  message?: string;
-  config?: {
-    options?: SSEChatPromptOption[];
-    layout?: 'horizontal' | 'vertical';
-    fields?: Array<Record<string, unknown>>;
-  };
-  correlation_id: string;
-  waiting_for?: string;
-  step_id?: string;
-}
-
-/**
- * Options accepted by `MCPClient.chatStream()` and `MCPClient.resumeAgent()`.
- *
- * Only `onToken` is required — everything else is opt-in for the events the
- * caller cares about. Set callbacks default to no-op when not provided.
- */
-export interface ChatStreamOptions {
-  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
-  spaceIds?: string[];
-  documentsOnly?: boolean;
-  language?: 'fr' | 'en';
-  confidenceThreshold?: number;
-  onToken: (token: string) => void;
-  onMetadata?: (data: SSEMetadata) => void;
-  onCitation?: (data: SSECitation) => void;
-  onToolCall?: (data: SSEToolCall) => void;
-  onDone?: (data: SSEDone) => void;
-  onError?: (data: SSEError) => void;
-  onChatPrompt?: (data: SSEChatPrompt) => void;
-}
-
-/**
- * Payload accepted by POST /api/agent-resume.
- *
- * - `value`: single-answer choice/confirm response (e.g. `"web_search"`, `"approve"`)
- * - `values`: multi-field form response (e.g. `{ theme: "titre_propriete" }`)
- */
-export interface AgentResumePayload {
-  value?: string;
-  values?: Record<string, string>;
-}
-
-/**
- * A workspace ("space") as exposed by `GET /api/spaces`.
- *
- * Spaces are the primary unit of content organization on Deposium —
- * documents, embeddings, graphs, and chat history are all scoped per space.
- */
-export interface MCPSpace {
-  id: string;
-  tenant_id: string;
-  name: string;
-  description?: string;
-  created_at: string;
-}
-
-/**
- * A document/file as listed by `GET /api/v1/documents/`.
- *
- * Documents can be regular files (PDFs, docs, etc.) or "connector" entries
- * representing live data sources (e.g. web search, Notion, etc. — `doc_type`
- * indicates which).
- */
-export interface MCPDocument {
-  id: number;
-  file_name: string;
-  mime_type: string;
-  size: number;
-  doc_type: string;
-  doc_status: string;
-  num_pages: number;
-  characters_count: number;
-  keywords?: string[] | null;
-  is_private: boolean;
-  space_id?: string | null;
-  folder_id?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Full document detail returned by `GET /api/v1/documents/:id`.
- *
- * Adds storage metadata, search-enablement flags, connector config (when
- * applicable), and the per-call access summary.
- */
-export interface MCPDocumentDetail extends MCPDocument {
-  search_enabled?: boolean;
-  s3_path?: string | null;
-  bucket_name?: string | null;
-  bucket_path?: string | null;
-  file_infos?: Record<string, unknown>;
-  _access?: { type: string; can_edit: boolean; can_delete: boolean };
-}
-
-/**
- * Pagination envelope returned alongside filtered document lists.
- */
-export interface MCPDocumentPagination {
-  total: number;
-  limit: number;
-  offset: number;
-  has_more: boolean;
-}
-
-/**
- * An API key as listed by `GET /api/api-keys`.
- *
- * The actual secret is never returned by the list endpoint — only the
- * prefix (first chars), name, and metadata. The full secret is only
- * returned once at creation time (`POST /api/api-keys`).
- */
-export interface MCPApiKey {
-  id: string;
-  name: string;
-  prefix?: string;
-  scopes?: string[];
-  rate_limit_tier?: string;
-  created_at: string;
-  last_used_at?: string | null;
-  expires_at?: string | null;
-}
-
-/**
- * Response from `POST /api/api-keys` — includes the full secret which is
- * only returned once. Save it immediately; subsequent reads only return
- * the prefix.
- */
-export interface MCPApiKeyCreated extends MCPApiKey {
-  /** Full secret — shown ONCE at creation time. Save it. */
-  secret?: string;
-  key?: string;
-}
-
-/**
- * Usage stats for an API key, from `GET /api/api-keys/:id/usage`.
- *
- * The exact shape is server-version-dependent; we expose it as a plain
- * record so callers can inspect whatever the server returns.
- */
-export type MCPApiKeyUsage = Record<string, unknown>;
-
-/**
- * Configuration options for MCPClient
- */
-export interface MCPClientOptions {
-  /** Request timeout in milliseconds (default: 300000 = 5 minutes) */
-  timeout?: number;
-  /** Maximum retry attempts for transient errors (default: 3) */
-  maxRetries?: number;
-  /** Base delay in ms for exponential backoff (default: 1000) */
-  retryBaseDelay?: number;
-}
-
-/**
- * Generate a unique request ID for tracing
- */
-function generateRequestId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `cli-${timestamp}-${random}`;
-}
-
-/**
- * Check if an error is retryable (transient network/server errors)
- */
-function isRetryableError(error: AxiosError): boolean {
-  // Network errors (no response received)
-  if (!error.response) {
-    return error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND';
-  }
-
-  // Server errors that are typically transient
-  const status = error.response.status;
-  return status === 429 || status === 502 || status === 503 || status === 504;
-}
-
-/**
- * Sleep for a specified duration
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Sanitize error data to remove stack traces
- */
-function sanitizeErrorData(
-  errorData: Record<string, unknown> | undefined
-): Record<string, unknown> {
-  if (!errorData) return {};
-
-  const result: Record<string, unknown> = {};
-
-  // Use top-level message first, fallback to nested error.message
-  if (errorData.message) {
-    result.message = errorData.message;
-  } else if ((errorData.error as Record<string, unknown>)?.message) {
-    result.message = (errorData.error as Record<string, unknown>).message;
-  }
-
-  // Include safe error details (exclude stack traces)
-  if (errorData.error && typeof errorData.error === 'object') {
-    const { stack: _stack, ...safeError } = errorData.error as Record<string, unknown>;
-    if (Object.keys(safeError).length > 0) {
-      result.error = safeError;
-    }
-  }
-
-  if (errorData.details) result.details = errorData.details;
-
-  return result;
-}
-
-/**
- * Stable enum of MCP auth error codes returned by `/api/cli/mcp` (HTTP 401).
- *
- * Mirrors the server-side `ApiKeyErrorCode` enum in deposium_MCPs. Keys are
- * stable across server versions; `MCPAuthError.message` is human copy and
- * may change wording — switch on `errorCode`, not on `message`.
- */
-export type MCPAuthErrorCode =
-  | 'key_missing'
-  | 'format_invalid'
-  | 'key_invalid'
-  | 'permission_denied'
-  | 'rate_limited'
-  | 'auth_unavailable'
-  | 'auth_timeout'
-  | 'auth_internal_error'
-  | 'unknown';
-
-/**
- * Auth-specific error thrown by `MCPClient` methods on HTTP 401 from
- * `/api/cli/mcp` (or any endpoint that proxies to MCP backend auth).
- *
- * Distinct from a plain `Error` so callers can do:
- *
- *   try { await client.callTool(...) }
- *   catch (e) {
- *     if (e instanceof MCPAuthError && e.errorCode === 'format_invalid') {...}
- *   }
- *
- * Falls back to a plain `Error` if the response doesn't match the structured
- * shape (older servers, non-CLI endpoints, etc.) — see `buildAuthError`.
- */
-export class MCPAuthError extends Error {
-  readonly errorCode: MCPAuthErrorCode;
-  readonly hint?: string;
-  readonly docsUrl?: string;
-
-  constructor(input: { message: string; error_code?: string; hint?: string; docs?: string }) {
-    const lines = [`Authentication failed (401): ${input.message}`];
-    if (input.hint) lines.push(`💡 ${input.hint}`);
-    if (input.docs) lines.push(`📖 ${input.docs}`);
-    super(lines.join('\n'));
-    this.name = 'MCPAuthError';
-    this.errorCode = (input.error_code as MCPAuthErrorCode | undefined) ?? 'unknown';
-    this.hint = input.hint;
-    this.docsUrl = input.docs;
-  }
-}
-
-/**
- * Map a 401 response body to a typed `MCPAuthError`.
- *
- * The /api/cli/mcp proxy returns structured errors of the form:
- *   { error: "MCP Auth Error", message, error_code, hint, docs, details }
- *
- * If the body matches that shape, return an `MCPAuthError`. Otherwise fall
- * back to a plain `Error` for legacy/non-MCP-Auth shapes.
- */
-function buildAuthError(responseData: unknown): Error {
-  const body = (responseData ?? {}) as Partial<{
-    error: string;
-    message: string;
-    error_code: string;
-    hint: string;
-    docs: string;
-  }>;
-
-  if (body.error_code) {
-    return new MCPAuthError({
-      message: body.message ?? 'Invalid or missing API key',
-      error_code: body.error_code,
-      hint: body.hint,
-      docs: body.docs,
-    });
-  }
-
-  return new Error(
-    'Authentication failed (401)\n' + (body.message ?? 'Invalid or missing API key')
-  );
-}
-
-/**
- * Create an error result from an Axios error
- */
-function createAxiosErrorResult(
-  error: AxiosError,
-  baseUrl: string,
-  requestId: string
-): { result: MCPToolResult; shouldThrow: boolean; errorToThrow?: Error } {
-  if (error.code === 'ECONNREFUSED') {
-    return {
-      result: { content: null, isError: true },
-      shouldThrow: true,
-      errorToThrow: new Error(
-        `Cannot connect to Deposium API at ${baseUrl}\nMake sure the Deposium server is running`
-      ),
-    };
-  }
-
-  if (error.response?.status === 401) {
-    return {
-      result: { content: null, isError: true },
-      shouldThrow: true,
-      errorToThrow: buildAuthError(error.response?.data),
-    };
-  }
-
-  const errorData = error.response?.data as Record<string, unknown> | undefined;
-  const sanitized = sanitizeErrorData(errorData);
-
-  return {
-    result: {
-      content: {
-        message: sanitized.message ?? error.message,
-        status: error.response?.status,
-        requestId,
-        ...sanitized,
-      },
-      isError: true,
-    },
-    shouldThrow: false,
-  };
-}
+import { buildAuthError } from './auth-error';
+import { generateRequestId, isRetryableError, sleep, createAxiosErrorResult } from './internals';
 
 /**
  * HTTP client for the Deposium MCP API
@@ -571,18 +144,6 @@ export class MCPClient {
    * @param baseUrl - Base URL of the Deposium API (e.g., 'https://api.deposium.io')
    * @param apiKey - API key for authentication
    * @param options - Additional client configuration options
-   *
-   * @example
-   * ```typescript
-   * // Basic usage
-   * const client = new MCPClient('https://api.deposium.io', 'your-api-key');
-   *
-   * // With custom options
-   * const client = new MCPClient('https://api.deposium.io', 'your-api-key', {
-   *   timeout: 60000,
-   *   maxRetries: 5
-   * });
-   * ```
    */
   constructor(baseUrl: string, apiKey?: string, options: MCPClientOptions = {}) {
     // Remove trailing slash to avoid double-slash issues with axios
@@ -615,30 +176,6 @@ export class MCPClient {
    * Sends a request to the Deposium API to execute the specified tool
    * with the given arguments. Includes automatic retry with exponential
    * backoff for transient network errors.
-   *
-   * @param toolName - Name of the tool to call (e.g., 'search_hub', 'compound_analyze')
-   * @param args - Tool arguments as key-value pairs
-   * @param options - Optional settings for the call
-   * @param options.silent - Suppress console output
-   * @param options.spinner - Show a loading spinner
-   * @returns Promise resolving to the tool result
-   *
-   * @throws Error if the API call fails after all retry attempts
-   *
-   * @example
-   * ```typescript
-   * // Search for documents
-   * const result = await client.callTool('search_hub', {
-   *   query_text: 'machine learning papers',
-   *   tenant_id: 'default',
-   *   space_id: 'research',
-   *   top_k: 10
-   * }, { spinner: true });
-   *
-   * if (!result.isError) {
-   *   console.log('Results:', result.content);
-   * }
-   * ```
    */
   async callTool(
     toolName: string,
@@ -726,30 +263,6 @@ export class MCPClient {
 
   /**
    * List all available MCP tools
-   *
-   * Retrieves a list of all tools available in the Deposium MCP API,
-   * including their names, descriptions, categories, and input schemas.
-   *
-   * @returns Promise resolving to an array of tool descriptions
-   *
-   * @throws Error if the API call fails
-   *
-   * @example
-   * ```typescript
-   * const tools = await client.listTools();
-   *
-   * // Display tools by category
-   * const categories = new Map<string, MCPTool[]>();
-   * tools.forEach(tool => {
-   *   const cat = tool.name.split('_')[0];
-   *   if (!categories.has(cat)) categories.set(cat, []);
-   *   categories.get(cat)!.push(tool);
-   * });
-   *
-   * for (const [category, categoryTools] of categories) {
-   *   console.log(`${category}: ${categoryTools.length} tools`);
-   * }
-   * ```
    */
   async listTools(): Promise<MCPTool[]> {
     const requestId = generateRequestId();
@@ -795,26 +308,6 @@ export class MCPClient {
 
   /**
    * Check Deposium API health
-   *
-   * Performs a health check on the Deposium API, validating the API key
-   * and checking connectivity to all backend services.
-   *
-   * @returns Promise resolving to the health status of all services
-   *
-   * @throws Error if the API is unreachable or authentication fails
-   *
-   * @example
-   * ```typescript
-   * const health = await client.health();
-   *
-   * console.log(`Overall status: ${health.status}`);
-   *
-   * if (health.services) {
-   *   health.services.forEach(service => {
-   *     console.log(`${service.name}: ${service.status}`);
-   *   });
-   * }
-   * ```
    */
   async health(): Promise<MCPHealthResponse> {
     const requestId = generateRequestId();
@@ -845,7 +338,6 @@ export class MCPClient {
                 'Make sure the Deposium server is running'
             );
           }
-          // Check for authentication errors
           if (axiosError.response?.status === 401) {
             throw buildAuthError(axiosError.response?.data);
           }
@@ -861,9 +353,6 @@ export class MCPClient {
    *
    * Calls `GET /api/spaces`. Response is unwrapped from the `{ data, count }`
    * envelope and returned as a plain array.
-   *
-   * @returns Array of spaces ordered by the server (typically by recency).
-   * @throws If authentication fails (401) or the API is unreachable.
    */
   async listSpaces(): Promise<MCPSpace[]> {
     const requestId = generateRequestId();
@@ -908,10 +397,6 @@ export class MCPClient {
    * Without a `spaceId` filter the server returns the user's full document
    * catalog (across all spaces). With a `spaceId` filter the response also
    * includes a pagination envelope.
-   *
-   * @param options.spaceId - Filter by space (UUID). Omit for full catalog.
-   * @param options.limit - Page size (server default 50)
-   * @param options.offset - Page offset
    */
   async listDocuments(
     options: { spaceId?: string; limit?: number; offset?: number } = {}
@@ -930,10 +415,7 @@ export class MCPClient {
     return data.data;
   }
 
-  /**
-   * Get full details of a single document by ID.
-   * Calls `GET /api/v1/documents/:id`.
-   */
+  /** Get full details of a single document by ID. Calls `GET /api/v1/documents/:id`. */
   async getDocument(id: number | string): Promise<MCPDocumentDetail> {
     const data = await this.authenticatedRequest<{ ok: boolean; data: MCPDocumentDetail }>(
       'GET',
@@ -942,20 +424,12 @@ export class MCPClient {
     return data.data;
   }
 
-  /**
-   * Delete a document by ID. Calls `DELETE /api/v1/documents/:id`.
-   *
-   * Returns the parsed response envelope (typically `{ ok: true }`). Throws
-   * on 4xx/5xx after retries.
-   */
+  /** Delete a document by ID. Calls `DELETE /api/v1/documents/:id`. */
   async deleteDocument(id: number | string): Promise<unknown> {
     return this.authenticatedRequest('DELETE', `/api/v1/documents/${id}`);
   }
 
-  /**
-   * List API keys belonging to the authenticated account.
-   * Calls `GET /api/api-keys`.
-   */
+  /** List API keys belonging to the authenticated account. Calls `GET /api/api-keys`. */
   async listApiKeys(): Promise<MCPApiKey[]> {
     const response = await this.authenticatedRequest<{ data: MCPApiKey[] }>('GET', '/api/api-keys');
     return response.data;
@@ -968,7 +442,6 @@ export class MCPClient {
    * the secret is returned by the server. Save it immediately.
    *
    * Plan-gated: requires the `api_access` feature on the account's plan.
-   * On insufficient plans the server returns `{ code: "FEATURE_LOCKED" }`.
    */
   async createApiKey(input: {
     name: string;
@@ -978,40 +451,31 @@ export class MCPClient {
     return this.authenticatedRequest<MCPApiKeyCreated>('POST', '/api/api-keys', input);
   }
 
-  /**
-   * Delete an API key. Calls `DELETE /api/api-keys/:id`.
-   * Irreversible.
-   */
+  /** Delete an API key. Calls `DELETE /api/api-keys/:id`. Irreversible. */
   async deleteApiKey(id: string): Promise<unknown> {
     return this.authenticatedRequest('DELETE', `/api/api-keys/${id}`);
   }
 
   /**
    * Rotate an API key — invalidates the old secret and generates a new one.
-   * Calls `POST /api/api-keys/:id/rotate`.
-   *
-   * The response includes the new secret value (one-time, save it).
+   * Calls `POST /api/api-keys/:id/rotate`. The response includes the new secret.
    */
   async rotateApiKey(id: string): Promise<MCPApiKeyCreated> {
     return this.authenticatedRequest<MCPApiKeyCreated>('POST', `/api/api-keys/${id}/rotate`);
   }
 
-  /**
-   * Get usage stats for an API key. Calls `GET /api/api-keys/:id/usage`.
-   *
-   * Shape is server-version-dependent — typically includes counters per
-   * day/month and the last few requests.
-   */
+  /** Get usage stats for an API key. Calls `GET /api/api-keys/:id/usage`. */
   async getApiKeyUsage(id: string): Promise<MCPApiKeyUsage> {
     return this.authenticatedRequest<MCPApiKeyUsage>('GET', `/api/api-keys/${id}/usage`);
   }
 
   /**
    * Internal: HTTP request with the standard retry-on-transient-errors loop
-   * + auth-error handling. Used by `listDocuments`, `getDocument`,
-   * `deleteDocument`. The older `health()`, `listTools()`, `listSpaces()`
-   * methods predate this helper and inline their own retry logic; they
-   * could be refactored onto this helper later.
+   * + auth-error handling. Used by self-service methods (documents, api-keys).
+   *
+   * Method dispatch and known-error mapping live in two helpers
+   * (`dispatchHttp` and `throwForKnownAxiosError`) so this loop stays under
+   * the cyclomatic-complexity ceiling.
    */
   private async authenticatedRequest<T = unknown>(
     method: 'GET' | 'DELETE' | 'POST',
@@ -1019,46 +483,21 @@ export class MCPClient {
     body?: unknown
   ): Promise<T> {
     const requestId = generateRequestId();
-
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response =
-          method === 'GET'
-            ? await this.client.get<T>(path, { headers: { 'X-Request-ID': requestId } })
-            : method === 'DELETE'
-              ? await this.client.delete<T>(path, { headers: { 'X-Request-ID': requestId } })
-              : await this.client.post<T>(path, body, {
-                  headers: { 'X-Request-ID': requestId },
-                });
-        return response.data;
+        return await this.dispatchHttp<T>(method, path, body, requestId);
       } catch (error) {
         const axiosError = error as AxiosError;
-        if (
+        const canRetry =
           axios.isAxiosError(axiosError) &&
           isRetryableError(axiosError) &&
-          attempt < this.maxRetries
-        ) {
+          attempt < this.maxRetries;
+        if (canRetry) {
           await sleep(this.retryBaseDelay * Math.pow(2, attempt));
           continue;
         }
-
         if (axios.isAxiosError(axiosError)) {
-          if (axiosError.code === 'ECONNREFUSED') {
-            throw new Error(
-              `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-                'Make sure the Deposium server is running'
-            );
-          }
-          if (axiosError.response?.status === 401) {
-            throw buildAuthError(axiosError.response?.data);
-          }
-          if (axiosError.response?.status === 404) {
-            const detail =
-              (axiosError.response?.data as { error?: string; message?: string })?.error ??
-              (axiosError.response?.data as { message?: string })?.message ??
-              `Resource not found: ${path}`;
-            throw new Error(`Not found (404): ${detail}`);
-          }
+          this.throwForKnownAxiosError(axiosError, path);
         }
         throw error;
       }
@@ -1066,16 +505,52 @@ export class MCPClient {
     throw new Error('Max retries exceeded');
   }
 
+  /** Internal: dispatch the HTTP method to the underlying axios client. */
+  private async dispatchHttp<T>(
+    method: 'GET' | 'DELETE' | 'POST',
+    path: string,
+    body: unknown,
+    requestId: string
+  ): Promise<T> {
+    const config = { headers: { 'X-Request-ID': requestId } };
+    if (method === 'GET') {
+      return (await this.client.get<T>(path, config)).data;
+    }
+    if (method === 'DELETE') {
+      return (await this.client.delete<T>(path, config)).data;
+    }
+    return (await this.client.post<T>(path, body, config)).data;
+  }
+
+  /**
+   * Internal: convert an axios error into a thrown domain error for the
+   * standard cases (ECONNREFUSED, 401, 404). Falls through (re-throws the
+   * original) for unknown axios shapes; the caller is responsible for the
+   * non-axios path.
+   */
+  private throwForKnownAxiosError(error: AxiosError, path: string): never {
+    if (error.code === 'ECONNREFUSED') {
+      throw new Error(
+        `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+          'Make sure the Deposium server is running'
+      );
+    }
+    if (error.response?.status === 401) {
+      throw buildAuthError(error.response?.data);
+    }
+    if (error.response?.status === 404) {
+      const data = error.response?.data as { error?: string; message?: string } | undefined;
+      const detail = data?.error ?? data?.message ?? `Resource not found: ${path}`;
+      throw new Error(`Not found (404): ${detail}`);
+    }
+    throw error;
+  }
+
   /**
    * Stream chat responses via SSE.
    *
    * Routes through the Edge Runtime gateway (auth + rate-limiting) by default.
    * The Edge Runtime proxies to the MCP backend's /api/chat-stream.
-   *
-   * @param streamBaseUrl - Base URL for streaming (Edge Runtime or direct MCP)
-   * @param message - User message to send
-   * @param options - Streaming callbacks and request options
-   * @param options.directMcp - If true, use /api/chat-stream (direct MCP path)
    */
   async chatStream(
     streamBaseUrl: string,
@@ -1103,14 +578,6 @@ export class MCPClient {
    * Resume a paused agent pipeline by POSTing the user's decision to
    * `/api/agent-resume`. The response is a fresh SSE stream that continues
    * the pipeline (and may pause again with another `chat_prompt`).
-   *
-   * Phase I routes directly to MCPs (`/api/agent-resume`). Once Phase W.1
-   * lands the edge twin, this method will transparently use the edge URL.
-   *
-   * @param resumeBaseUrl - Base URL for the resume endpoint (MCPs direct)
-   * @param correlationId - Correlation ID from the original chat_prompt
-   * @param responsePayload - `{ value }` for choice/confirm, `{ values }` for forms
-   * @param options - SSE callbacks (same vocabulary as chatStream)
    */
   async resumeAgent(
     resumeBaseUrl: string,
@@ -1142,13 +609,13 @@ export class MCPClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        let body: unknown;
+        let parsed: unknown;
         try {
-          body = await response.json();
+          parsed = await response.json();
         } catch {
-          body = undefined;
+          parsed = undefined;
         }
-        throw buildAuthError(body);
+        throw buildAuthError(parsed);
       }
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After') ?? '60';
@@ -1171,7 +638,11 @@ export class MCPClient {
 
   /** Parse SSE stream and dispatch events. Shared between chatStream + resumeAgent. */
   private async parseSSEStream(response: Response, options: ChatStreamOptions): Promise<void> {
-    const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
+    const responseBody = response.body;
+    if (!responseBody) {
+      throw new Error('SSE response has no body');
+    }
+    const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = '';
 
     while (true) {
