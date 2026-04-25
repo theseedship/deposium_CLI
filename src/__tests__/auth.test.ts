@@ -37,6 +37,7 @@ import {
   maskApiKey,
   ensureAuthenticated,
   promptApiKey,
+  assertNotServiceKey,
 } from '../utils/auth';
 import { getApiKey, setApiKey, hasApiKey } from '../utils/config';
 import inquirer from 'inquirer';
@@ -238,6 +239,53 @@ describe('auth.ts', () => {
       await promptApiKey();
       expect(validate?.('dep_live_xxxxxxxxxxxx')).toBe(true);
     });
+
+    test('validate fn rejects pasted dep_svc_* service-keys', async () => {
+      let validate: ((s: string) => string | boolean) | undefined;
+      vi.mocked(inquirer.prompt).mockImplementationOnce(async (questions: unknown) => {
+        const q = (questions as Array<Record<string, unknown>>)[0];
+        validate = q.validate as typeof validate;
+        return { apiKey: 'dep_live_validKey12345' };
+      });
+      await promptApiKey();
+      const result = validate?.('dep_svc_serverSideOnly12345');
+      expect(typeof result).toBe('string');
+      expect(result).toMatch(/Service-keys.*user-key/);
+    });
+  });
+
+  // ============================================================================
+  // assertNotServiceKey — pre-flight defense against service-key misuse
+  // ============================================================================
+  describe('assertNotServiceKey', () => {
+    test('accepts dep_live_* user-keys', () => {
+      expect(() => assertNotServiceKey('dep_live_validUserKey12345', 'env')).not.toThrow();
+    });
+
+    test('accepts dep_test_* user-keys', () => {
+      expect(() => assertNotServiceKey('dep_test_validTestKey12345', 'stored')).not.toThrow();
+    });
+
+    test('rejects dep_svc_* with env-var source hint', () => {
+      expect(() => assertNotServiceKey('dep_svc_serverOnly12345', 'env')).toThrow(
+        /DEPOSIUM_API_KEY env var.*service-key/s
+      );
+    });
+
+    test('rejects dep_svc_* with stored-source hint', () => {
+      expect(() => assertNotServiceKey('dep_svc_serverOnly12345', 'stored')).toThrow(
+        /~\/\.deposium\/credentials.*service-key/s
+      );
+    });
+
+    test('error message points users to the Deposium UI for a user-key', () => {
+      try {
+        assertNotServiceKey('dep_svc_x', 'env');
+      } catch (e) {
+        expect((e as Error).message).toMatch(/Deposium UI/);
+        expect((e as Error).message).toMatch(/dep_live_\* or dep_test_\*/);
+      }
+    });
   });
 
   // ============================================================================
@@ -330,6 +378,39 @@ describe('auth.ts', () => {
       } finally {
         if (previous === undefined) delete process.env.DEPOSIUM_API_KEY;
         else process.env.DEPOSIUM_API_KEY = previous;
+      }
+    });
+
+    test('DEPOSIUM_API_KEY=dep_svc_* throws service-key rejection (pre-server-call)', async () => {
+      const previous = process.env.DEPOSIUM_API_KEY;
+      process.env.DEPOSIUM_API_KEY = 'dep_svc_AKMSecretValueServerOnly';
+      const fetchSpy = vi.fn();
+      globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+      try {
+        await expect(ensureAuthenticated('http://localhost:3000')).rejects.toThrow(
+          /service-key.*server-side agent traffic only/s
+        );
+        // Must reject before any HTTP call — failing fast is the whole point.
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        if (previous === undefined) delete process.env.DEPOSIUM_API_KEY;
+        else process.env.DEPOSIUM_API_KEY = previous;
+      }
+    });
+
+    test('stored dep_svc_* key throws with stored-source hint', async () => {
+      const previous = process.env.DEPOSIUM_API_KEY;
+      delete process.env.DEPOSIUM_API_KEY;
+      vi.mocked(hasApiKey).mockReturnValue(true);
+      vi.mocked(getApiKey).mockReturnValue('dep_svc_AKMSecretValueServerOnly');
+
+      try {
+        await expect(ensureAuthenticated('http://localhost:3000')).rejects.toThrow(
+          /~\/\.deposium\/credentials.*service-key/s
+        );
+      } finally {
+        if (previous !== undefined) process.env.DEPOSIUM_API_KEY = previous;
       }
     });
 

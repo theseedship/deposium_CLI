@@ -4,6 +4,37 @@ import { getApiKey, setApiKey, hasApiKey } from './config';
 import { getErrorMessage, hasErrorCauseWithCode } from './errors';
 
 /**
+ * Reject `dep_svc_*` keys at the CLI boundary.
+ *
+ * Service-keys are issued by edge_runtime for **server-side** inter-process
+ * auth (Mastra agents, future GLiNER 2 wrapper). The CLI is invoked by a
+ * human, who has a user-key (`dep_live_*` / `dep_test_*`) provisioned via
+ * the Solid UI. Mixing them up is a footgun: a leaked user-key revokes one
+ * user, a leaked service-key compromises the agent fleet.
+ *
+ * Defense in depth — the server would also reject this, but failing fast
+ * here gives the user a precise message instead of a cryptic 401.
+ *
+ * @throws Error with actionable hint if `key` starts with `dep_svc_`.
+ */
+export function assertNotServiceKey(key: string, source: 'env' | 'stored' | 'prompt'): void {
+  if (!key.startsWith('dep_svc_')) return;
+
+  const sourceHint =
+    source === 'env'
+      ? 'DEPOSIUM_API_KEY env var'
+      : source === 'stored'
+        ? '~/.deposium/credentials'
+        : 'the entered key';
+
+  throw new Error(
+    `${sourceHint} is a service-key (dep_svc_*).\n` +
+      `Service-keys are for server-side agent traffic only and cannot be used by the CLI.\n` +
+      `Provision a user-key (dep_live_* or dep_test_*) from the Deposium UI and use that instead.`
+  );
+}
+
+/**
  * Prompt user for API key
  */
 export async function promptApiKey(): Promise<string> {
@@ -14,11 +45,15 @@ export async function promptApiKey(): Promise<string> {
       message: 'Enter your API key:',
       mask: '*',
       validate: (input: string) => {
-        if (input?.trim().length === 0) {
+        const trimmed = input?.trim() ?? '';
+        if (trimmed.length === 0) {
           return 'API key cannot be empty';
         }
-        if (input.trim().length < 10) {
+        if (trimmed.length < 10) {
           return 'API key seems too short';
+        }
+        if (trimmed.startsWith('dep_svc_')) {
+          return 'Service-keys (dep_svc_*) are for server-side use only — paste a user-key (dep_live_* or dep_test_*).';
         }
         return true;
       },
@@ -84,12 +119,14 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
   // Matches getConfig().apiKey resolution order; CI/CD usage stays zero-prompt.
   const envKey = process.env.DEPOSIUM_API_KEY?.trim();
   if (envKey) {
+    assertNotServiceKey(envKey, 'env');
     return envKey;
   }
 
   // Check if we already have a stored API key
   if (hasApiKey()) {
     const existingKey = getApiKey() as string;
+    assertNotServiceKey(existingKey, 'stored');
 
     try {
       const isValid = await validateApiKeyWithServer(baseUrl, existingKey);
