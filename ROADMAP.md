@@ -1,17 +1,19 @@
 # Deposium CLI - Roadmap
 
-> Revision: 2026-04-24
+> Revision: 2026-04-25
 
-Enterprise-grade CLI for Deposium MCP API.
+Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`](https://www.npmjs.com/package/@deposium/cli).
 
-## Current State (v1.0.0)
+## Current State
 
-| Metric           | Status         |
-| ---------------- | -------------- |
-| Commands         | 19 operational |
-| Tests            | 142 (Vitest)   |
-| Security Score   | 10/10          |
-| Production Ready | Yes            |
+| Metric             | Status          |
+| ------------------ | --------------- |
+| Latest version     | v1.0.4 (npm)    |
+| Commands           | 19 operational  |
+| Tests              | 204 (Vitest)    |
+| Statement coverage | ~76%            |
+| Security Score     | 10/10 (0 vulns) |
+| License            | MIT             |
 
 ### Core Features
 
@@ -96,7 +98,7 @@ src/__tests__/commands/
 ### Running Tests
 
 ```bash
-npm test               # All tests (142)
+npm test               # All tests (204)
 npm run test:coverage  # With coverage
 npm run test:watch     # Watch mode
 ```
