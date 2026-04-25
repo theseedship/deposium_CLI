@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-04-25
+
+### Added — Structured MCP auth errors
+
+The CLI now exposes structured authentication errors when the server returns
+the new `/api/cli/mcp` 401 shape (deposium_solid commit `7af3a6a02`):
+
+```json
+{ "error": "MCP Auth Error", "message": "Invalid API key format",
+  "error_code": "format_invalid", "hint": "...", "docs": "..." }
+```
+
+- New exported class `MCPAuthError extends Error` with `errorCode`, `hint`,
+  `docsUrl` properties — switch on `errorCode` for stable programmatic handling.
+- New exported type `MCPAuthErrorCode` — stable enum: `key_missing`,
+  `format_invalid`, `key_invalid`, `permission_denied`, `rate_limited`,
+  `auth_unavailable`, `auth_timeout`, `auth_internal_error`, `unknown`.
+- New helper `buildAuthError(responseData)` — internal, used in 5 401
+  handlers (`callTool`, `listTools`, `health`, `listSpaces`,
+  `authenticatedRequest`, SSE `chatStream`/`resumeAgent`). Returns `MCPAuthError`
+  for structured responses, falls back to plain `Error` for legacy shapes.
+- Error `message` includes `hint` (prefixed 💡) and `docs` URL (📖) — printable
+  as-is for end-user output.
+- `docs/development/error-codes.md` — full reference + switch-pattern example.
+
+### Changed
+- 5 inline 401 handlers in `src/client/mcp-client.ts` consolidated to use
+  `buildAuthError()` — was duplicated 5x with slightly different fallbacks.
+
+### Tests
+- 4 new tests in `mcp-client.test.ts` covering structured/legacy/SSE paths
+- 320 → 324 tests, all green
+
+## [1.1.2] - 2026-04-25
+
+### Removed
+- `docs/sprints/secure-CLI-2026.md` — internal sprint planning doc, archived to deposium_MCPs
+- `CODEBASE_ANALYSIS.md` — internal dead-code review note from PR #5, archived to deposium_MCPs
+
+## [1.1.1] - 2026-04-25
+
+### Added
+- `docs/guides/best-practices.md` — new "Self-service Workflows" section with 4 end-to-end recipes (onboarding, API key lifecycle, inventory cleanup, pre-flight health check)
+
 ## [1.1.0] - 2026-04-25
 
 ### Added — Self-service management (3 new commands)
