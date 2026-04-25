@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-04-25
+
 ### Changed (internal refactor — no user-visible changes)
 
 - `src/client/mcp-client.ts` split into 4 files for maintainability:
