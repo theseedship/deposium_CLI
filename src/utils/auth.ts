@@ -70,9 +70,23 @@ export async function validateApiKeyWithServer(baseUrl: string, apiKey: string):
 }
 
 /**
- * Ensure user is authenticated, with retry logic
+ * Ensure user is authenticated, with retry logic.
+ *
+ * Resolution priority mirrors `getConfig().apiKey`:
+ *   1. `DEPOSIUM_API_KEY` env var (returned as-is, no server validation —
+ *      consistent with config resolution and friendly to CI/CD pipelines).
+ *   2. Stored credential — validated against the server, with retry-prompt
+ *      fallback on invalidation.
+ *   3. Interactive prompt loop (max 3 attempts) that saves on success.
  */
 export async function ensureAuthenticated(baseUrl: string): Promise<string> {
+  // Env var takes priority — if set, use it directly (no server validation).
+  // Matches getConfig().apiKey resolution order; CI/CD usage stays zero-prompt.
+  const envKey = process.env.DEPOSIUM_API_KEY?.trim();
+  if (envKey) {
+    return envKey;
+  }
+
   // Check if we already have a stored API key
   if (hasApiKey()) {
     const existingKey = getApiKey() as string;

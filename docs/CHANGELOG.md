@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-04-25
+
+### Fixed
+
+- `ensureAuthenticated()` now honors `DEPOSIUM_API_KEY` env var as a fast
+  path, mirroring `getConfig().apiKey` resolution priority. Previously the
+  helper checked only the stored credential, so CI/CD usage with env-only
+  config triggered the interactive prompt despite the key being available.
+  ([src/utils/auth.ts](../src/utils/auth.ts))
+
+### Changed
+
+- `deposium auth status` now displays the active key **source** —
+  `DEPOSIUM_API_KEY env var` (with a "overrides stored credentials" hint) or
+  `stored credentials`. Clarifies which credential is in effect when both
+  are set.
+- `docs/commands/auth.md` rewritten — was stale (Feb 2025 revision, referenced
+  the legacy `~/.deposium/config.json` API key path before credentials store
+  separation, wrong header case `X-Api-Key` instead of `X-API-Key`).
+- `docs/guides/configuration.md` — new "Resolution Priority" section under
+  Authentication clarifying env-var-wins behavior and the `auth logout`
+  caveat (env var is not unset by logout).
+
+### Tests
+
+- 4 new tests in `auth.test.ts` covering the env-var fast path: short-circuit,
+  whitespace trimming, env-over-stored priority, empty-env fallback to stored.
+- 324 → 328 tests, all green.
+
 ## [1.1.3] - 2026-04-25
 
 ### Added — Structured MCP auth errors
