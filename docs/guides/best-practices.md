@@ -183,11 +183,11 @@ export DEPOSIUM_API_KEY="dep_live_..."
 
 Deposium issues two key families: user-keys (`dep_live_*` / `dep_test_*`,
 provisioned via the Solid UI) and service-keys (`dep_svc_*`, issued by
-edge*runtime for server-side agent traffic). \*\*The CLI rejects
-`dep_svc*\*` at startup\*\* — service-keys belong to long-running server
-processes (Mastra agents, internal orchestrators), not to a human's
-terminal. A leaked user-key revokes one user; a leaked service-key
-compromises the agent fleet.
+`edge_runtime` for server-side agent traffic). **The CLI rejects
+`dep_svc_*` keys at startup** — service-keys belong to long-running
+server processes (Mastra agents, internal orchestrators), not to a
+human's terminal. A leaked user-key revokes one user; a leaked
+service-key compromises the agent fleet.
 
 If your pipeline imports `DEPOSIUM_API_KEY` from a shared secret store,
 verify the upstream value is a user-key before plumbing it through.
