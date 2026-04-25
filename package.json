@@ -1,6 +1,6 @@
 {
   "name": "@deposium/cli",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CLI for Deposium MCP Server - Document search, graph queries, and AI workflows",
   "main": "dist/cli.js",
   "bin": {
