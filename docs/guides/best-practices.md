@@ -1,4 +1,4 @@
-> Revision: 2026-04-06
+> Revision: 2026-04-25
 
 # Best Practices
 
@@ -66,6 +66,103 @@ DEPOSIUM_SILENT=true deposium upload file.pdf
 ```bash
 # Avoid spinner output in CI
 DEPOSIUM_SILENT=true deposium search "query" --format json
+```
+
+---
+
+## Self-service Workflows
+
+End-to-end recipes combining the management commands (`space`, `files`,
+`api-keys`) with the data commands (`upload-batch`, `search`).
+
+### Onboarding a new corpus
+
+```bash
+# 1. Create a dedicated space for the project
+SPACE_ID=$(deposium space create "Q1 Reports" \
+  --description "Quarterly financial reports" \
+  --format json --silent | jq -r '.id')
+
+# 2. Bulk-upload the source documents
+deposium upload-batch "./reports/*.pdf" --space-id "$SPACE_ID"
+
+# 3. Verify ingestion succeeded
+deposium files list --space "$SPACE_ID" --format json --silent \
+  | jq '[.[] | {id, file_name, doc_status}]'
+
+# 4. Sanity-check one document was processed
+DOC_ID=$(deposium files list --space "$SPACE_ID" --limit 1 \
+  --format json --silent | jq -r '.[0].id')
+deposium files check "$DOC_ID"
+
+# 5. Run a smoke search to confirm the corpus is queryable
+deposium search "executive summary" --space "$SPACE_ID" --top-k 3
+```
+
+### API key lifecycle for CI/CD
+
+```bash
+# 1. Mint a scoped read-only key for GitHub Actions
+deposium api-keys create \
+  --name "github-actions-prod" \
+  --scopes "read" \
+  --tier pro \
+  --format json --silent > /tmp/new-key.json
+
+#    The secret is shown ONCE in the JSON output — save it.
+SECRET=$(jq -r '.secret // .key' /tmp/new-key.json)
+KEY_ID=$(jq -r '.id' /tmp/new-key.json)
+
+# 2. Push the secret into GitHub repo secrets
+gh secret set DEPOSIUM_API_KEY --body "$SECRET"
+shred -u /tmp/new-key.json    # nuke the file
+
+# 3. Quarterly: audit which keys exist + their last use
+deposium api-keys list
+
+# 4. Rotate before the 90-day mark
+deposium api-keys rotate "$KEY_ID" --yes --format json --silent \
+  | jq -r '.secret' | gh secret set DEPOSIUM_API_KEY
+
+# 5. Decommission when the project ends
+deposium api-keys delete "$KEY_ID" --yes
+```
+
+### Inventory cleanup
+
+```bash
+# 1. Find empty spaces (no files) — candidates for deletion
+deposium space list --format json --silent | jq '.[] | .id' \
+  | while read id; do
+      count=$(deposium files list --space "$id" --format json --silent \
+              | jq 'length')
+      [ "$count" = "0" ] && echo "Empty: $id"
+    done
+
+# 2. Find failed-status documents to retry or remove
+deposium files list --format json --silent \
+  | jq '.[] | select(.doc_status == "failed") | .id'
+
+# 3. Bulk-delete stale documents (with confirmation per doc)
+deposium files list --format json --silent \
+  | jq -r '.[] | select(.created_at < "2025-01-01") | .id' \
+  | while read id; do
+      deposium files rm "$id"   # interactive confirmation per doc
+    done
+
+# 4. Or skip prompts when you're sure (use carefully)
+deposium files rm 1234 --yes
+```
+
+### Pre-flight health check
+
+```bash
+# Run before a long batch job to fail fast on misconfig
+deposium health --silent || exit 1
+deposium space list --silent --format json | jq 'length' || exit 1
+
+# Now safe to start the actual work
+deposium upload-batch "./big-corpus/*.pdf" --space-id "$SPACE_ID"
 ```
 
 ---
