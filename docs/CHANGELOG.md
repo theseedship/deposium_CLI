@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (internal refactor — no user-visible changes)
+
+- `src/client/mcp-client.ts` split into 4 files for maintainability:
+  - `src/client/types.ts` — all public type/interface declarations
+    (`MCPTool`, `MCPSpace`, `MCPDocument`, `SSE*`, etc.)
+  - `src/client/auth-error.ts` — `MCPAuthError`, `MCPAuthErrorCode`,
+    `buildAuthError`
+  - `src/client/internals.ts` — retry classification, request-id
+    generation, axios-error normalization helpers
+  - `src/client/mcp-client.ts` — `MCPClient` class only
+- `mcp-client.ts` re-exports every moved symbol so existing imports
+  (`import { MCPTool } from './client/mcp-client'`) keep working without
+  changes. The new files are an additional import surface, not a breaking
+  one.
+- `MCPClient.authenticatedRequest` cyclomatic complexity reduced from 21
+  to under the 15 ceiling by extracting `dispatchHttp` (HTTP method
+  dispatch) and `throwForKnownAxiosError` (ECONNREFUSED / 401 / 404
+  mapping) helpers.
+- `MCPClient.parseSSEStream` no longer uses a non-null assertion on
+  `response.body` — narrowed via an early-throw check.
+
+### Tests
+
+- New "Wire format guard" describe block in `mcp-client.test.ts` —
+  pins HTTP method + path + body shape for all 13 public client methods
+  (`callTool`, `listSpaces`, `listDocuments`, `getDocument`,
+  `deleteDocument`, `listApiKeys`, `createApiKey`, `deleteApiKey`,
+  `rotateApiKey`, `getApiKeyUsage`, plus query-string edge cases).
+  Refactor was performed *after* this guard landed — server contract
+  preserved bit-for-bit.
+- 328 → 340 tests, all green.
+
 ## [1.1.5] - 2026-04-25
 
 ### Fixed
