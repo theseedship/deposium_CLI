@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-04-25
+
+### Added — Service-key guardrail
+
+- The CLI now rejects `dep_svc_*` API keys at startup with an actionable
+  message. Service-keys are issued by edge_runtime for **server-side**
+  agent traffic (Mastra, future GLiNER 2 wrapper); the CLI is invoked by
+  a human and must use a user-key (`dep_live_*` / `dep_test_*`). The
+  check fires for env-var, stored credential, and interactive-prompt
+  paths; rejection happens before any HTTP call. ([src/utils/auth.ts](../src/utils/auth.ts))
+
+  Source-aware error message points the user at the exact place to fix:
+  `DEPOSIUM_API_KEY env var`, `~/.deposium/credentials`, or the prompt.
+
+  Aligns the CLI with Sprint A2A Phase 0 (deposium_MCPs) — see
+  ADR-012 §user-key vs service-key.
+
+### Changed
+
+- `MCPAuthErrorCode` enum gains `'accept_invalid'` to mirror the
+  canonical 9-code list shipped by the server-side AUTH_ERROR contract
+  (deposium_MCPs auth-contract-finalize). The CLI itself never triggers
+  this code (it sets `Accept: application/json, text/event-stream` on
+  every request), but exporting the full enum keeps SDK consumers in
+  sync with the upstream contract.
+
+### Tests
+
+- 8 new tests in `auth.test.ts`: env-var `dep_svc_*` rejection (pre-server-call),
+  stored `dep_svc_*` rejection, prompt-validate rejecting pasted
+  service-keys, and 5 unit tests for `assertNotServiceKey()` covering
+  all sources + error-message contents.
+- 340 → 348 tests, all green.
+
 ## [1.1.6] - 2026-04-25
 
 ### Changed (internal refactor — no user-visible changes)

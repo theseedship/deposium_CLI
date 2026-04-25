@@ -22,6 +22,7 @@ export type MCPAuthErrorCode =
   | 'auth_unavailable'
   | 'auth_timeout'
   | 'auth_internal_error'
+  | 'accept_invalid'
   | 'unknown';
 
 /**

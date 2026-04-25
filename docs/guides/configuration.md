@@ -17,7 +17,7 @@ Settings are loaded in this order (later sources override earlier):
 
 | Variable            | Description                           | Default                 | Example                     |
 | ------------------- | ------------------------------------- | ----------------------- | --------------------------- |
-| `DEPOSIUM_API_KEY`  | API authentication key                | -                       | `sk-abc123...`              |
+| `DEPOSIUM_API_KEY`  | API authentication key (user-key)     | -                       | `dep_live_...`              |
 | `DEPOSIUM_URL`      | Deposium server URL                   | `http://localhost:3003` | `https://api.mycompany.com` |
 | `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.vip` |
 | `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 | `true`                      |
@@ -100,6 +100,20 @@ API keys are stored in a separate encrypted file: `~/.deposium/credentials`
 configuration without exposing credentials.
 
 The `~/.deposium/` directory is automatically set to chmod 0700.
+
+### Key types
+
+The CLI accepts user-keys only:
+
+- ✅ `dep_live_*` — production user-key (Solid UI)
+- ✅ `dep_test_*` — test user-key (Solid UI, dev tenants)
+- ❌ `dep_svc_*` — **rejected at startup**. Service-keys are for
+  server-side agent traffic (Mastra, internal orchestrators); the CLI
+  is invoked by humans and must use a user-key. The check fires for
+  env-var, stored credential, and `auth login` paste paths.
+
+See [`auth` — Key types](../commands/auth.md#key-types--user-key-vs-service-key)
+for the full rejection message and remediation.
 
 ### Resolution Priority
 

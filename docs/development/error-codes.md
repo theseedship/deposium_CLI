@@ -11,17 +11,18 @@ The human-readable `message` and `hint` may change wording.
 
 Mirrors the server-side `ApiKeyErrorCode` enum in `deposium_MCPs`.
 
-| `errorCode`           | Meaning                                              |
-| --------------------- | ---------------------------------------------------- |
-| `key_missing`         | No `X-API-Key` and no `Authorization: Bearer` header |
-| `format_invalid`      | Key doesn't match `dep_(live\|test)_<43 b64url>`     |
-| `key_invalid`         | Format OK but revoked / expired / not in DB          |
-| `permission_denied`   | Key valid but lacks scope or tool permission         |
-| `rate_limited`        | Upstream 429                                         |
-| `auth_unavailable`    | Upstream auth circuit breaker OPEN                   |
-| `auth_timeout`        | Upstream auth >8s                                    |
-| `auth_internal_error` | Upstream 5xx / 404                                   |
-| `unknown`             | Catch-all (legacy responses, unexpected shapes)      |
+| `errorCode`           | Meaning                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `key_missing`         | No `X-API-Key` and no `Authorization: Bearer` header        |
+| `format_invalid`      | Key doesn't match `dep_(live\|test)_<43 b64url>`            |
+| `key_invalid`         | Format OK but revoked / expired / not in DB                 |
+| `permission_denied`   | Key valid but lacks scope or tool permission                |
+| `rate_limited`        | Upstream 429                                                |
+| `auth_unavailable`    | Upstream auth circuit breaker OPEN                          |
+| `auth_timeout`        | Upstream auth >8s                                           |
+| `auth_internal_error` | Upstream 5xx / 404                                          |
+| `accept_invalid`      | Bad `Accept` header (CLI bug — should never reach the user) |
+| `unknown`             | Catch-all (legacy responses, unexpected shapes)             |
 
 ## Class shape
 
