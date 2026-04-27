@@ -8,7 +8,7 @@ Deposium CLI is an enterprise-grade command-line interface for the Deposium MCP 
 
 **Package:** `@deposium/cli` v1.1.7
 **Runtime:** Node.js 22+ or Bun 1.0+
-**Test Framework:** Vitest (348 tests)
+**Test Framework:** Vitest (427 tests)
 
 ## Common Commands
 
@@ -42,7 +42,7 @@ src/
 ├── interactive.ts         # Interactive prompts
 ├── client/
 │   └── mcp-client.ts      # MCP API client with retry logic + SSE streaming
-├── commands/              # Command implementations (22 commands)
+├── commands/              # Command implementations (23 commands)
 │   ├── auth.ts            # Authentication (login/logout)
 │   ├── config.ts          # Configuration management
 │   ├── search.ts          # Multi-mode search
