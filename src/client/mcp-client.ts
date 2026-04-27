@@ -97,8 +97,50 @@ import type {
 // Re-export auth-error types/class so existing imports still resolve.
 export { MCPAuthError, type MCPAuthErrorCode, buildAuthError } from './auth-error';
 
+// Re-export Phase II PR-3 validate types — consumers do
+// `import { ValidateLevel } from '@deposium/cli'`.
+export type {
+  ValidateLevel,
+  OnAmbiguousModeValidate,
+  ValidateRunStatus,
+  ValidateThematicVerdict,
+  ValidateFolderVerdict,
+  ValidateWaitingFor,
+  HitlResponse,
+  ValidateToolInput,
+  ValidateStartEvent,
+  ValidateClassificationEvent,
+  ValidateThematicStartEvent,
+  ValidateExtractionEvent,
+  ValidateVerdictN1Event,
+  ValidateThematicCompleteEvent,
+  ValidateN1CompleteEvent,
+  ValidateN2RuleVerdictEvent,
+  ValidateCompleteEvent,
+  ValidateFailedEvent,
+  ValidateGenericErrorEvent,
+  ValidateFormFieldSelect,
+  ValidateFormFieldFileUpload,
+  ValidateFormFieldText,
+  ValidateFormField,
+  ValidateChatPrompt,
+  ValidateReportJson,
+  ValidateEvents,
+  ValidateEventName,
+  ValidateStreamHandlers,
+  HitlDecision,
+} from './validate-types';
+
 import { buildAuthError } from './auth-error';
 import { generateRequestId, isRetryableError, sleep, createAxiosErrorResult } from './internals';
+import type {
+  ValidateToolInput,
+  ValidateChatPrompt,
+  ValidateEvents,
+  ValidateEventName,
+  ValidateReportJson,
+  ValidateStreamHandlers,
+} from './validate-types';
 
 /**
  * HTTP client for the Deposium MCP API
@@ -593,6 +635,208 @@ export class MCPClient {
 
     const response = await this.postStream(url, body, 'Agent resume');
     await this.parseSSEStream(response, options);
+  }
+
+  /**
+   * Phase II PR-3 — run `deposium_validate_foncier` over `/mcp` (JSON-RPC
+   * over SSE). Manages the full pause/resume loop: stream events into the
+   * caller's handlers, pause on `chat_prompt`, re-call the same tool with
+   * the same `run_id` (Mode A or B per ADR-010 §4.2), continue.
+   *
+   * Returns when the macro emits `validate:complete` or `validate:failed`.
+   * The full report JSON is NOT in the stream — call `fetchValidateReport`
+   * with the returned `run_id` (greenlight §8.5).
+   *
+   * @param input    Tool input — initial call. The internal loop manages
+   *                 `run_id` and `hitl_response` for resumes; callers do
+   *                 not need to set them.
+   * @param handlers Event + chat_prompt callbacks.
+   *
+   * @example
+   * ```typescript
+   * const { run_id, status } = await client.validateFoncier(
+   *   { dossier_id: 'd1', level: 'both', on_ambiguity: 'prompt' },
+   *   {
+   *     onEvent: (name, payload) => console.log(name, payload),
+   *     onChatPrompt: async (prompt) => {
+   *       // ... collect user input, upload file if needed ...
+   *       return { mode: 'a' }; // or { mode: 'b', hitlResponse: ... }
+   *     },
+   *   }
+   * );
+   * if (status === 'complete') {
+   *   const report = await client.fetchValidateReport(run_id);
+   * }
+   * ```
+   */
+  async validateFoncier(
+    input: ValidateToolInput,
+    handlers: ValidateStreamHandlers
+  ): Promise<{ run_id: string; status: 'complete' | 'failed' }> {
+    const url = `${this.baseUrl}/mcp`;
+    let currentInput: ValidateToolInput = input;
+
+    while (true) {
+      const requestId = generateRequestId();
+      const body = JSON.stringify({
+        jsonrpc: '2.0',
+        id: requestId,
+        method: 'tools/call',
+        params: {
+          name: 'deposium_validate_foncier',
+          arguments: currentInput,
+        },
+      });
+
+      const response = await this.postStream(url, body, 'Validate stream');
+      const result = await this.consumeValidateStream(response, handlers);
+
+      if (result.kind === 'terminal') {
+        return { run_id: result.run_id, status: result.status };
+      }
+
+      // result.kind === 'paused' — chat_prompt event
+      const decision = await handlers.onChatPrompt(result.prompt);
+      currentInput = {
+        ...input,
+        run_id: result.prompt.run_id,
+        ...(decision.mode === 'b' ? { hitl_response: decision.hitlResponse } : {}),
+      };
+    }
+  }
+
+  /**
+   * Fetch the full validate report JSON from
+   * `GET /api/v1/reports/<run_id>?format=json`.
+   *
+   * Per greenlight §8.5 + ADR-010 §4.4: the report lives behind a separate
+   * idempotent endpoint to keep the SSE stream lean. Call after
+   * `validate:complete` to get the canonical report; or in `--json` mode
+   * after consuming the stream.
+   */
+  async fetchValidateReport(runId: string): Promise<ValidateReportJson> {
+    const requestId = generateRequestId();
+    try {
+      const response = await this.client.get<ValidateReportJson>(
+        `/api/v1/reports/${runId}?format=json`,
+        { headers: { 'X-Request-ID': requestId } }
+      );
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axios.isAxiosError(axiosError)) {
+        if (axiosError.code === 'ECONNREFUSED') {
+          throw new Error(
+            `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+              'Make sure the Deposium server is running'
+          );
+        }
+        if (axiosError.response?.status === 401) {
+          throw buildAuthError(axiosError.response?.data);
+        }
+        if (axiosError.response?.status === 404) {
+          throw new Error(
+            `Report not found for run_id=${runId}. The run may not exist or may not be complete yet.`
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Read a single SSE response stream into validate-event dispatch. Returns
+   * either a terminal result (`validate:complete` / `validate:failed`) or a
+   * `paused` marker carrying the `chat_prompt` payload.
+   */
+  private async consumeValidateStream(
+    response: Response,
+    handlers: ValidateStreamHandlers
+  ): Promise<
+    | { kind: 'terminal'; run_id: string; status: 'complete' | 'failed' }
+    | { kind: 'paused'; prompt: ValidateChatPrompt }
+  > {
+    const responseBody = response.body;
+    if (!responseBody) {
+      throw new Error('Validate stream has no body');
+    }
+    const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        if (buffer.trim()) {
+          const result = await this.handleValidateChunk(buffer, handlers);
+          if (result) return result;
+        }
+        throw new Error('Validate stream ended without a terminal event');
+      }
+
+      buffer += value;
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+
+      for (const part of parts) {
+        const result = await this.handleValidateChunk(part, handlers);
+        if (result) {
+          // Cancel the stream so the connection can close before we resume.
+          reader.cancel().catch(() => {});
+          return result;
+        }
+      }
+    }
+  }
+
+  /**
+   * Parse a single SSE chunk and dispatch. Returns a paused/terminal
+   * marker when the event is `chat_prompt`, `validate:complete`, or
+   * `validate:failed`; otherwise returns null and the caller continues.
+   */
+  private async handleValidateChunk(
+    part: string,
+    handlers: ValidateStreamHandlers
+  ): Promise<
+    | { kind: 'terminal'; run_id: string; status: 'complete' | 'failed' }
+    | { kind: 'paused'; prompt: ValidateChatPrompt }
+    | null
+  > {
+    if (!part.trim()) return null;
+
+    let eventType = '';
+    let dataStr = '';
+    for (const line of part.split('\n')) {
+      if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+      else if (line.startsWith('data: ')) dataStr = line.slice(6);
+    }
+    if (!eventType || !dataStr) return null;
+
+    let data: unknown;
+    try {
+      data = JSON.parse(dataStr);
+    } catch {
+      return null; // Skip malformed JSON — non-terminal.
+    }
+
+    if (eventType === 'chat_prompt') {
+      return { kind: 'paused', prompt: data as ValidateChatPrompt };
+    }
+
+    if (eventType === 'validate:complete' || eventType === 'validate:failed') {
+      const payload = data as
+        | ValidateEvents['validate:complete']
+        | ValidateEvents['validate:failed'];
+      await handlers.onEvent(eventType, payload as never);
+      return {
+        kind: 'terminal',
+        run_id: payload.run_id,
+        status: eventType === 'validate:complete' ? 'complete' : 'failed',
+      };
+    }
+
+    // Other validate:* events or generic 'error' — dispatch and continue.
+    await handlers.onEvent(eventType as ValidateEventName, data as never);
+    return null;
   }
 
   /** Shared POST for SSE endpoints — sets headers, handles 401/429/generic errors */

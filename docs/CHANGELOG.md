@@ -9,6 +9,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Phase II PR-3 client (Phase A: contract ready, awaits backend)
+
+- New command `deposium validate <dossier_id>` — runs the
+  `deposium_validate_foncier` macro end-to-end (N1 per-thematic + N2
+  cross-document + HITL). Streams 11 SSE events from the `validate:*`
+  namespace, pauses interactively on `chat_prompt`, uploads missing
+  pieces to Solid, resumes via `tools/call` re-call. See
+  [docs/commands/validate.md](commands/validate.md).
+- Flags: `--level 1|2|both`, `--on-ambiguous prompt|fail|dump` (3-mode
+  subset of chat — no `pick-first` since validate emits only
+  `chat_prompt type='form'`), `--language fr|en`, `--run-id` (resume),
+  `--json` (silent stream + report fetch to stdout), `--verbose`
+  (per-document and per-requirement detail).
+- New module surface (re-exported from `mcp-client.ts`):
+  - `MCPClient.validateFoncier(input, handlers)` — orchestrates the
+    `tools/call` SSE loop, including Mode A (re-classify after upload)
+    and Mode B (`hitl_response`) resume protocols.
+  - `MCPClient.fetchValidateReport(runId)` — fetches the canonical
+    report from `GET /api/v1/reports/<run_id>?format=json` (separated
+    from the SSE stream per ADR-010 §4.4).
+  - Types: `ValidateLevel`, `OnAmbiguousModeValidate`,
+    `ValidateToolInput`, `ValidateChatPrompt`, `ValidateEvents` (every
+    `validate:*` payload), `ValidateReportJson`,
+    `ValidateStreamHandlers`, `HitlDecision`, `HitlResponse`, etc.
+
+### Status — Phase A only
+
+This release ships **client-side code + unit tests against the frozen
+upstream SSE event contract** (the server-side ADR was frozen on commit
+`74efdb92`, 2026-04-27). The backend that emits `validate:*` events is
+a follow-up sprint — end-to-end integration testing happens in Phase B
+(estimated ~1 week after the server side ships).
+
+Mock fixtures in `src/__tests__/validate-*.test.ts` are derived directly
+from ADR-010 §4 payload shapes, so the wire contract is locked. If MCPs
+emits an off-contract event when it lands, the renderer's exhaustiveness
+check will surface the mismatch in unit tests before any production run.
+
+### Tests
+
+- 5 new test files covering Phase A:
+  - `validate-events.test.ts` — 28 tests (renderer per event + silent
+    + verbose toggles + verdict glyph mapping + final pass/fail logic)
+  - `validate-hitl-form.test.ts` — 17 tests (mode dispatch, every
+    `waiting_for` discriminant, `skip` keyword, file path validator)
+  - `validate-file-upload.test.ts` — 8 tests (multipart POST, response
+    shape normalization, 401 → MCPAuthError, generic HTTP errors)
+  - `validate-foncier.test.ts` — 9 tests (single-stream happy path,
+    failure terminal, JSON-RPC envelope shape, Mode A + Mode B resume
+    loops, fetchValidateReport 200/404)
+  - `commands/validate.test.ts` — 17 tests (parsers + arg forwarding +
+    `--json` + exit-code semantics)
+- 348 → 427 tests, all green.
+
+### Documentation
+
+- `docs/commands/validate.md` — new command reference (flags, examples,
+  exit codes, SSE event vocabulary, report fetch, programmatic use).
+- `docs/guides/on-ambiguous-flag.md` — extended to cover validate's
+  3-mode subset and the new Mode A / Mode B resume protocol distinct
+  from chat's `/api/agent-resume`.
+- `README.md` — command index updated (24 entries; `validate` added).
+- `docs/guides/best-practices.md` — new "Validate a foncier dossier"
+  workflow recipe with both interactive and CI patterns.
+
+### SDK packaging — programmatic entry point
+
+- New `src/index.ts` module re-exports the public SDK surface (`MCPClient`,
+  `MCPAuthError`, all chat-stream + self-service + validate types).
+- `package.json` `main` switched from `dist/cli.js` to `dist/index.js`,
+  with the CLI binary still wired via `bin`. Programmatic consumers can
+  now `import { MCPClient } from '@deposium/cli'` without the package
+  triggering CLI argv parsing on import.
+- `types: dist/index.d.ts` added so IDEs find the public types from the
+  package main entry.
+
+### Pinned by GREENLIGHT 2026-04-27
+
+- Flag name `--on-ambiguous` (not `--on-ambiguity`) — see GREENLIGHT §8.1.
+- Env var `DEPOSIUM_URL` (not `DEPOSIUM_API_URL`) — see GREENLIGHT §8.3.
+- Report fetched via `GET /api/v1/reports/<run_id>?format=json` *after*
+  `validate:complete` (NOT embedded in the SSE stream) — GREENLIGHT §8.5.
+- Resume via re-call of `tools/call` (NOT `resumeAgent`'s
+  `/api/agent-resume` endpoint, which stays Phase I chat-only) —
+  GREENLIGHT §8.4.
+
 ## [1.1.7] - 2026-04-25
 
 ### Added — Service-key guardrail

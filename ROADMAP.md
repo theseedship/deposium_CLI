@@ -9,8 +9,8 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 | Metric             | Status              |
 | ------------------ | ------------------- |
 | Latest version     | v1.1.7 (npm)        |
-| Commands           | 22 operational      |
-| Tests              | 348 (Vitest)        |
+| Commands           | 23 operational      |
+| Tests              | 427 (Vitest)        |
 | Statement coverage | ~55% (full surface) |
 | Security Score     | 10/10 (0 vulns)     |
 | License            | MIT                 |
@@ -39,6 +39,11 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 
 ## Short-term (v1.2 candidates)
 
+- [x] **Phase II PR-3 client (`deposium validate`)** — Phase A shipped:
+      types + SSE renderer + HITL form + multipart upload + `validateFoncier`
+      orchestrator + `--json` mode + 79 unit tests against the frozen
+      ADR-010 §4 contract. Phase B (live integration with the upstream
+      macro) waits on the server-side sprint.
 - [ ] `files download` once the server exposes API-key auth on `/api/download/*`
 - [ ] `space delete` + `space update` once MCP exposes those operations
 - [ ] Pre-upload validation pass via `check_file` integrated into `upload-batch`
@@ -105,7 +110,7 @@ src/__tests__/commands/
 ### Running Tests
 
 ```bash
-npm test               # All tests (348)
+npm test               # All tests (427)
 npm run test:coverage  # With coverage
 npm run test:watch     # Watch mode
 ```

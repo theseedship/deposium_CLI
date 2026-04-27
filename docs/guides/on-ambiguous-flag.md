@@ -1,12 +1,17 @@
-# `--on-ambiguous` — HITL policy for `deposium chat`
+# `--on-ambiguous` — HITL policy for `deposium chat` and `deposium validate`
 
-> Revision: 2026-04-24 · Human-In-The-Loop policy for the CLI chat stream
+> Revision: 2026-04-27 · Human-In-The-Loop policy for the CLI chat + validate streams
 
-When the Deposium server is unsure how to handle a query, the agent runtime
-pauses and emits a `chat_prompt` SSE event asking the caller to pick an
-option (or confirm an action). In the browser, this renders as an
-interactive picker. In the CLI, `--on-ambiguous=<mode>` controls the
-response policy.
+When the Deposium server is unsure how to handle a query (chat) or pauses a
+macro for a missing piece / classification correction / rule clarification
+(validate), it emits a `chat_prompt` SSE event. In the browser, this renders
+as an interactive picker or form. In the CLI, `--on-ambiguous=<mode>`
+controls the response policy.
+
+> **Two modes families** — `chat` accepts 4 modes (`prompt | fail | dump |
+pick-first`); `validate` accepts the 3-mode subset (`prompt | fail | dump`)
+> because Phase II PR-3 emits only `chat_prompt type='form'`, never `'choice'`,
+> so `pick-first` has no semantic meaning.
 
 ## Modes
 
@@ -92,7 +97,31 @@ step after disambiguation) — the CLI loops until the stream closes with
 > the edge transparently with auth + rate-limiting. Set via
 > `DEPOSIUM_EDGE_URL` when available.
 
+## Resume in `deposium validate` (Phase II PR-3)
+
+`validate` uses a different resume protocol from chat: instead of POST
+`/api/agent-resume`, the CLI re-calls `tools/call deposium_validate_foncier`
+with the same `run_id`. Two modes (ADR-010 §4.2):
+
+- **Mode A** (response to `waiting_for=missing_document`) — the CLI
+  uploads the file to Solid's `/api/v2/files/batch-upload` first, then
+  re-calls `tools/call` _without_ a `hitl_response`. MCPs detects
+  `status='paused'`, re-classifies the dossier, and resumes the failing
+  thematic.
+- **Mode B** (response to `classification_correction` / `rule_clarification`)
+  — the CLI re-calls `tools/call` with `hitl_response` carrying the form
+  values. MCPs branches on the field keys, applies the response, and
+  advances the paused step.
+
+Both paths reuse `--on-ambiguous` to gate interactivity (`prompt` collects
+form input; `fail` exits non-zero; `dump` prints the prompt JSON for
+inspection).
+
 ## Related
 
-- `src/chat.ts` · `src/client/mcp-client.ts` — CLI implementation of the
-  `--on-ambiguous` modes and the resume loop.
+- `src/chat.ts` · `src/client/mcp-client.ts` — CLI implementation of
+  `--on-ambiguous` for chat (4 modes) and validate (3 modes).
+- `src/utils/validate-hitl-form.ts` — form rendering per `waiting_for`
+  discriminant in validate.
+- [`docs/commands/validate.md`](../commands/validate.md) — full command
+  reference for the validate macro.

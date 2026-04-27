@@ -60,6 +60,7 @@ Detailed documentation is available in the `docs/` directory:
 | **[tools](docs/commands/tools.md)**                 | List available MCP tools              |
 | **[ui](docs/commands/ui.md)**                       | Launch interactive dashboards         |
 | **[upload-batch](docs/commands/upload-batch.md)**   | Batch file upload utility             |
+| **[validate](docs/commands/validate.md)**           | Validate foncier dossier (N1+N2+HITL) |
 
 ## 📦 Quick Install
 

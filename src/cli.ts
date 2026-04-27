@@ -24,6 +24,7 @@ import { benchmarkCommand } from './commands/benchmark';
 import { spaceCommand } from './commands/space';
 import { filesCommand } from './commands/files';
 import { apiKeysCommand } from './commands/api-keys';
+import { validateCommand } from './commands/validate';
 import { getConfig, getBaseUrl } from './utils/config';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
@@ -137,6 +138,7 @@ program.addCommand(benchmarkCommand);
 program.addCommand(spaceCommand);
 program.addCommand(filesCommand);
 program.addCommand(apiKeysCommand);
+program.addCommand(validateCommand);
 
 // Interactive mode
 program

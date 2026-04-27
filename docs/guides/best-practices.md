@@ -154,6 +154,42 @@ deposium files list --format json --silent \
 deposium files rm 1234 --yes
 ```
 
+### Validate a foncier dossier (Phase II PR-3)
+
+```bash
+# 1. Mint a dedicated user-key for the validation run (CI-grade)
+KEY_ID=$(deposium api-keys create --name "validate-batch-$(date +%F)" \
+  --scopes "read,write" --tier pro --format json --silent \
+  | jq -r '.id')
+
+# 2. Upload the dossier as a space (skip if already provisioned)
+SPACE_ID=$(deposium space create "Dossier 89b04" --format json --silent | jq -r '.id')
+deposium upload-batch "./dossiers/89b04/*.pdf" --space-id "$SPACE_ID"
+
+# 3. Run validation interactively (HITL prompts collect missing pieces)
+deposium validate "$SPACE_ID" --level both
+
+# 4. Or non-interactively in CI — fail-fast on any HITL pause + JSON to stdout
+deposium validate "$SPACE_ID" --level both \
+  --on-ambiguous fail --json \
+  | tee /tmp/validate-report.json \
+  | jq '.verdicts.thematic | map_values(.verdict)'
+
+# 5. Resume a paused run (e.g. user uploaded the missing DPE manually)
+deposium validate "$SPACE_ID" --run-id 12abf-... --level both
+```
+
+Notes:
+
+- `--on-ambiguous fail` prevents CI runners from hanging silently on a
+  `chat_prompt`. Use it for unattended batch.
+- `--json` suppresses the per-event console output and pipes the canonical
+  report from `GET /api/v1/reports/<run_id>?format=json` to stdout. The
+  SSE stream remains lean (large `chat_history` + N2 evidence stay
+  out-of-band).
+- Resume is idempotent — re-running `--run-id <existing>` against an
+  already-complete run returns the same report.
+
 ### Pre-flight health check
 
 ```bash
