@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-05-06
+
+### Fixed
+
+- Final scrub of two leftover domain-specific identifiers in
+  `src/client/types.ts` (JSDoc example) and a test fixture label.
+  HEAD is now fully neutral.
+
 ## [1.3.0] - 2026-05-06
 
 ### Added — `deposium validate` command

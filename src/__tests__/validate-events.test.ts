@@ -84,7 +84,7 @@ describe('renderValidateEvent', () => {
         level: 'both',
         thematics: [
           { key: 't1', label_fr: 'Category A' },
-          { key: 't2', label_fr: 'Promesse' },
+          { key: 't2', label_fr: 'Category B' },
         ],
         document_count: 5,
         started_at: '2026-04-27T10:00:00Z',
