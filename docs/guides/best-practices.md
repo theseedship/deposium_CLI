@@ -175,7 +175,7 @@ deposium validate "$SPACE_ID" --level both \
   | tee /tmp/validate-report.json \
   | jq '.verdicts.thematic | map_values(.verdict)'
 
-# 5. Resume a paused run (e.g. user uploaded the missing missing piece manually)
+# 5. Resume a paused run (e.g. user uploaded the missing piece manually)
 deposium validate "$SPACE_ID" --run-id 12abf-... --level both
 ```
 

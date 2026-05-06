@@ -101,7 +101,7 @@ step after disambiguation) — the CLI loops until the stream closes with
 ## Resume in `deposium validate`
 
 `validate` uses a different resume protocol from chat: instead of POST
-`/api/agent-resume`, the CLI re-calls `tools/call deposium_validate_dossier`
+`/api/agent-resume`, the CLI re-calls the validation tool re-call
 with the same `run_id`. Two modes:
 
 - **Mode A** (response to `waiting_for=missing_document`) — the CLI

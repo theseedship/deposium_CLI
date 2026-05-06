@@ -2,10 +2,10 @@
  * `deposium validate <dossier_id>` — entry point for the dossier
  * validation macro.
  *
- * Streams `deposium_validate_dossier` over `/mcp` (SSE), renders events
- * inline, pauses on `chat_prompt` to collect HITL form answers, uploads
- * missing pieces to the API, resumes via `tools/call` re-call, and (in
- * `--json` mode) fetches the canonical report from
+ * Streams the configured validation tool over `/mcp` (SSE), renders
+ * events inline, pauses on `chat_prompt` to collect HITL form answers,
+ * uploads missing pieces to the API, resumes via `tools/call` re-call,
+ * and (in `--json` mode) fetches the canonical report from
  * `GET /api/v1/reports/<run_id>?format=json` after `validate:complete`.
  *
  * @module commands/validate

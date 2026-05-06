@@ -45,6 +45,15 @@ const CLI_VERSION = pkg.version;
 /** CLI name for User-Agent header */
 const CLI_NAME = pkg.name;
 
+/**
+ * Default upstream tool name invoked by `validateDossier()`.
+ *
+ * Override per call via the `tool` option when the server-side macro
+ * is renamed or when targeting a different validator that follows the
+ * same `validate:*` SSE event contract.
+ */
+export const DEFAULT_VALIDATE_TOOL = 'deposium_validate_dossier';
+
 // Re-export public types from ./types so existing imports
 // `import { MCPTool } from './client/mcp-client'` keep working.
 export type {
@@ -639,7 +648,7 @@ export class MCPClient {
   }
 
   /**
-   * Run `deposium_validate_dossier` over `/mcp` (JSON-RPC over SSE).
+   * Run a dossier-validation macro over `/mcp` (JSON-RPC over SSE).
    * Manages the full pause/resume loop: stream events into the caller's
    * handlers, pause on `chat_prompt`, re-call the same tool with the same
    * `run_id` (Mode A: re-classify after upload — Mode B: structured
@@ -653,6 +662,10 @@ export class MCPClient {
    *                 `run_id` and `hitl_response` for resumes; callers do
    *                 not need to set them.
    * @param handlers Event + chat_prompt callbacks.
+   * @param options  Override the upstream tool name (defaults to the
+   *                 currently-deployed dossier validator). Pass a custom
+   *                 `tool` to call a different server-side validator that
+   *                 follows the same `validate:*` SSE event contract.
    *
    * @example
    * ```typescript
@@ -673,9 +686,11 @@ export class MCPClient {
    */
   async validateDossier(
     input: ValidateToolInput,
-    handlers: ValidateStreamHandlers
+    handlers: ValidateStreamHandlers,
+    options: { tool?: string } = {}
   ): Promise<{ run_id: string; status: 'complete' | 'failed' }> {
     const url = `${this.baseUrl}/mcp`;
+    const toolName = options.tool ?? DEFAULT_VALIDATE_TOOL;
     let currentInput: ValidateToolInput = input;
 
     while (true) {
@@ -685,7 +700,7 @@ export class MCPClient {
         id: requestId,
         method: 'tools/call',
         params: {
-          name: 'deposium_validate_dossier',
+          name: toolName,
           arguments: currentInput,
         },
       });

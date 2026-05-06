@@ -6,8 +6,8 @@
  * a local path from the user (see `validate-hitl-form.ts`) and sends the
  * file to the API's `/api/v2/files/batch-upload` endpoint. The server
  * persists it, attributes it to the dossier, and the CLI then re-calls
- * `tools/call deposium_validate_dossier` with the same `run_id` to
- * resume (Mode A — re-classify after upload).
+ * the validation tool with the same `run_id` to resume (Mode A —
+ * re-classify after upload).
  *
  * The upload routes through the standard API gateway (not the MCP
  * backend directly) because the gateway path is billing-aware and

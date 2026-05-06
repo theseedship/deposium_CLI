@@ -64,7 +64,7 @@ export interface HitlResponse {
 }
 
 /**
- * Input shape for `tools/call deposium_validate_dossier`.
+ * Input shape for the dossier-validation `tools/call`.
  *
  * `tenant_id` is auto-filled by the server from the API key, so the CLI
  * never sets it explicitly.

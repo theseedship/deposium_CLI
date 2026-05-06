@@ -1,8 +1,8 @@
-> Revision: 2026-04-25
+> Revision: 2026-05-06
 
 # Command Reference
 
-This directory contains detailed documentation for all Deposium CLI commands.
+This directory contains detailed documentation for all 23 Deposium CLI commands.
 
 ## Core Commands
 
@@ -34,6 +34,11 @@ This directory contains detailed documentation for all Deposium CLI commands.
 - **[space](space.md)**: Manage workspaces — list, show, create.
 - **[upload-batch](upload-batch.md)**: Batch file upload utility.
 - **[query-history](query-history.md)**: Track and analyze user query history.
+
+## Validation
+
+- **[validate](validate.md)**: Validate a dossier end-to-end
+  (N1 per-thematic + N2 cross-document + HITL form prompts).
 
 ## Evaluation & Metrics
 

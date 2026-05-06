@@ -3,7 +3,7 @@
 # Validate Command
 
 The `validate` command runs the dossier validation macro
-(`deposium_validate_dossier`) end-to-end: classifies each document by
+end-to-end: classifies each document by
 thematic, runs N1 per-thematic requirement checks, optionally runs N2
 cross-document rules, and produces a structured report. The CLI streams
 status events live and pauses interactively for HITL prompts (missing
