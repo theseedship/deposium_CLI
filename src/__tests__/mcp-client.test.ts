@@ -720,6 +720,26 @@ describe('MCPClient', () => {
         client.chatStream('http://localhost:9000', 'hi', { onToken: () => {} })
       ).rejects.toThrow(/Chat stream error.*502.*upstream error/);
     });
+
+    test('ECONNREFUSED is normalized to the same message every other method emits', async () => {
+      // Native fetch wraps the underlying socket error in `cause`. Verify
+      // postStream catches it and produces the friendly "Cannot connect to
+      // Deposium API at..." message instead of leaking "fetch failed".
+      const connErr = new TypeError('fetch failed');
+      (connErr as unknown as { cause: { code: string } }).cause = { code: 'ECONNREFUSED' };
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(connErr);
+
+      vi.spyOn(axios, 'create').mockReturnValue({
+        post: vi.fn(() => Promise.resolve({ data: {} })),
+        get: vi.fn(() => Promise.resolve({ data: {} })),
+        defaults: { headers: { common: {} } },
+      } as unknown as ReturnType<typeof axios.create>);
+
+      const client = new MCPClient('http://localhost:3000', 'api-key');
+      await expect(
+        client.chatStream('http://localhost:9000', 'hi', { onToken: () => {} })
+      ).rejects.toThrow(/Cannot connect to Deposium API at http:\/\/localhost:3000/);
+    });
   });
 });
 

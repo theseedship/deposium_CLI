@@ -133,6 +133,7 @@ export type {
 
 import { buildAuthError } from './auth-error';
 import { generateRequestId, isRetryableError, sleep, createAxiosErrorResult } from './internals';
+import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
   ValidateToolInput,
   ValidateChatPrompt,
@@ -849,7 +850,22 @@ export class MCPClient {
       headers['X-API-Key'] = this.apiKey;
     }
 
-    const response = await fetch(url, { method: 'POST', headers, body });
+    let response: Response;
+    try {
+      response = await fetch(url, { method: 'POST', headers, body });
+    } catch (error) {
+      // Native fetch wraps the underlying socket error in `cause`.
+      // Normalize ECONNREFUSED to the same friendly message every other
+      // method emits (health, listSpaces, callTool, …) so users get a
+      // consistent UX when the server is down.
+      if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
+        throw new Error(
+          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+            'Make sure the Deposium server is running'
+        );
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
