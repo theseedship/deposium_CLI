@@ -161,4 +161,14 @@ describe('uploadFileForValidate', () => {
       /not a regular file/
     );
   });
+
+  test('ECONNREFUSED is normalized to the friendly "Cannot connect to Deposium API" message', async () => {
+    const connErr = new TypeError('fetch failed');
+    (connErr as unknown as { cause: { code: string } }).cause = { code: 'ECONNREFUSED' };
+    globalThis.fetch = vi.fn(() => Promise.reject(connErr)) as unknown as typeof fetch;
+
+    await expect(
+      uploadFileForValidate('http://localhost:3000', 'k', 'space-1', tmpFile)
+    ).rejects.toThrow(/Cannot connect to Deposium API at http:\/\/localhost:3000/);
+  });
 });

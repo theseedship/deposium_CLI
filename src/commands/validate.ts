@@ -87,14 +87,22 @@ export function parseLanguage(input: string | undefined): 'fr' | 'en' | undefine
  * Build the `onChatPrompt` callback that the orchestrator invokes on every
  * `chat_prompt` SSE event. Wraps the interactive prompter, performs file
  * uploads (Mode A), and translates the result into a `HitlDecision`.
+ *
+ * `silent` mirrors the `--json` flag — when true the upload progress lines
+ * are suppressed so they don't pollute the JSON report on stdout.
  */
+interface ChatPromptHandlerDeps {
+  baseUrl: string;
+  apiKey: string;
+  dossierId: string;
+  mode: OnAmbiguousModeValidate;
+  silent: boolean;
+}
+
 function makeChatPromptHandler(
-  client: MCPClient,
-  baseUrl: string,
-  apiKey: string,
-  dossierId: string,
-  mode: OnAmbiguousModeValidate
+  deps: ChatPromptHandlerDeps
 ): (prompt: ValidateChatPrompt) => Promise<HitlDecision> {
+  const { baseUrl, apiKey, dossierId, mode, silent } = deps;
   return async (prompt) => {
     const interactive = await handleValidateChatPrompt(prompt, mode);
 
@@ -103,15 +111,14 @@ function makeChatPromptHandler(
     }
 
     // Mode A — upload first, then signal the orchestrator to re-call.
-    console.log(chalk.gray(`\n[upload] ${interactive.filePath}…`));
-    void client; // upload uses raw fetch + Solid endpoint; client unused for upload.
+    if (!silent) console.log(chalk.gray(`\n[upload] ${interactive.filePath}…`));
     const { file_id, file_name } = await uploadFileForValidate(
       baseUrl,
       apiKey,
       dossierId,
       interactive.filePath
     );
-    console.log(chalk.green(`[upload] ${file_name} → file_id=${file_id} ✓`));
+    if (!silent) console.log(chalk.green(`[upload] ${file_name} → file_id=${file_id} ✓`));
     return { mode: 'a' };
   };
 }
@@ -187,7 +194,13 @@ export const validateCommand = new Command('validate')
       };
 
       const onEvent = makeEventHandler({ silent: json, verbose });
-      const onChatPrompt = makeChatPromptHandler(client, baseUrl, apiKey, dossierId, onAmbiguous);
+      const onChatPrompt = makeChatPromptHandler({
+        baseUrl,
+        apiKey,
+        dossierId,
+        mode: onAmbiguous,
+        silent: json,
+      });
 
       const { run_id, status } = await client.validateDossier(input, {
         onEvent,

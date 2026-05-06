@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildAuthError } from '../client/auth-error';
+import { hasErrorCauseWithCode } from './errors';
 
 /**
  * Upload a single file to Solid's batch-upload endpoint.
@@ -46,11 +47,25 @@ export async function uploadFileForValidate(
   form.append('space_id', spaceId);
 
   const url = `${baseUrl.replace(/\/$/, '')}/api/v2/files/batch-upload`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'X-API-Key': apiKey },
-    body: form,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: form,
+    });
+  } catch (error) {
+    // Same normalization as MCPClient.postStream — ECONNREFUSED becomes the
+    // standard "Cannot connect to Deposium API" message every other CLI
+    // path emits, so users get a consistent UX when the server is down.
+    if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
+      throw new Error(
+        `Cannot connect to Deposium API at ${baseUrl}\n` +
+          'Make sure the Deposium server is running'
+      );
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     await throwForUploadError(response);
