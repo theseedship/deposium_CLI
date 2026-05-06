@@ -83,7 +83,7 @@ describe('renderValidateEvent', () => {
         dossier_id: 'd-123',
         level: 'both',
         thematics: [
-          { key: 't1', label_fr: 'Titre' },
+          { key: 't1', label_fr: 'Category A' },
           { key: 't2', label_fr: 'Promesse' },
         ],
         document_count: 5,
@@ -231,13 +231,13 @@ describe('renderValidateEvent', () => {
         run_id: RUN_ID,
         thematic_key: 't1',
         requirement_key: 'r1',
-        label_fr: 'required field present',
+        label_fr: 'Required field present',
         passed: false,
-        reason: 'fichier required field missing',
+        reason: 'required field missing',
       };
       const out = renderValidateEvent('validate:verdict_n1', payload, { verbose: true });
       expect(out).toContain('✗');
-      expect(out).toContain('fichier required field missing');
+      expect(out).toContain('required field missing');
     });
   });
 
@@ -317,8 +317,8 @@ describe('renderValidateEvent', () => {
     test('passed=false with reason', () => {
       const payload: ValidateN2RuleVerdictEvent = {
         run_id: RUN_ID,
-        rule_key: 'refs_document references_identiques',
-        label_fr: 'Refs document references',
+        rule_key: 'rule_b_identity',
+        label_fr: 'Rule B',
         passed: false,
         reason: 'document references diverge',
         evidence: { reads_from: [], values: {} },

@@ -109,7 +109,7 @@ describe('handleValidateChatPrompt — waiting_for routing (interactive)', () =>
           name: 'thematic_key',
           label: 'Choose:',
           options: [
-            { value: 'category_a', label: 'Titre' },
+            { value: 'category_a', label: 'Category A' },
             { value: 'skip', label: 'Skip' },
           ],
           required: true,

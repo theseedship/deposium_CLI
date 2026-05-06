@@ -101,7 +101,7 @@ const chatPromptMissingDoc: { event: string; data: ValidateChatPrompt } = {
     waiting_for: 'missing_document',
     prompt_type: 'form',
     title: 'Upload missing piece',
-    description: 'required document missing',
+    description: 'Required document missing',
     fields: [
       {
         type: 'file_upload',
@@ -134,7 +134,7 @@ const chatPromptClassif: { event: string; data: ValidateChatPrompt } = {
         name: 'thematic_key',
         label: 'Choose thematic',
         options: [
-          { value: 'category_a', label: 'Titre' },
+          { value: 'category_a', label: 'Category A' },
           { value: 'skip', label: 'Skip' },
         ],
         required: true,

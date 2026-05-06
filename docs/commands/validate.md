@@ -42,8 +42,8 @@ deposium validate 89b04306-... --level both
 
 Outputs phase banners, classification summary, thematic verdicts, then the
 final global verdict + run_id. Pauses with `inquirer` prompts whenever
-the macro emits `chat_prompt` (e.g. "Which document type ?", "Upload the
-required document missing ?"). Files uploaded inline are POSTed to the API gateway's
+the macro emits `chat_prompt` (e.g. "Which document type?", "Upload the
+missing piece"). Files uploaded inline are POSTed to the API gateway's
 `/api/v2/files/batch-upload` and the macro re-classifies the dossier
 before resuming.
 

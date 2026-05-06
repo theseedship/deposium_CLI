@@ -11,16 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.0] - 2026-05-06
 
-### Note — v1.2.0 was unpublished
-
-v1.2.0 shipped briefly with `MCPClient.validateDossier()` and a
-domain-specific naming. It was unpublished in favour of v1.3.0 which
-renames the SDK method to `MCPClient.validateDossier(input, handlers,
-options?)` (with `options.tool` overriding the upstream tool name) and
-strips domain-specific prose from the docs. The `validate` CLI command
-shape, flags, and SSE event vocabulary are unchanged. If you somehow
-installed v1.2.0, just upgrade to v1.3.0.
-
 ### Added — `deposium validate` command
 
 - New command `deposium validate <dossier_id>` — runs the
