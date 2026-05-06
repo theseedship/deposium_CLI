@@ -1,16 +1,12 @@
 /**
- * `deposium validate <dossier_id>` — validate command entry point.
+ * `deposium validate <dossier_id>` — entry point for the dossier
+ * validation macro.
  *
  * Streams `deposium_validate_dossier` over `/mcp` (SSE), renders events
  * inline, pauses on `chat_prompt` to collect HITL form answers, uploads
- * missing pieces to Solid, resumes via `tools/call` re-call, and (in
+ * missing pieces to the API, resumes via `tools/call` re-call, and (in
  * `--json` mode) fetches the canonical report from
  * `GET /api/v1/reports/<run_id>?format=json` after `validate:complete`.
- *
- * See briefs:
- *   - deposium_API/docs/2026/briefs/spec-PHASE-II-PR-3-VALIDATE.md
- *   - deposium_API/docs/2026/briefs/spec-PHASE-II-PR-3-spec-2026-04-27.md
- *   - deposium_API/docs/architecture/contract spec-PHASE-II-CONTRACTS.md (§1, §4)
  *
  * @module commands/validate
  */
@@ -60,8 +56,10 @@ export function parseLevel(input: string): ValidateLevel {
 }
 
 /**
- * Validate-specific `--on-ambiguous` parser. Subset of chat (3 modes — see
- * spec §8.2). Defaults to `prompt` in a TTY, `fail` otherwise.
+ * Validate-specific `--on-ambiguous` parser. 3-mode subset of chat (which
+ * also accepts `pick-first`). Validate emits only `chat_prompt type='form'`
+ * — never `'choice'` — so `pick-first` has no semantic meaning here.
+ * Defaults to `prompt` in a TTY, `fail` otherwise.
  */
 export function parseOnAmbiguous(input: string | undefined): OnAmbiguousModeValidate {
   if (!input) return process.stdin.isTTY ? 'prompt' : 'fail';
@@ -69,7 +67,7 @@ export function parseOnAmbiguous(input: string | undefined): OnAmbiguousModeVali
     throw new Error(
       `Invalid --on-ambiguous value: '${input}'. ` +
         `For validate, must be one of: ${VALID_ON_AMBIGUOUS.join(', ')} ` +
-        `(pick-first is chat-only — see spec §8.2).`
+        `(pick-first is chat-only — validate emits form prompts, not choice prompts).`
     );
   }
   return input as OnAmbiguousModeValidate;

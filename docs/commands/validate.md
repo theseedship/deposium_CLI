@@ -9,9 +9,9 @@ cross-document rules, and produces a structured report. The CLI streams
 status events live and pauses interactively for HITL prompts (missing
 documents, ambiguous classifications, rule clarifications).
 
-> **Status**: validate command-side ships in v1.2.0 (phase — unit
-> tested against the frozen contract spec contract). Server-side macro lands
-> in a follow-up sprint; integration-test once both sides converge.
+> **Status**: client-side ships in v1.2.0 — unit-tested against the
+> frozen upstream `validate:*` SSE event contract. End-to-end integration
+> testing happens once the server-side macro is rolled out.
 
 ## Usage
 
@@ -43,7 +43,7 @@ deposium validate 89b04306-... --level both
 Outputs phase banners, classification summary, thematic verdicts, then the
 final global verdict + run_id. Pauses with `inquirer` prompts whenever
 the macro emits `chat_prompt` (e.g. "Which document type ?", "Upload the
-required document missing ?"). Files uploaded inline are POSTed to Solid's
+required document missing ?"). Files uploaded inline are POSTed to the API gateway's
 `/api/v2/files/batch-upload` and the macro re-classifies the dossier
 before resuming.
 
@@ -100,7 +100,7 @@ command:
 Service-keys (`dep_svc_*`) are rejected at startup — see the
 [auth command Key types](./auth.md#key-types--user-key-vs-service-key)
 section. Always use a user-key (`dep_live_*` or `dep_test_*`) provisioned
-via the Solid UI.
+via the Deposium web UI.
 
 ## SSE event reference
 

@@ -84,8 +84,8 @@ export const healthCommand = new Command('health')
       }
     } catch (error: unknown) {
       console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is running:');
-      console.log(chalk.gray('  cd deposium_API && pnpm dev\n'));
+      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is reachable.');
+      console.log(chalk.gray('  Verify DEPOSIUM_URL and that the API responds at /api/cli/mcp.\n'));
       process.exit(1);
     }
   });

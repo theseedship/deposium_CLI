@@ -39,11 +39,12 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 
 ## Short-term (v1.2 candidates)
 
-- [x] **validate command (`deposium validate`)** — phase shipped:
-      types + SSE renderer + HITL form + multipart upload + `validateDossier`
-      orchestrator + `--json` mode + 79 unit tests against the frozen
-      contract spec contract. phase (live integration with the upstream
-      macro) waits on the server-side sprint.
+- [x] **`deposium validate` command** (dossier validation) —
+      client-side shipped: types + SSE renderer + HITL form + multipart
+      upload + `validateDossier` orchestrator + `--json` mode + 79 unit
+      tests against the frozen `validate:*` event contract. End-to-end
+      integration with the live server-side macro lands once that
+      backend rolls out.
 - [ ] `files download` once the server exposes API-key auth on `/api/download/*`
 - [ ] `space delete` + `space update` once MCP exposes those operations
 - [ ] Pre-upload validation pass via `check_file` integrated into `upload-batch`

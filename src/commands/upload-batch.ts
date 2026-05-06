@@ -1,5 +1,5 @@
 /**
- * sprint: CLI Batch Upload Command
+ * Batch Upload Command — multipart POST of multiple files in one request.
  * Uploads multiple files to Deposium via the batch upload API
  *
  * Usage:

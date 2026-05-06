@@ -105,12 +105,12 @@ The `~/.deposium/` directory is automatically set to chmod 0700.
 
 The CLI accepts user-keys only:
 
-- ✅ `dep_live_*` — production user-key (Solid UI)
-- ✅ `dep_test_*` — test user-key (Solid UI, dev tenants)
+- ✅ `dep_live_*` — production user-key (web UI)
+- ✅ `dep_test_*` — test user-key (web UI, dev tenants)
 - ❌ `dep_svc_*` — **rejected at startup**. Service-keys are for
-  server-side agent traffic (Mastra, internal orchestrators); the CLI
-  is invoked by humans and must use a user-key. The check fires for
-  env-var, stored credential, and `auth login` paste paths.
+  server-side inter-process authentication only; the CLI is invoked
+  by humans and must use a user-key. The check fires for env-var,
+  stored credential, and `auth login` paste paths.
 
 See [`auth` — Key types](../commands/auth.md#key-types--user-key-vs-service-key)
 for the full rejection message and remediation.

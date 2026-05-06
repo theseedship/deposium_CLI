@@ -1,18 +1,16 @@
 /**
- * validate command — `deposium validate` types.
+ * Types for the `deposium validate` command.
  *
- * Mirrors the contract frozen in deposium_API contract spec (tool signature)
- * and §4 (SSE event vocabulary, `validate:*` namespace, 11 events) on
- * commit `HASH` (2026-04-27).
- *
- * Re-exported from `mcp-client.ts` so consumers can import as
+ * Mirrors the upstream tool input/output and SSE event vocabulary
+ * (`validate:*` namespace, 11 events) used by the dossier validation
+ * macro. Re-exported from `mcp-client.ts` so consumers can import as
  * `import { ValidateLevel } from '@deposium/cli'`.
  *
  * @module client/validate-types
  */
 
 // ============================================================================
-// Tool input / output (contract spec)
+// Tool input / output
 // ============================================================================
 
 /** N1 (per-thematic) | N2 (cross-document) | both runs the full pipeline. */
@@ -23,22 +21,22 @@ export type ValidateLevel = 1 | 2 | 'both';
  *
  * Distinct from the chat-stream `OnAmbiguousMode` which adds a `pick-first`
  * mode. Validate emits only `chat_prompt type='form'` (never `'choice'`),
- * so `pick-first` has no semantic meaning here — see contract spec spec
- * §8.2 (2026-04-27).
+ * so `pick-first` has no semantic meaning here — the 3-mode subset is
+ * intentional.
  */
 export type OnAmbiguousModeValidate = 'prompt' | 'fail' | 'dump';
 
-/** Run lifecycle — see contract spec output `status` field. */
+/** Run lifecycle — `status` field of the tool output. */
 export type ValidateRunStatus = 'complete' | 'paused' | 'failed';
 
-/** Per-thematic verdict — see contract spec output `verdicts.thematic.*.verdict`. */
+/** Per-thematic verdict. */
 export type ValidateThematicVerdict = 'pass' | 'fail' | 'partial' | 'not_applicable';
 
 /** Top-level cross-document verdict (folder/N2). */
 export type ValidateFolderVerdict = 'pass' | 'fail';
 
 /**
- * `chat_prompt.waiting_for` discriminant for validate command (contract spec.1).
+ * `chat_prompt.waiting_for` discriminant.
  *
  * Routes the CLI's HITL form rendering branch:
  *   - `missing_document` → `inquirer` file path prompt + multipart upload
@@ -54,8 +52,10 @@ export type ValidateWaitingFor =
  * Resume Mode B — structured response sent back via tool input.
  *
  * Emitted in response to `chat_prompt` events with `waiting_for` of
- * `classification_correction` or `rule_clarification`. Mode A (file upload
- * for `missing_document`) does NOT use this field — see contract spec.2.
+ * `classification_correction` or `rule_clarification`. Mode A (file
+ * upload for `missing_document`) does NOT use this field — instead, the
+ * caller uploads the file out-of-band and re-invokes the tool with the
+ * same `run_id` and no `hitl_response`.
  */
 export interface HitlResponse {
   correlation_id: string;
@@ -64,7 +64,7 @@ export interface HitlResponse {
 }
 
 /**
- * Input shape for `tools/call deposium_validate_dossier` — contract spec.
+ * Input shape for `tools/call deposium_validate_dossier`.
  *
  * `tenant_id` is auto-filled by the server from the API key, so the CLI
  * never sets it explicitly.
@@ -80,12 +80,12 @@ export interface ValidateToolInput {
   language?: 'fr' | 'en';
   /** Idempotency key — reuse to resume/amend an existing paused run. */
   run_id?: string;
-  /** Resume Mode B payload (contract spec.2). Omit for Mode A (re-classify). */
+  /** Resume Mode B payload. Omit for Mode A (re-classify after upload). */
   hitl_response?: HitlResponse;
 }
 
 // ============================================================================
-// SSE event payloads (contract spec)
+// SSE event payloads
 // ============================================================================
 
 export interface ValidateStartEvent {
@@ -184,7 +184,7 @@ export interface ValidateGenericErrorEvent {
 }
 
 // ============================================================================
-// Typed `chat_prompt` form fields (contract spec.1)
+// Typed `chat_prompt` form fields
 // ============================================================================
 
 export interface ValidateFormFieldSelect {
@@ -222,7 +222,7 @@ export type ValidateFormField =
   | ValidateFormFieldText;
 
 /**
- * validate command form-shape `chat_prompt` (contract spec.1).
+ * Form-shape `chat_prompt` emitted by the validate macro.
  *
  * Specializes the generic `SSEChatPrompt` with typed fields and a strict
  * `waiting_for` discriminant. The transport layer still receives a generic
@@ -249,14 +249,16 @@ export interface ValidateChatPrompt {
 }
 
 // ============================================================================
-// Report JSON (contract spec output, fetched via GET /api/v1/reports/<run_id>)
+// Report JSON (fetched via GET /api/v1/reports/<run_id>)
 // ============================================================================
 
 /**
  * Full report JSON returned by `GET /api/v1/reports/<run_id>?format=json`.
  *
- * Per contract spec.4 + spec §8.5 — the report is fetched separately
- * after `validate:complete`, NOT embedded in the SSE stream.
+ * The report is fetched out-of-band after `validate:complete` rather than
+ * embedded in the SSE stream — this keeps the stream lean (large
+ * `chat_history` and N2 evidence payloads stay off the wire) and lets
+ * consumers refetch the canonical report idempotently.
  */
 export interface ValidateReportJson {
   run_id: string;

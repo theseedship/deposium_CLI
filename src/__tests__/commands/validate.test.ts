@@ -81,7 +81,7 @@ describe('parseOnAmbiguous', () => {
     }
   );
 
-  test('pick-first is rejected (chat-only — spec §8.2)', () => {
+  test('pick-first is rejected (chat-only — validate emits only form prompts)', () => {
     expect(() => parseOnAmbiguous('pick-first')).toThrow(/pick-first is chat-only/);
   });
 

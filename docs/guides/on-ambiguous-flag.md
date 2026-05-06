@@ -8,10 +8,11 @@ macro for a missing piece / classification correction / rule clarification
 as an interactive picker or form. In the CLI, `--on-ambiguous=<mode>`
 controls the response policy.
 
-> **Two modes families** — `chat` accepts 4 modes (`prompt | fail | dump |
-pick-first`); `validate` accepts the 3-mode subset (`prompt | fail | dump`)
-> because validate command emits only `chat_prompt type='form'`, never `'choice'`,
-> so `pick-first` has no semantic meaning.
+> **Two mode families** — `chat` accepts 4 modes
+> (`prompt | fail | dump | pick-first`); `validate` accepts the 3-mode
+> subset (`prompt | fail | dump`) because the validate macro emits only
+> `chat_prompt type='form'`, never `'choice'`, so `pick-first` has no
+> semantic meaning there.
 
 ## Modes
 
@@ -97,21 +98,21 @@ step after disambiguation) — the CLI loops until the stream closes with
 > the edge transparently with auth + rate-limiting. Set via
 > `DEPOSIUM_EDGE_URL` when available.
 
-## Resume in `deposium validate` (validate command)
+## Resume in `deposium validate`
 
 `validate` uses a different resume protocol from chat: instead of POST
 `/api/agent-resume`, the CLI re-calls `tools/call deposium_validate_dossier`
-with the same `run_id`. Two modes (contract spec.2):
+with the same `run_id`. Two modes:
 
 - **Mode A** (response to `waiting_for=missing_document`) — the CLI
-  uploads the file to Solid's `/api/v2/files/batch-upload` first, then
-  re-calls `tools/call` _without_ a `hitl_response`. MCPs detects
-  `status='paused'`, re-classifies the dossier, and resumes the failing
-  thematic.
+  uploads the file to the API gateway's `/api/v2/files/batch-upload`
+  first, then re-calls `tools/call` _without_ a `hitl_response`. The
+  server detects `status='paused'`, re-classifies the dossier, and
+  resumes the failing thematic.
 - **Mode B** (response to `classification_correction` / `rule_clarification`)
   — the CLI re-calls `tools/call` with `hitl_response` carrying the form
-  values. MCPs branches on the field keys, applies the response, and
-  advances the paused step.
+  values. The server branches on the field keys, applies the response,
+  and advances the paused step.
 
 Both paths reuse `--on-ambiguous` to gate interactivity (`prompt` collects
 form input; `fail` exits non-zero; `dump` prints the prompt JSON for

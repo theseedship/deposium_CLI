@@ -97,7 +97,7 @@ import type {
 // Re-export auth-error types/class so existing imports still resolve.
 export { MCPAuthError, type MCPAuthErrorCode, buildAuthError } from './auth-error';
 
-// Re-export validate command validate types — consumers do
+// Re-export validate command types — consumers do
 // `import { ValidateLevel } from '@deposium/cli'`.
 export type {
   ValidateLevel,
@@ -639,14 +639,15 @@ export class MCPClient {
   }
 
   /**
-   * validate command — run `deposium_validate_dossier` over `/mcp` (JSON-RPC
-   * over SSE). Manages the full pause/resume loop: stream events into the
-   * caller's handlers, pause on `chat_prompt`, re-call the same tool with
-   * the same `run_id` (Mode A or B per contract spec.2), continue.
+   * Run `deposium_validate_dossier` over `/mcp` (JSON-RPC over SSE).
+   * Manages the full pause/resume loop: stream events into the caller's
+   * handlers, pause on `chat_prompt`, re-call the same tool with the same
+   * `run_id` (Mode A: re-classify after upload — Mode B: structured
+   * `hitl_response`), continue.
    *
    * Returns when the macro emits `validate:complete` or `validate:failed`.
    * The full report JSON is NOT in the stream — call `fetchValidateReport`
-   * with the returned `run_id` (greenlight §8.5).
+   * with the returned `run_id` to retrieve it.
    *
    * @param input    Tool input — initial call. The internal loop manages
    *                 `run_id` and `hitl_response` for resumes; callers do
@@ -710,10 +711,10 @@ export class MCPClient {
    * Fetch the full validate report JSON from
    * `GET /api/v1/reports/<run_id>?format=json`.
    *
-   * Per greenlight §8.5 + contract spec.4: the report lives behind a separate
-   * idempotent endpoint to keep the SSE stream lean. Call after
-   * `validate:complete` to get the canonical report; or in `--json` mode
-   * after consuming the stream.
+   * The report lives behind a separate idempotent endpoint to keep the
+   * SSE stream lean (large `chat_history` and N2 evidence stay off the
+   * wire). Call after `validate:complete` to get the canonical report;
+   * or in `--json` mode after consuming the stream.
    */
   async fetchValidateReport(runId: string): Promise<ValidateReportJson> {
     const requestId = generateRequestId();

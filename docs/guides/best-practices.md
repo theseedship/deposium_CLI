@@ -154,7 +154,7 @@ deposium files list --format json --silent \
 deposium files rm 1234 --yes
 ```
 
-### Validate a dossier (validate command)
+### Validate a dossier
 
 ```bash
 # 1. Mint a dedicated user-key for the validation run (CI-grade)
@@ -217,13 +217,13 @@ export DEPOSIUM_API_KEY="dep_live_..."
 
 ### Use a user-key, never a service-key
 
-Deposium issues two key families: user-keys (`dep_live_*` / `dep_test_*`,
-provisioned via the Solid UI) and service-keys (`dep_svc_*`, issued by
-`edge_runtime` for server-side agent traffic). **The CLI rejects
-`dep_svc_*` keys at startup** — service-keys belong to long-running
-server processes (Mastra agents, internal orchestrators), not to a
-human's terminal. A leaked user-key revokes one user; a leaked
-service-key compromises the agent fleet.
+Deposium issues two key families: user-keys (`dep_live_*` /
+`dep_test_*`, provisioned via the web UI) and service-keys
+(`dep_svc_*`, issued for server-side inter-process authentication).
+**The CLI rejects `dep_svc_*` keys at startup** — service-keys belong
+to long-running server processes, not to a human's terminal. A leaked
+user-key revokes one user; a leaked service-key compromises the agent
+fleet.
 
 If your pipeline imports `DEPOSIUM_API_KEY` from a shared secret store,
 verify the upstream value is a user-key before plumbing it through.

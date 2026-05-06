@@ -9,9 +9,9 @@
 /**
  * Stable enum of MCP auth error codes returned by `/api/cli/mcp` (HTTP 401).
  *
- * Mirrors the server-side `ApiKeyErrorCode` enum in deposium_API. Keys are
- * stable across server versions; `MCPAuthError.message` is human copy and
- * may change wording — switch on `errorCode`, not on `message`.
+ * Mirrors the upstream server-side `ApiKeyErrorCode` enum. Keys are stable
+ * across server versions; `MCPAuthError.message` is human copy and may
+ * change wording — switch on `errorCode`, not on `message`.
  */
 export type MCPAuthErrorCode =
   | 'key_missing'

@@ -1,15 +1,17 @@
 /**
- * validate command — file upload helper for `missing_document` HITL responses.
+ * File upload helper for `missing_document` HITL responses during a
+ * `deposium validate` run.
  *
- * When a `validate` run pauses with `waiting_for=missing_document`, the CLI
- * collects a local path from the user (see `validate-hitl-form.ts`) and
- * sends the file to Solid's `/api/v2/files/batch-upload` endpoint. Solid
+ * When a run pauses with `waiting_for=missing_document`, the CLI collects
+ * a local path from the user (see `validate-hitl-form.ts`) and sends the
+ * file to the API's `/api/v2/files/batch-upload` endpoint. The server
  * persists it, attributes it to the dossier, and the CLI then re-calls
- * `tools/call deposium_validate_dossier` with the same `run_id` to resume
- * (Mode A — see contract spec.2).
+ * `tools/call deposium_validate_dossier` with the same `run_id` to
+ * resume (Mode A — re-classify after upload).
  *
- * Solid path is intentional (greenlight §8.3): billing-aware, scope-checked,
- * existing path. Direct MCPs upload would bypass billing.
+ * The upload routes through the standard API gateway (not the MCP
+ * backend directly) because the gateway path is billing-aware and
+ * scope-checked.
  *
  * @module utils/validate-file-upload
  */
@@ -20,11 +22,11 @@ import { buildAuthError } from '../client/auth-error';
 import { hasErrorCauseWithCode } from './errors';
 
 /**
- * Upload a single file to Solid's batch-upload endpoint.
+ * Upload a single file to the API gateway's batch-upload endpoint.
  *
- * @param baseUrl  Solid base URL (`getBaseUrl()` value).
+ * @param baseUrl  API gateway base URL (`getBaseUrl()` value).
  * @param apiKey   User-key (already screened by the service-key guardrail).
- * @param spaceId  Dossier space — Solid scopes the upload to it.
+ * @param spaceId  Dossier space — the server scopes the upload to it.
  * @param filePath Local path to the file. Caller has already validated
  *                 existence + size via `validate-hitl-form.ts`.
  *
@@ -100,7 +102,7 @@ interface UploadResponseShape {
 }
 
 /**
- * Normalize Solid's batch-upload response. Accepts both
+ * Normalize the API gateway's batch-upload response. Accepts both
  * `{files: [{id, file_name}]}` and the flat `{file_id, file_name}` shape so
  * we don't crash if the endpoint changes its envelope on single-file
  * uploads.

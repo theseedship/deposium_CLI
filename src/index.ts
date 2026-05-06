@@ -48,7 +48,7 @@ export type {
   MCPApiKeyUsage,
 } from './client/types';
 
-// validate command — `deposium validate` types
+// `deposium validate` types
 export type {
   ValidateLevel,
   OnAmbiguousModeValidate,

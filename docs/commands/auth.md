@@ -66,19 +66,19 @@ deposium auth status
 
 Deposium issues two API key families:
 
-| Prefix       | Audience                                        | CLI accepts? |
-| ------------ | ----------------------------------------------- | ------------ |
-| `dep_live_*` | Production user-keys (provisioned via Solid UI) | ✅           |
-| `dep_test_*` | Test user-keys (Solid UI, dev tenants)          | ✅           |
-| `dep_svc_*`  | **Service-keys** for server-side agent traffic  | ❌           |
+| Prefix       | Audience                                               | CLI accepts? |
+| ------------ | ------------------------------------------------------ | ------------ |
+| `dep_live_*` | Production user-keys (provisioned via Deposium web UI) | ✅           |
+| `dep_test_*` | Test user-keys (Deposium web UI, dev tenants)          | ✅           |
+| `dep_svc_*`  | **Service-keys** for server-side agent traffic         | ❌           |
 
 The CLI **rejects `dep_svc_*` at startup** with an actionable message,
 because:
 
 - The CLI is invoked by a human, who has a user-key.
-- Service-keys are for inter-process auth on the server side (Mastra
-  agents, future GLiNER 2 wrapper). A leaked user-key revokes one user;
-  a leaked service-key compromises the agent fleet.
+- Service-keys are for inter-process auth on the server side only.
+  A leaked user-key revokes one user; a leaked service-key compromises
+  the agent fleet.
 - This rejection happens before any HTTP call — failing fast keeps a
   misconfigured CI pipeline from leaking the key in retries / logs.
 
@@ -90,6 +90,6 @@ Service-keys are for server-side agent traffic only and cannot be used by the CL
 Provision a user-key (dep_live_* or dep_test_*) from the Deposium UI and use that instead.
 ```
 
-…provision a user-key from the Solid UI and replace the env var or
+…provision a user-key from the Deposium web UI and replace the env var or
 stored credential. The same check fires whether the key comes from
 `DEPOSIUM_API_KEY`, `~/.deposium/credentials`, or `auth login` paste.

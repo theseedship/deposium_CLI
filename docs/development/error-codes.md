@@ -9,7 +9,7 @@ The human-readable `message` and `hint` may change wording.
 
 ## Stable enum
 
-Mirrors the server-side `ApiKeyErrorCode` enum in `deposium_API`.
+Mirrors the upstream server's `ApiKeyErrorCode` enum.
 
 | `errorCode`           | Meaning                                                     |
 | --------------------- | ----------------------------------------------------------- |
@@ -86,5 +86,6 @@ through to the generic catch).
 
 ## Server reference
 
-Defined upstream in `deposium_API` commit `HASH` (2026-04-25). See
-the `/api/cli/mcp` route handler for the exact response shape.
+Wire shape is defined by the API gateway's `/api/cli/mcp` route handler
+on HTTP 401 responses; the JSON envelope carries
+`{ error, message, error_code, hint, docs }`.

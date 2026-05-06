@@ -9,117 +9,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — validate command (phase: contract ready, awaits backend)
+### Added — `deposium validate` command
 
 - New command `deposium validate <dossier_id>` — runs the
   `deposium_validate_dossier` macro end-to-end (N1 per-thematic + N2
   cross-document + HITL). Streams 11 SSE events from the `validate:*`
   namespace, pauses interactively on `chat_prompt`, uploads missing
-  pieces to Solid, resumes via `tools/call` re-call. See
-  [docs/commands/validate.md](commands/validate.md).
+  pieces via the API gateway's `/api/v2/files/batch-upload`, and
+  resumes via a `tools/call` re-call (Mode A: re-classify after upload —
+  Mode B: structured `hitl_response`). See
+  [docs/commands/validate.md](commands/validate.md) for the full
+  reference.
 - Flags: `--level 1|2|both`, `--on-ambiguous prompt|fail|dump` (3-mode
-  subset of chat — no `pick-first` since validate emits only
-  `chat_prompt type='form'`), `--language fr|en`, `--run-id` (resume),
-  `--json` (silent stream + report fetch to stdout), `--verbose`
-  (per-document and per-requirement detail).
-- New module surface (re-exported from `mcp-client.ts`):
+  subset of chat — `pick-first` is omitted because validate emits only
+  `chat_prompt type='form'`), `--language fr|en`, `--run-id` (resume an
+  existing paused run), `--json` (silent stream + report fetch to
+  stdout), `--verbose` (per-document classification and per-requirement
+  N1 verdicts).
+- New SDK surface (re-exported from the package main entry):
   - `MCPClient.validateDossier(input, handlers)` — orchestrates the
-    `tools/call` SSE loop, including Mode A (re-classify after upload)
-    and Mode B (`hitl_response`) resume protocols.
+    `tools/call` SSE loop, transparently driving the Mode A / Mode B
+    resume protocols on every `chat_prompt`.
   - `MCPClient.fetchValidateReport(runId)` — fetches the canonical
-    report from `GET /api/v1/reports/<run_id>?format=json` (separated
-    from the SSE stream per contract spec.4).
+    report JSON from `GET /api/v1/reports/<run_id>?format=json`. The
+    report is separated from the SSE stream so the stream stays lean
+    (large `chat_history` and N2 evidence stay off the wire) and the
+    fetch is idempotent.
   - Types: `ValidateLevel`, `OnAmbiguousModeValidate`,
     `ValidateToolInput`, `ValidateChatPrompt`, `ValidateEvents` (every
-    `validate:*` payload), `ValidateReportJson`,
-    `ValidateStreamHandlers`, `HitlDecision`, `HitlResponse`, etc.
+    `validate:*` payload as a tagged union), `ValidateReportJson`,
+    `ValidateStreamHandlers`, `HitlDecision`, `HitlResponse`, plus
+    typed form-field shapes (`ValidateFormFieldSelect`,
+    `ValidateFormFieldFileUpload`, `ValidateFormFieldText`).
 
-### Status — phase only
+### Added — programmatic SDK entry point
+
+- New `src/index.ts` module re-exports the public surface (`MCPClient`,
+  `MCPAuthError`, all chat-stream + self-service + validate types).
+- `package.json` `main` switched from `dist/cli.js` to `dist/index.js`,
+  with the CLI binary still wired via `bin`. Programmatic consumers
+  can now `import { MCPClient } from '@deposium/cli'` without the
+  package triggering CLI argv parsing on import.
+- `types: dist/index.d.ts` added so editors find the public types from
+  the package main entry.
+
+### Fixed
+
+- `MCPClient.postStream` (used by both `chatStream` and the new
+  `validateDossier`) now normalizes ECONNREFUSED to the same friendly
+  "Cannot connect to Deposium API at &lt;baseUrl&gt;" message every other
+  client method emits. Previously a server-down condition surfaced as a
+  raw `TypeError: fetch failed`. Same fix applied to
+  `uploadFileForValidate` so Mode A uploads during a `validate` pause
+  get the same UX. ([src/client/mcp-client.ts](../src/client/mcp-client.ts),
+  [src/utils/validate-file-upload.ts](../src/utils/validate-file-upload.ts))
+- `validate --json` no longer leaks Mode A upload progress lines
+  (`[upload] <path>...`) onto stdout — they were polluting the JSON
+  report and breaking downstream `jq` consumers. The interactive
+  status logs are suppressed when `--json` is on.
+
+### Status
 
 This release ships **client-side code + unit tests against the frozen
-upstream SSE event contract** (the server-side ADR was frozen on commit
-`HASH`, 2026-04-27). The backend that emits `validate:*` events is
-a follow-up sprint — end-to-end integration testing happens in phase
-(estimated ~1 week after the server side ships).
-
-Mock fixtures in `src/__tests__/validate-*.test.ts` are derived directly
-from contract spec payload shapes, so the wire contract is locked. If MCPs
-emits an off-contract event when it lands, the renderer's exhaustiveness
-check will surface the mismatch in unit tests before any production run.
+upstream `validate:*` SSE event contract**. The server-side macro that
+emits these events lands in a follow-up rollout — end-to-end
+integration testing happens once both sides converge. Mock fixtures
+mirror the wire contract bit-for-bit, so any contract drift surfaces
+in unit tests via the renderer's exhaustiveness check before any
+production run.
 
 ### Tests
 
-- 5 new test files covering phase:
+- 5 new test files plus targeted guards in existing suites:
   - `validate-events.test.ts` — 28 tests (renderer per event + silent
     + verbose toggles + verdict glyph mapping + final pass/fail logic)
   - `validate-hitl-form.test.ts` — 17 tests (mode dispatch, every
-    `waiting_for` discriminant, `skip` keyword, file path validator)
-  - `validate-file-upload.test.ts` — 8 tests (multipart POST, response
-    shape normalization, 401 → MCPAuthError, generic HTTP errors)
+    `waiting_for` discriminant, `skip` keyword, file-path validator)
+  - `validate-file-upload.test.ts` — 9 tests (multipart POST, response
+    shape normalization, 401 → `MCPAuthError`, generic HTTP errors,
+    ECONNREFUSED normalization)
   - `validate-dossier.test.ts` — 9 tests (single-stream happy path,
     failure terminal, JSON-RPC envelope shape, Mode A + Mode B resume
-    loops, fetchValidateReport 200/404)
-  - `commands/validate.test.ts` — 17 tests (parsers + arg forwarding +
-    `--json` + exit-code semantics)
-- 348 → 427 tests, all green.
+    loops, `fetchValidateReport` 200/404)
+  - `commands/validate.test.ts` — 17 tests (parsers + arg forwarding
+    + `--json` + exit-code semantics)
+- +1 guard in `mcp-client.test.ts > chatStream` for ECONNREFUSED
+  normalization.
+- 348 → 429 tests, all green. Lint clean (only the pre-existing
+  `mcp-client.ts` file-size warning), typecheck clean.
 
 ### Documentation
 
 - `docs/commands/validate.md` — new command reference (flags, examples,
   exit codes, SSE event vocabulary, report fetch, programmatic use).
 - `docs/guides/on-ambiguous-flag.md` — extended to cover validate's
-  3-mode subset and the new Mode A / Mode B resume protocol distinct
-  from chat's `/api/agent-resume`.
-- `README.md` — command index updated (24 entries; `validate` added).
+  3-mode subset and the Mode A / Mode B resume protocol (distinct from
+  chat's `/api/agent-resume`).
 - `docs/guides/best-practices.md` — new "Validate a dossier"
   workflow recipe with both interactive and CI patterns.
-
-### SDK packaging — programmatic entry point
-
-- New `src/index.ts` module re-exports the public SDK surface (`MCPClient`,
-  `MCPAuthError`, all chat-stream + self-service + validate types).
-- `package.json` `main` switched from `dist/cli.js` to `dist/index.js`,
-  with the CLI binary still wired via `bin`. Programmatic consumers can
-  now `import { MCPClient } from '@deposium/cli'` without the package
-  triggering CLI argv parsing on import.
-- `types: dist/index.d.ts` added so IDEs find the public types from the
-  package main entry.
-
-### Pinned by spec 2026-04-27
-
-- Flag name `--on-ambiguous` (not `--on-ambiguity`) — see spec §8.1.
-- Env var `DEPOSIUM_URL` (not `DEPOSIUM_API_URL`) — see spec §8.3.
-- Report fetched via `GET /api/v1/reports/<run_id>?format=json` *after*
-  `validate:complete` (NOT embedded in the SSE stream) — spec §8.5.
-- Resume via re-call of `tools/call` (NOT `resumeAgent`'s
-  `/api/agent-resume` endpoint, which stays Phase I chat-only) —
-  spec §8.4.
+- `README.md` — command index updated (24 entries; `validate` added).
 
 ## [1.1.7] - 2026-04-25
 
 ### Added — Service-key guardrail
 
 - The CLI now rejects `dep_svc_*` API keys at startup with an actionable
-  message. Service-keys are issued by edge_runtime for **server-side**
-  agent traffic (Mastra, future GLiNER 2 wrapper); the CLI is invoked by
-  a human and must use a user-key (`dep_live_*` / `dep_test_*`). The
-  check fires for env-var, stored credential, and interactive-prompt
-  paths; rejection happens before any HTTP call. ([src/utils/auth.ts](../src/utils/auth.ts))
+  message. Service-keys are issued for **server-side** inter-process
+  authentication only; the CLI is invoked by a human and must use a
+  user-key (`dep_live_*` / `dep_test_*`). The check fires for env-var,
+  stored credential, and interactive-prompt paths; rejection happens
+  before any HTTP call. ([src/utils/auth.ts](../src/utils/auth.ts))
 
   Source-aware error message points the user at the exact place to fix:
   `DEPOSIUM_API_KEY env var`, `~/.deposium/credentials`, or the prompt.
 
-  Aligns the CLI with sprint Phase 0 (deposium_API) — see
-  contract spec §user-key vs service-key.
-
 ### Changed
 
 - `MCPAuthErrorCode` enum gains `'accept_invalid'` to mirror the
-  canonical 9-code list shipped by the server-side AUTH_ERROR contract
-  (deposium_API auth-contract-finalize). The CLI itself never triggers
-  this code (it sets `Accept: application/json, text/event-stream` on
-  every request), but exporting the full enum keeps SDK consumers in
-  sync with the upstream contract.
+  canonical 9-code list shipped by the upstream AUTH_ERROR contract.
+  The CLI itself never triggers this code (it sets
+  `Accept: application/json, text/event-stream` on every request), but
+  exporting the full enum keeps SDK consumers in sync with the
+  upstream contract.
 
 ### Tests
 

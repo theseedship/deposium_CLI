@@ -1,7 +1,7 @@
 /**
- * validate command — `validate:*` SSE event rendering.
+ * `validate:*` SSE event rendering.
  *
- * Pure functions that map each frozen contract spec event payload to a single
+ * Pure functions that map each frozen event payload to a single
  * console-ready string. The `validate` command consumes the SSE stream and
  * pipes every event through `renderValidateEvent`, printing the returned
  * string when non-null. Returning `null` is the signal to suppress (e.g.

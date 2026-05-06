@@ -1,8 +1,8 @@
 /**
  * Tests for src/client/validate-events.ts — renderValidateEvent.
  *
- * Pins the rendered string for each contract spec event type. Refactor of the
- * renderer must keep these guards green.
+ * Pins the rendered string for each `validate:*` event type. Refactor of
+ * the renderer must keep these guards green.
  */
 
 import { describe, test, expect, vi } from 'vitest';

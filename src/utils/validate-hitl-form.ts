@@ -1,8 +1,8 @@
 /**
- * validate command — HITL form rendering for `chat_prompt` events emitted
- * during a `deposium validate` run.
+ * HITL form rendering for `chat_prompt` events emitted during a
+ * `deposium validate` run.
  *
- * Routes by `waiting_for` discriminant (contract spec.1):
+ * Routes by the `waiting_for` discriminant:
  *   - `missing_document`  → file-path prompt → Mode A resume (caller uploads)
  *   - `classification_correction` → select prompt → Mode B resume
  *   - `rule_clarification` → sequenced text/select prompts → Mode B resume

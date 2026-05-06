@@ -6,11 +6,12 @@ import { getErrorMessage, hasErrorCauseWithCode } from './errors';
 /**
  * Reject `dep_svc_*` keys at the CLI boundary.
  *
- * Service-keys are issued by edge_runtime for **server-side** inter-process
- * auth (Mastra agents, future GLiNER 2 wrapper). The CLI is invoked by a
- * human, who has a user-key (`dep_live_*` / `dep_test_*`) provisioned via
- * the Solid UI. Mixing them up is a footgun: a leaked user-key revokes one
- * user, a leaked service-key compromises the agent fleet.
+ * Service-keys are issued by the upstream auth service for
+ * **server-side** inter-process authentication only. The CLI is invoked
+ * by a human, who has a user-key (`dep_live_*` / `dep_test_*`)
+ * provisioned via the web UI. Mixing them up is a footgun: a leaked
+ * user-key revokes one user, a leaked service-key compromises the agent
+ * fleet.
  *
  * Defense in depth — the server would also reject this, but failing fast
  * here gives the user a precise message instead of a cryptic 401.
