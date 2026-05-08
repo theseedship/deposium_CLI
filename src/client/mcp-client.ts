@@ -208,6 +208,12 @@ export class MCPClient {
       'Content-Type': 'application/json',
       Accept: 'application/json, text/event-stream',
       'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
+      // Sprint connector evaluation PR7 (2026-05-08) — caller tag for
+      // server-side selective canaries (CONNECTOR_LAYER_CLI_ENABLED) and
+      // telemetry partitioning. Server sanitizes against a closed-set
+      // allowlist (`CLIENT_TYPES` in src/utils/trace-context.ts) ; an
+      // off-allowlist value silently falls back to 'unknown'.
+      'X-Client-Type': 'cli',
     };
 
     // Add API key to headers if provided (consistent casing with server)
@@ -861,6 +867,11 @@ export class MCPClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
+      // Sprint connector evaluation PR7 (2026-05-08) — same caller tag
+      // as the constructor's axios default headers. Mirrored explicitly
+      // here because postStream uses native fetch (axios path is
+      // separate) and would otherwise drop the header.
+      'X-Client-Type': 'cli',
     };
     if (this.apiKey) {
       headers['X-API-Key'] = this.apiKey;

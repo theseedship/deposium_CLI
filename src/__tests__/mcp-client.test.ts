@@ -52,6 +52,47 @@ describe('MCPClient', () => {
       expect((client as unknown as { maxRetries: number }).maxRetries).toBe(5);
       expect((client as unknown as { retryBaseDelay: number }).retryBaseDelay).toBe(500);
     });
+
+    /**
+     * Sprint connector evaluation PR7 (2026-05-08) — every CLI request
+     * carries `X-Client-Type: cli` so the MCPs server-side selective
+     * canary (CONNECTOR_LAYER_CLI_ENABLED) can target this client tag.
+     * Both header-injection sites (axios constructor + postStream's
+     * native fetch) are covered.
+     */
+    test('PR7: axios client config includes X-Client-Type: cli header', () => {
+      const axiosCreateSpy = vi.spyOn(axios, 'create').mockReturnValue({
+        post: vi.fn(),
+        get: vi.fn(),
+        defaults: { headers: { common: {} } },
+      } as unknown as ReturnType<typeof axios.create>);
+
+      new MCPClient('http://localhost:3000', 'api-key');
+
+      expect(axiosCreateSpy).toHaveBeenCalledTimes(1);
+      const config = axiosCreateSpy.mock.calls[0][0] as { headers: Record<string, string> };
+      expect(config.headers['X-Client-Type']).toBe('cli');
+      // X-API-Key remains, side-by-side, when supplied.
+      expect(config.headers['X-API-Key']).toBe('api-key');
+
+      axiosCreateSpy.mockRestore();
+    });
+
+    test('PR7: X-Client-Type still set even when no apiKey is supplied', () => {
+      const axiosCreateSpy = vi.spyOn(axios, 'create').mockReturnValue({
+        post: vi.fn(),
+        get: vi.fn(),
+        defaults: { headers: { common: {} } },
+      } as unknown as ReturnType<typeof axios.create>);
+
+      new MCPClient('http://localhost:3000');
+
+      const config = axiosCreateSpy.mock.calls[0][0] as { headers: Record<string, string> };
+      expect(config.headers['X-Client-Type']).toBe('cli');
+      expect(config.headers['X-API-Key']).toBeUndefined();
+
+      axiosCreateSpy.mockRestore();
+    });
   });
 
   describe('callTool', () => {
@@ -548,6 +589,31 @@ describe('MCPClient', () => {
       const fetchCall = fetchSpy!.mock.calls[0];
       const reqInit = fetchCall[1] as RequestInit;
       expect((reqInit.headers as Record<string, string>)['X-API-Key']).toBe('my-secret-key');
+    });
+
+    /**
+     * Sprint connector evaluation PR7 (2026-05-08) — postStream path
+     * (native fetch) must also carry `X-Client-Type: cli`. This is a
+     * second injection site distinct from the axios constructor.
+     */
+    test('PR7: postStream path includes X-Client-Type: cli header', async () => {
+      mockFetchSSE(makeSSE([{ event: 'done', data: { total_duration_ms: 0, tools_called: [] } }]));
+
+      const mockAxios = {
+        post: vi.fn(() => Promise.resolve({ data: {} })),
+        get: vi.fn(() => Promise.resolve({ data: {} })),
+        defaults: { headers: { common: {} } },
+      };
+      vi.spyOn(axios, 'create').mockReturnValue(
+        mockAxios as unknown as ReturnType<typeof axios.create>
+      );
+
+      const client = new MCPClient('http://localhost:3000', 'k');
+      await client.chatStream('http://localhost:9000', 'hi', { onToken: () => {} });
+
+      const fetchCall = fetchSpy!.mock.calls[0];
+      const reqInit = fetchCall[1] as RequestInit;
+      expect((reqInit.headers as Record<string, string>)['X-Client-Type']).toBe('cli');
     });
 
     test('should throw on 401 authentication error', async () => {
