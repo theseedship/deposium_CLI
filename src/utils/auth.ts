@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { getApiKey, setApiKey, hasApiKey } from './config';
-import { getErrorMessage, hasErrorCauseWithCode } from './errors';
+import { getErrorMessage, hasErrorCauseWithCode, isErrorWithCode } from './errors';
 
 /**
  * Reject `dep_svc_*` keys at the CLI boundary.
@@ -93,16 +93,38 @@ export async function validateApiKeyWithServer(baseUrl: string, apiKey: string):
     const data = (await response.json()) as { valid?: boolean };
     return data.valid === true;
   } catch (error: unknown) {
-    // Check for connection errors (ECONNREFUSED, etc.)
-    if (
-      hasErrorCauseWithCode(error, 'ECONNREFUSED') ||
-      getErrorMessage(error).includes('ECONNREFUSED')
-    ) {
+    // Native fetch wraps the underlying socket error in `cause` (modern
+    // Node). Both shapes are covered without any error-message string
+    // matching (which would break under i18n).
+    if (hasErrorCauseWithCode(error, 'ECONNREFUSED') || isErrorWithCode(error, 'ECONNREFUSED')) {
       throw new Error(`Cannot connect to Deposium API at ${baseUrl}`);
     }
     // Re-throw other errors
     throw error;
   }
+}
+
+/**
+ * Classify a thrown validation error as "the network is down" (safe to
+ * fall back to the stored key) vs "the server responded but something is
+ * broken / unknown" (don't silently trust the stored key — re-prompt).
+ *
+ * Codes that are clearly network-down: ECONNREFUSED, ENOTFOUND (DNS
+ * miss), ETIMEDOUT (no socket at all), ECONNRESET (kernel rejected
+ * mid-handshake). A 5xx response, on the other hand, is the server
+ * actively reporting a problem — not a connectivity blackout — and the
+ * stored key may already be revoked behind that 5xx.
+ */
+export function isNetworkDownError(error: unknown): boolean {
+  const NETWORK_DOWN_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'] as const;
+  if (error instanceof Error && /^Cannot connect to Deposium API/i.test(error.message)) {
+    // `validateApiKeyWithServer` already classified ECONNREFUSED above
+    // and threw a friendly message — recognize it on the way out.
+    return true;
+  }
+  return NETWORK_DOWN_CODES.some(
+    (code) => hasErrorCauseWithCode(error, code) || isErrorWithCode(error, code)
+  );
 }
 
 /**
@@ -138,12 +160,23 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
       // If key is invalid, notify user and continue to re-authentication
       console.log(chalk.yellow('\n⚠️  Stored API key is no longer valid\n'));
     } catch (error: unknown) {
-      // If there's a connection error or other issue, we'll try to proceed with stored key
+      // Fall back to the stored key ONLY when the server is truly
+      // unreachable — a 5xx, timeout-with-response, or unknown error
+      // means the server IS there but something is wrong and the key
+      // may already be revoked behind it. Re-prompt in that case
+      // instead of silently trusting the cache.
+      if (isNetworkDownError(error)) {
+        console.log(chalk.yellow('\n⚠️  Could not reach Deposium API: ' + getErrorMessage(error)));
+        console.log(chalk.gray('Proceeding with the stored key (offline-friendly).\n'));
+        return existingKey;
+      }
       console.log(
-        chalk.yellow('\n⚠️  Could not validate stored API key: ' + getErrorMessage(error))
+        chalk.yellow(
+          '\n⚠️  Could not validate stored API key (server responded with an error): ' +
+            getErrorMessage(error)
+        )
       );
-      console.log(chalk.gray('Attempting to continue with stored key...\n'));
-      return existingKey;
+      console.log(chalk.gray('Please re-authenticate.\n'));
     }
   }
 

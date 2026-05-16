@@ -50,12 +50,21 @@ describe('corpus command', () => {
         'stats',
         'evaluate',
         'improve',
-        'realtime-eval',
+        // M8: renamed from 'realtime-eval' (which was misleading — the call is
+        // a one-shot snapshot, not a poll/stream). 'realtime-eval' kept as
+        // alias for back-compat.
+        'eval-snapshot',
         'monitor',
         'freshness',
         'drift',
       ])
     );
+  });
+
+  it('M8: realtime-eval kept as alias of eval-snapshot', () => {
+    const snapshot = corpusCommand.commands.find((c) => c.name() === 'eval-snapshot');
+    expect(snapshot).toBeDefined();
+    expect(snapshot?.aliases()).toContain('realtime-eval');
   });
 
   it('stats subcommand calls corpus_stats with tenant/space from config', async () => {

@@ -1,5 +1,3 @@
-> Revision: 15/02/2025
-
 # Corpus Command
 
 The `corpus` command allows you to inspect, evaluate, and monitor your knowledge base.
@@ -56,19 +54,21 @@ deposium corpus improve [options]
 - `--focus <area>`: Focus area (`coverage`, `quality`, `diversity`).
 - `-f, --format <type>`: Output format.
 
-### `realtime-eval`
+### `eval-snapshot` (alias: `realtime-eval`)
 
-Real-time corpus evaluation with RSS feed monitoring.
+Snapshot corpus evaluation — a one-shot call (not a recurring stream).
+The `--interval` flag is the **window size in seconds** the server uses
+to compute the snapshot, not a poll interval; the CLI calls once.
 
 ```bash
-deposium corpus realtime-eval [options]
+deposium corpus eval-snapshot [options]
 ```
 
 **Options:**
 
 - `-t, --tenant <id>`: Tenant ID.
 - `-s, --space <id>`: Space ID.
-- `--interval <seconds>`: Evaluation interval (default: `300`).
+- `--interval <seconds>`: Server-side window size (default: `300`).
 - `-f, --format <type>`: Output format.
 
 ### `monitor`

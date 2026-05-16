@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { parseIntOrThrow, parseOptionalInt } from '../utils/parsers';
 
 export const queryHistoryCommand = new Command('query-history')
   .alias('qh')
@@ -28,10 +29,10 @@ queryHistoryCommand
         'query_log',
         {
           query,
-          userId: options.userId,
+          user_id: options.userId,
           engine: options.engine,
-          results: options.results ? parseInt(options.results, 10) : undefined,
-          latency: options.latency ? parseInt(options.latency, 10) : undefined,
+          results: parseOptionalInt(options.results, '--results'),
+          latency: parseOptionalInt(options.latency, '--latency'),
         },
         { spinner: !options.silent }
       );
@@ -63,7 +64,7 @@ queryHistoryCommand
       const result = await client.callTool(
         'query_export',
         {
-          userId: options.userId,
+          user_id: options.userId,
           format: options.format,
           output: options.output,
           time_range: options.timeRange,
@@ -99,9 +100,9 @@ queryHistoryCommand
       const result = await client.callTool(
         'query_retrieve',
         {
-          userId: options.userId,
-          limit: parseInt(options.limit, 10),
-          offset: parseInt(options.offset, 10),
+          user_id: options.userId,
+          limit: parseIntOrThrow(options.limit, '--limit'),
+          offset: parseIntOrThrow(options.offset, '--offset'),
           engine: options.engine,
         },
         { spinner: !options.silent }
@@ -134,7 +135,7 @@ queryHistoryCommand
       const result = await client.callTool(
         'query_stats',
         {
-          userId: options.userId,
+          user_id: options.userId,
           time_range: options.timeRange,
           group_by: options.groupBy,
         },
@@ -176,7 +177,7 @@ queryHistoryCommand
       const result = await client.callTool(
         'query_cleanup',
         {
-          older_than_days: parseInt(options.olderThan, 10),
+          older_than_days: parseIntOrThrow(options.olderThan, '--older-than'),
         },
         { spinner: !options.silent }
       );

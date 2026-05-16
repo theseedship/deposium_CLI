@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const intelligenceCommand = new Command('intelligence')
   .alias('smart')
@@ -100,7 +101,7 @@ intelligenceCommand
         'smart_summarize',
         {
           results: resultsData,
-          max_tokens: parseInt(options.maxTokens, 10),
+          max_tokens: parseIntOrThrow(options.maxTokens, '--max-tokens'),
           focus: options.focus,
         },
         { spinner: !options.silent }
@@ -138,7 +139,7 @@ intelligenceCommand
         'smart_elicit',
         {
           query_text: query,
-          search_results: parseInt(options.searchResults, 10),
+          search_results: parseIntOrThrow(options.searchResults, '--search-results'),
           context,
         },
         { spinner: !options.silent }

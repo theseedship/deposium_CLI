@@ -100,10 +100,8 @@ spaceCommand
         process.exit(1);
       }
 
-      if (!options.silent) {
-        console.log(chalk.green('\n✅ Space created\n'));
-      }
-
+      // `formatOutput` renders the created entity below — no need for a
+      // second "Space created" banner above it (audit I5: cosmetic dedupe).
       formatOutput(result.content, options.format);
     })
   );

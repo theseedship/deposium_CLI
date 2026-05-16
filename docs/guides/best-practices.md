@@ -54,18 +54,9 @@ done
 ### Use Silent Mode in Scripts
 
 ```bash
-# CI/CD pipelines
+# CI/CD pipelines — pass --silent per invocation (no global toggle)
 deposium search "query" --silent --format json | jq .
-
-# Avoid spinner and progress output
-DEPOSIUM_SILENT=true deposium upload file.pdf
-```
-
-### Use Silent Mode in CI/CD
-
-```bash
-# Avoid spinner output in CI
-DEPOSIUM_SILENT=true deposium search "query" --format json
+deposium upload-batch ./*.pdf --space-id $SPACE --dry-run
 ```
 
 ---
@@ -208,11 +199,11 @@ deposium upload-batch "./big-corpus/*.pdf" --space-id "$SPACE_ID"
 ### API Key Management
 
 ```bash
-# Good: Environment variable
+# Recommended: env var (kept out of shell history)
 export DEPOSIUM_API_KEY="dep_live_..."
 
-# Bad: Command line argument (visible in history)
-# deposium --api-key "your-key" search "query"  # DON'T DO THIS
+# Or store once via the encrypted credentials store (chmod 0600)
+deposium auth login
 ```
 
 ### Use a user-key, never a service-key

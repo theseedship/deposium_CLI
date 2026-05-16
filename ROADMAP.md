@@ -1,6 +1,6 @@
 # Deposium CLI - Roadmap
 
-> Revision: 2026-04-25
+> Revision: 2026-05-16
 
 Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`](https://www.npmjs.com/package/@deposium/cli).
 
@@ -8,9 +8,9 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 
 | Metric             | Status              |
 | ------------------ | ------------------- |
-| Latest version     | v1.3.1 (npm)        |
+| Latest version     | v1.4.0 (npm)        |
 | Commands           | 23 operational      |
-| Tests              | 429 (Vitest)        |
+| Tests              | 453 (Vitest)        |
 | Statement coverage | ~55% (full surface) |
 | Security Score     | 10/10 (0 vulns)     |
 | License            | MIT                 |
@@ -78,8 +78,6 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 | `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 |
 | `DEPOSIUM_TENANT`   | Default tenant ID                     | -                       |
 | `DEPOSIUM_SPACE`    | Default space ID                      | -                       |
-| `DEPOSIUM_OUTPUT`   | Default output format                 | `table`                 |
-| `DEPOSIUM_SILENT`   | Suppress non-essential output         | `false`                 |
 
 > `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated.
 

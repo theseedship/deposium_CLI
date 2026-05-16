@@ -1,10 +1,10 @@
 /**
  * Integration tests for `upload-batch` command.
  *
- * upload-batch is a single-action command that uses HTTP fetch directly
- * (not MCPClient.callTool) and reads files from disk via glob. We focus
- * on configuration and the dry-run path, which exercises the full
- * file-resolution pipeline without performing the upload.
+ * After the H2/M3/M7 refactor the command routes through `MCPClient`
+ * (instead of a hand-rolled fetch + bespoke env-var precedence). These
+ * tests cover its public surface — argument/option wiring — and a smoke
+ * check that an empty glob exits 1 without hitting the network.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -19,12 +19,11 @@ vi.mock('glob', () => ({
 import { uploadBatchCommand } from '../../commands/upload-batch';
 
 describe('upload-batch command', () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let exitSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
   });
 
@@ -44,18 +43,17 @@ describe('upload-batch command', () => {
     expect(args[0].required).toBe(true);
   });
 
-  it('exposes the documented options', () => {
+  it('exposes the documented options (H2 regression: --api-key/--api-url removed)', () => {
     const optionNames = uploadBatchCommand.options.map((o) => o.long);
     expect(optionNames).toEqual(
-      expect.arrayContaining([
-        '--space-id',
-        '--folder-id',
-        '--api-key',
-        '--api-url',
-        '--dry-run',
-        '--parallel',
-      ])
+      expect.arrayContaining(['--space-id', '--folder-id', '--dry-run', '--parallel'])
     );
+    // H2: the bespoke `--api-key` / `--api-url` overrides are gone.
+    // upload-batch now uses the shared resolution (env > config > prompt)
+    // and shares TLS enforcement + service-key guards with the rest of
+    // the CLI.
+    expect(optionNames).not.toContain('--api-key');
+    expect(optionNames).not.toContain('--api-url');
   });
 
   it('exits with code 1 when no files match the glob pattern', async () => {

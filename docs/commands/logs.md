@@ -1,5 +1,3 @@
-> Revision: 15/02/2025
-
 # Logs Command
 
 The `logs` command group allows viewing, searching, and managing MCP server logs directly from the CLI.
@@ -14,7 +12,7 @@ deposium logs [command] [options]
 
 ### `view`
 
-View recent MCP server logs.
+View recent MCP server logs (snapshot — there is no streaming yet).
 
 ```bash
 deposium logs view [options]
@@ -24,7 +22,6 @@ deposium logs view [options]
 
 - `--level <level>`: Filter by log level (`error`, `warn`, `info`, `debug`) (default: `info`).
 - `--limit <number>`: Number of log entries to retrieve (default: 100).
-- `--tail`: Tail logs in real-time.
 - `-f, --format <type>`: Output format (json|table|markdown).
 
 ### `stats`

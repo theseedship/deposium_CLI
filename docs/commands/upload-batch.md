@@ -1,8 +1,11 @@
-> Revision: 15/02/2025
-
 # Upload Batch Command
 
 The `upload-batch` command uploads multiple files to Deposium efficiently.
+
+It uses the same auth + URL resolution as every other command:
+`DEPOSIUM_API_KEY` / `DEPOSIUM_URL` env vars, then the config file
+(`~/.deposium/credentials` for the key, `~/.deposium/config.json` for
+the URL), then an interactive prompt for the key on first run.
 
 ## Usage
 
@@ -18,10 +21,8 @@ deposium upload-batch <pattern> [options]
 
 - `--space-id <id>`: Target space ID for the upload.
 - `--folder-id <id>`: Target folder ID within the space.
-- `--api-key <key>`: API Key (overrides `DEPOSIUM_API_KEY` env var and config).
-- `--api-url <url>`: API URL (overrides `DEPOSIUM_API_URL` env var).
 - `--dry-run`: Show files found and estimated cost without uploading.
-- `--parallel <n>`: Number of parallel uploads (default: 3).
+- `--parallel <n>`: Number of parallel uploads (default: 3, reserved for future use).
 
 ## Examples
 

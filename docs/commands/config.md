@@ -1,5 +1,3 @@
-> Revision: 15/02/2025
-
 # Config Command
 
 The `config` command manages the local configuration for the Deposium CLI (e.g., default tenant, API URL).
@@ -22,12 +20,16 @@ deposium config set <key> <value>
 
 **Valid Keys:**
 
-- `api-key`: API key for authentication.
-- `deposium-url`: MCP Server endpoint.
+- `api-key`: API key for authentication. Stored in the encrypted
+  credentials file (`~/.deposium/credentials`, chmod 0600), not the
+  main config. Rejected if it starts with `dep_svc_` — those are
+  server-side service keys.
+- `deposium-url`: Deposium server endpoint.
 - `default-tenant`: Default tenant ID.
 - `default-space`: Default space ID.
-- `output-format`: Default output format (`json`, `table`, `markdown`).
-- `silent-mode`: Suppress progress messages (`true`/`false`).
+
+Per-command output format and silent mode are set with `--format` and
+`--silent` flags on each invocation.
 
 ### `get`
 

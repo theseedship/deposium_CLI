@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { parseOptionalInt } from '../utils/parsers';
 
 export const filesCommand = new Command('files').description(
   'Manage documents and files (list, show, check, rm)'
@@ -29,8 +30,8 @@ filesCommand
 
       const result = await client.listDocuments({
         spaceId: options.space,
-        limit: options.limit ? parseInt(options.limit, 10) : undefined,
-        offset: options.offset ? parseInt(options.offset, 10) : undefined,
+        limit: parseOptionalInt(options.limit, '--limit'),
+        offset: parseOptionalInt(options.offset, '--offset'),
       });
 
       if (result.items.length === 0) {

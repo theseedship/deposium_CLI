@@ -59,15 +59,34 @@ export function parseLevel(input: string): ValidateLevel {
  * Validate-specific `--on-ambiguous` parser. 3-mode subset of chat (which
  * also accepts `pick-first`). Validate emits only `chat_prompt type='form'`
  * — never `'choice'` — so `pick-first` has no semantic meaning here.
- * Defaults to `prompt` in a TTY, `fail` otherwise.
+ *
+ * Defaults:
+ *   - `--json` (regardless of TTY): `fail` — interactive prompts would
+ *     write to stdout and corrupt the final JSON report.
+ *   - TTY without `--json`: `prompt` (interactive).
+ *   - Non-TTY without `--json`: `fail`.
+ *
+ * Exported for unit testing.
  */
-export function parseOnAmbiguous(input: string | undefined): OnAmbiguousModeValidate {
-  if (!input) return process.stdin.isTTY ? 'prompt' : 'fail';
+export function parseOnAmbiguous(
+  input: string | undefined,
+  context: { json?: boolean } = {}
+): OnAmbiguousModeValidate {
+  if (!input) {
+    if (context.json) return 'fail';
+    return process.stdin.isTTY ? 'prompt' : 'fail';
+  }
   if (!VALID_ON_AMBIGUOUS.includes(input as OnAmbiguousModeValidate)) {
     throw new Error(
       `Invalid --on-ambiguous value: '${input}'. ` +
         `For validate, must be one of: ${VALID_ON_AMBIGUOUS.join(', ')} ` +
         `(pick-first is chat-only — validate emits form prompts, not choice prompts).`
+    );
+  }
+  if (context.json && input === 'prompt') {
+    throw new Error(
+      `--on-ambiguous=prompt is incompatible with --json: interactive prompts ` +
+        `would corrupt the JSON report on stdout. Use --on-ambiguous=fail or =dump.`
     );
   }
   return input as OnAmbiguousModeValidate;
@@ -162,9 +181,9 @@ export const validateCommand = new Command('validate')
   .action(
     withErrorHandling(async (dossierId: string, options: ValidateOptions) => {
       const level = parseLevel(options.level ?? 'both');
-      const onAmbiguous = parseOnAmbiguous(options.onAmbiguous);
-      const language = parseLanguage(options.language);
       const json = options.json === true;
+      const onAmbiguous = parseOnAmbiguous(options.onAmbiguous, { json });
+      const language = parseLanguage(options.language);
       const verbose = options.verbose === true;
 
       const config = getConfig();

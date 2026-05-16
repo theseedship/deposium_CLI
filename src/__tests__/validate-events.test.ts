@@ -339,7 +339,7 @@ describe('renderValidateEvent', () => {
       };
       const out = renderValidateEvent('validate:complete', payload);
       expect(out).toContain('PASS');
-      expect(out).toContain(`Run ID : ${RUN_ID}`);
+      expect(out).toContain(`Run ID: ${RUN_ID}`);
       expect(out).toContain('folder=pass');
     });
 

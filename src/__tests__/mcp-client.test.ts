@@ -54,13 +54,12 @@ describe('MCPClient', () => {
     });
 
     /**
-     * Sprint connector evaluation PR7 (2026-05-08) — every CLI request
-     * carries `X-Client-Type: cli` so the MCPs server-side selective
-     * canary (CONNECTOR_LAYER_CLI_ENABLED) can target this client tag.
-     * Both header-injection sites (axios constructor + postStream's
-     * native fetch) are covered.
+     * Every CLI request carries `X-Client-Type: cli` so the server can
+     * target this client tag for telemetry partitioning and selective
+     * canaries. Both header-injection sites (axios constructor +
+     * postStream's native fetch) are covered.
      */
-    test('PR7: axios client config includes X-Client-Type: cli header', () => {
+    test('axios client config includes X-Client-Type: cli header', () => {
       const axiosCreateSpy = vi.spyOn(axios, 'create').mockReturnValue({
         post: vi.fn(),
         get: vi.fn(),
@@ -78,7 +77,7 @@ describe('MCPClient', () => {
       axiosCreateSpy.mockRestore();
     });
 
-    test('PR7: X-Client-Type still set even when no apiKey is supplied', () => {
+    test('X-Client-Type still set even when no apiKey is supplied', () => {
       const axiosCreateSpy = vi.spyOn(axios, 'create').mockReturnValue({
         post: vi.fn(),
         get: vi.fn(),
@@ -592,11 +591,11 @@ describe('MCPClient', () => {
     });
 
     /**
-     * Sprint connector evaluation PR7 (2026-05-08) — postStream path
-     * (native fetch) must also carry `X-Client-Type: cli`. This is a
-     * second injection site distinct from the axios constructor.
+     * The postStream path (native fetch) must also carry
+     * `X-Client-Type: cli`. This is a second injection site distinct
+     * from the axios constructor.
      */
-    test('PR7: postStream path includes X-Client-Type: cli header', async () => {
+    test('postStream path includes X-Client-Type: cli header', async () => {
       mockFetchSSE(makeSSE([{ event: 'done', data: { total_duration_ms: 0, tools_called: [] } }]));
 
       const mockAxios = {

@@ -72,6 +72,55 @@ export function sanitizeErrorData(
 }
 
 /**
+ * Run an async operation with retry-on-transient-error and exponential
+ * backoff. Used by `MCPClient.listTools`, `health`, `listSpaces`, and
+ * the self-service path so the same shape doesn't have to be inlined
+ * four times.
+ *
+ * The operation receives the `requestId` (so the caller can stamp the
+ * `X-Request-ID` header). The optional `onRetry` callback fires before
+ * the `sleep` so the caller can update a spinner or log.
+ *
+ * Throws the last error after all retries are exhausted; the caller is
+ * responsible for mapping that to a domain message (`buildAuthError`,
+ * `ECONNREFUSED` → friendly text, etc).
+ */
+export async function withRetry<T>(
+  op: (requestId: string) => Promise<T>,
+  config: {
+    maxRetries: number;
+    retryBaseDelay: number;
+    requestId?: string;
+    onRetry?: (attempt: number, delay: number) => void;
+  }
+): Promise<T> {
+  const requestId = config.requestId ?? generateRequestId();
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    try {
+      return await op(requestId);
+    } catch (error) {
+      lastError = error;
+      const axiosError = error as AxiosError;
+      const canRetry =
+        // Only retry transient errors, and only while we have attempts left.
+        // Beyond maxRetries we stop polling and surface the failure.
+        // (axios.isAxiosError check lives inside `isRetryableError`'s
+        // contract — it only inspects fields that exist on AxiosError.)
+        attempt < config.maxRetries && isRetryableError(axiosError);
+      if (!canRetry) throw error;
+
+      const delay = config.retryBaseDelay * Math.pow(2, attempt);
+      config.onRetry?.(attempt + 1, delay);
+      await sleep(delay);
+    }
+  }
+
+  throw lastError;
+}
+
+/**
  * Create an error result from an Axios error
  */
 export function createAxiosErrorResult(

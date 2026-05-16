@@ -1,5 +1,3 @@
-> Revision: 2026-04-25
-
 # Changelog
 
 All notable changes to the Deposium CLI will be documented in this file.
@@ -8,6 +6,84 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.4.0] - 2026-05-16
+
+Internal audit cycle — fixes for one production-blocking bug, one
+security inconsistency, and a sweep of UX / hygiene issues.
+
+### Fixed
+
+- **`chat` HITL resume now goes through Edge Runtime** in the default
+  (non-`--direct`) mode. Previously the initial stream hit Edge but the
+  resume POST hit the direct MCP URL — which is not exposed in
+  production — so any `chat_prompt` pause failed immediately after the
+  user picked an option.
+- **`upload-batch` is now subject to the same security posture as every
+  other command**: HTTPS enforcement on non-localhost URLs, the
+  `dep_svc_*` service-key guardrail, and a consistent
+  "Cannot connect to Deposium API" message on ECONNREFUSED.
+- **Stored-key fallback in `ensureAuthenticated` only triggers on
+  genuine network failure** (`ECONNREFUSED` / `ENOTFOUND` /
+  `ETIMEDOUT` / `ECONNRESET`). A 5xx, timeout-with-response, or other
+  server-side error now re-prompts instead of silently trusting the
+  cached key — a revoked key behind a flapping server no longer keeps
+  working locally.
+- **`deposium config set api-key <value>` now routes through the
+  separate credentials store** (chmod 0600 file) rather than the main
+  config, and runs the service-key guardrail first.
+- **`--json` mode on `deposium validate` forces `--on-ambiguous=fail`**
+  by default. An explicit `--on-ambiguous=prompt` with `--json` is now
+  rejected up front — previously, a TTY-side prompt could pollute the
+  JSON report on stdout.
+- **Numeric option parsers throw actionable errors** instead of pushing
+  `NaN` to the server. `deposium search foo --top-k abc` now reports
+  the flag and value client-side. Applies across ~30 callsites.
+- **Interactive menu**: `intelligence > suggest` now prompts for
+  tenant/space (was hardcoded `'default'`), and `evaluate > feedback`
+  collects real input (was sending placeholder demo data).
+- **SSE chat stream** queues multiple `chat_prompt` events instead of
+  overwriting; warns when an unhandled `chat_prompt` arrives.
+- **Auth error detection** no longer string-matches `ECONNREFUSED` in
+  messages — uses structural error codes (i18n-safe).
+- **`config.ts` plaintext migration** checks for `{`/`[` before
+  attempting `JSON.parse`, so a corrupted-but-coincidentally-parseable
+  ciphertext blob can't be misclassified as plaintext.
+
+### Changed (breaking)
+
+- **`deposium logs view --tail` removed.** The flag was a no-op — the
+  server tool returned a single snapshot whether `--tail` was set or
+  not. Use the absence of the flag, which still returns the snapshot.
+- **`deposium upload-batch` no longer accepts `--api-key` / `--api-url`
+  flags.** Use the standard precedence: `DEPOSIUM_API_KEY` /
+  `DEPOSIUM_URL` env vars, then config file, then prompt. The
+  undocumented `DEPOSIUM_API_URL` env var is also removed.
+- **`deposium corpus realtime-eval` renamed to `eval-snapshot`**
+  (alias kept for back-compat). The command was always a one-shot
+  call, never a recurring stream; the new name reflects that. The
+  `--interval` flag is the server-side window size, not a poll
+  interval.
+- **Config keys `silent-mode` and `output-format` removed.** They
+  were saved but never read. Use the per-command `--silent` and
+  `--format` flags. The matching env vars (`DEPOSIUM_SILENT`,
+  `DEPOSIUM_OUTPUT`) are also retired.
+- **`evaluate feedback` + `query-history` payloads use snake_case**
+  (`user_id`, `query_id`, `time_range`, `include_global`) to match
+  the rest of the API.
+
+### Internal
+
+- New `utils/parsers.ts` helpers: `parseIntOrThrow`,
+  `parseOptionalInt`, `parseFloatOrThrow`.
+- New `client/internals.ts::withRetry` collapses four duplicated
+  retry-on-transient-error loops (`callTool`, `listTools`, `health`,
+  `listSpaces`, plus `authenticatedRequest`).
+- New `utils/auth.ts::isNetworkDownError` classifies validation errors.
+- `mcp-client.ts::uploadBatch` — multipart/form-data path with
+  sequential reads (replaces the previous JSON+base64 batch).
+- Tests: **453 passing** (was 432); +21 regression tests covering
+  H1, H3, M1, M2, M4, M5, M8.
 
 ## [1.3.1] - 2026-05-06
 
@@ -249,8 +325,7 @@ the new `/api/cli/mcp` 401 shape (deposium_API commit `HASH`):
 ## [1.1.2] - 2026-04-25
 
 ### Removed
-- `docs/sprints/secure-CLI-2026.md` — internal sprint planning doc, archived to deposium_API
-- `CODEBASE_ANALYSIS.md` — internal dead-code review note from PR #5, archived to deposium_API
+- Internal planning docs that had been checked in (not relevant to consumers).
 
 ## [1.1.1] - 2026-04-25
 
@@ -354,7 +429,7 @@ the new `/api/cli/mcp` 401 shape (deposium_API commit `HASH`):
 - **Tests**: 14 tests in `chat-hitl.test.ts` (mode dispatch, TTY defaults, resumeAgent POST shape, SSE chat_prompt parsing)
 - **Docs**: `docs/guides/on-ambiguous-flag.md` — user-facing policy reference
 
-#### Sprint secure-CLI-2026 — Security hardening
+#### Security hardening
 - **Security**: Config encryption via `Conf({ encryptionKey })` with AES-256-GCM (scryptSync machine-derived key)
 - **Security**: API key isolated in separate `~/.deposium/credentials` file (encrypted, chmod 0600)
 - **Security**: `enforceUrlSecurity()` — non-localhost HTTP connections refused by default
@@ -381,7 +456,7 @@ the new `/api/cli/mcp` 401 shape (deposium_API commit `HASH`):
 - **Node.js**: Minimum version bumped from 20 to 22 (engines field + CI)
 - **Code quality**: All ESLint warnings resolved (67 → 0), `||` → `??` for nullish defaults
 - **Code quality**: Removed dead logger module (344 LOC)
-- **Tests**: 142 tests (was 137 pre-secure-CLI sprint)
+- **Tests**: 142 tests (was 137).
 
 ### Fixed
 - CVE fix: minimatch ReDoS (CVE-2026-26996)

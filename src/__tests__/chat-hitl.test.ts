@@ -366,7 +366,6 @@ describe('runChatTurn', () => {
     const response = await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://edge:9000',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: false,
       message: 'Hi',
       conversationHistory: [],
@@ -394,7 +393,6 @@ describe('runChatTurn', () => {
     const response = await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://edge:9000',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: false,
       message: 'Q',
       conversationHistory: [],
@@ -406,6 +404,9 @@ describe('runChatTurn', () => {
     expect(client.resumeAgent).toHaveBeenCalledTimes(1);
     // first option of choicePrompt is `rag`
     const resumeCall = client.calls.find((c) => c.method === 'resumeAgent')!;
+    // Resume must hit the SAME URL as the initial stream (H1 fix —
+    // Edge Runtime in non-direct mode, direct MCP otherwise).
+    expect(resumeCall.args[0]).toBe('http://edge:9000');
     expect(resumeCall.args[1]).toBe(choicePrompt.correlation_id);
     expect(resumeCall.args[2]).toEqual({ value: 'rag' });
   });
@@ -421,7 +422,6 @@ describe('runChatTurn', () => {
     const response = await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://edge:9000',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: false,
       message: 'Q',
       conversationHistory: [],
@@ -449,7 +449,6 @@ describe('runChatTurn', () => {
     await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://edge:9000',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: false,
       message: 'Q',
       conversationHistory: [],
@@ -469,7 +468,6 @@ describe('runChatTurn', () => {
     await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://mcps:4001',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: true,
       message: 'Q',
       conversationHistory: [{ role: 'user', content: 'prev' }],
@@ -496,7 +494,6 @@ describe('runChatTurn', () => {
     const response = await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://edge:9000',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: false,
       message: 'Q',
       conversationHistory: [],
@@ -523,7 +520,6 @@ describe('runChatTurn', () => {
     const response = await runChatTurn({
       client: client as unknown as import('../client/mcp-client').MCPClient,
       streamUrl: 'http://edge:9000',
-      mcpDirectUrl: 'http://mcps:4001',
       directMcp: false,
       message: 'Q',
       conversationHistory: [],

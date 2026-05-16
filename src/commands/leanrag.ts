@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, parseAPIResponse } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const leanragCommand = new Command('leanrag').description(
   'Optimized LeanRAG retrieval and analysis'
@@ -31,7 +32,7 @@ leanragCommand
           tenant_id: tenantId,
           space_id: spaceId,
           query_text: query,
-          top_k: parseInt(options.topK, 10),
+          top_k: parseIntOrThrow(options.topK, '--top-k'),
           rerank: options.rerank ?? false,
         },
         { spinner: !options.silent }

@@ -4,14 +4,16 @@ import {
   getConfig,
   getBaseUrl,
   setConfig,
+  setApiKey,
   deleteConfig,
+  deleteApiKey,
   resetConfig,
   getConfigPath,
   DeposiumConfig,
 } from '../utils/config';
+import { assertNotServiceKey } from '../utils/auth';
 
 type ConfigKey = keyof DeposiumConfig;
-type ConfigValue = string | boolean | undefined;
 
 export const configCommand = new Command('config')
   .description('Manage Deposium CLI configuration')
@@ -27,8 +29,6 @@ export const configCommand = new Command('config')
           'mcp-url', // @deprecated - use deposium-url
           'default-tenant',
           'default-space',
-          'output-format',
-          'silent-mode',
         ];
 
         if (!validKeys.includes(key)) {
@@ -39,16 +39,31 @@ export const configCommand = new Command('config')
           process.exit(1);
         }
 
+        // `api-key` is special: it goes to the separate credentials
+        // store (chmod 0600, encrypted) — NOT the main config — so the
+        // security guarantee "API key isolated in ~/.deposium/credentials"
+        // holds whatever path provisioned it. Service-key guardrail
+        // runs first so a `dep_svc_*` paste fails fast with a clear
+        // message instead of a cryptic 401 on the next call.
+        if (key === 'api-key') {
+          if (typeof value !== 'string' || value.trim().length === 0) {
+            console.error(chalk.red('\n❌ api-key must be a non-empty string\n'));
+            process.exit(1);
+          }
+          assertNotServiceKey(value, 'prompt');
+          setApiKey(value);
+          console.log(chalk.green(`\n✅ Set ${chalk.cyan('api-key')} (stored in credentials)\n`));
+          return;
+        }
+
         // Convert kebab-case to camelCase
         const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
 
-        // Parse boolean values
-        let parsedValue: ConfigValue = value;
-        if (value === 'true') parsedValue = true;
-        if (value === 'false') parsedValue = false;
-
-        // Normalize URLs by removing trailing slash
-        if ((key === 'mcp-url' || key === 'deposium-url') && typeof parsedValue === 'string') {
+        // Normalize URLs by removing trailing slash. `value` arrives as
+        // a string from commander (the arg is `<value>`, required) so
+        // the narrowing is safe — we just need the type to reflect that.
+        let parsedValue: string = value as string;
+        if (key === 'mcp-url' || key === 'deposium-url') {
           parsedValue = parsedValue.replace(/\/$/, '');
         }
 
@@ -67,7 +82,7 @@ export const configCommand = new Command('config')
 
         if (key) {
           const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
-          let value: ConfigValue = config[camelKey];
+          let value: string | undefined = config[camelKey];
 
           // Mask API key for security
           if (key === 'api-key' && typeof value === 'string') {
@@ -95,8 +110,6 @@ export const configCommand = new Command('config')
           console.log(chalk.cyan('effective-url:'), baseUrl);
           console.log(chalk.cyan('default-tenant:'), config.defaultTenant ?? chalk.gray('not set'));
           console.log(chalk.cyan('default-space:'), config.defaultSpace ?? chalk.gray('not set'));
-          console.log(chalk.cyan('output-format:'), config.outputFormat ?? chalk.gray('not set'));
-          console.log(chalk.cyan('silent-mode:'), config.silentMode ?? chalk.gray('not set'));
           console.log('');
           console.log(chalk.gray('Config file:'), getConfigPath());
           console.log('');
@@ -108,6 +121,11 @@ export const configCommand = new Command('config')
       .description('Delete a configuration value')
       .argument('<key>', 'Configuration key')
       .action((key) => {
+        if (key === 'api-key') {
+          deleteApiKey();
+          console.log(chalk.green(`\n✅ Deleted ${chalk.cyan('api-key')} (from credentials)\n`));
+          return;
+        }
         const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
         deleteConfig(camelKey);
         console.log(chalk.green(`\n✅ Deleted ${chalk.cyan(key)}\n`));

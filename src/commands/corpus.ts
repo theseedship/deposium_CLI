@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import { parseIntOrThrow, parseFloatOrThrow } from '../utils/parsers';
 
 export const corpusCommand = new Command('corpus')
   .description('Corpus statistics and evaluation')
@@ -103,31 +104,36 @@ export const corpusCommand = new Command('corpus')
       )
   )
   .addCommand(
-    new Command('realtime-eval')
-      .description('Real-time corpus evaluation with RSS')
+    new Command('eval-snapshot')
+      .alias('realtime-eval') // kept for back-compat — the call is still a one-shot snapshot
+      .description('Snapshot corpus evaluation (one-shot — no recurring stream)')
       .option('-t, --tenant <id>', 'Tenant ID')
       .option('-s, --space <id>', 'Space ID')
-      .option('--interval <seconds>', 'Evaluation interval', '300')
+      .option(
+        '--interval <seconds>',
+        'Window size in seconds the server uses for the snapshot (not a poll interval — the CLI calls once)',
+        '300'
+      )
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
           const { config, client } = await initializeCommand();
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n⚡ Starting real-time evaluation...\n'));
+          console.log(chalk.bold('\n⚡ Fetching evaluation snapshot...\n'));
 
           const result = await client.callTool(
             'corpus_realtime_eval',
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              interval: parseInt(options.interval, 10),
+              interval: parseIntOrThrow(options.interval, '--interval'),
             },
             { spinner: true }
           );
 
           if (result.isError) {
-            console.error(chalk.red('\n❌ Real-time eval failed:'), result.content);
+            console.error(chalk.red('\n❌ Evaluation snapshot failed:'), result.content);
             process.exit(1);
           }
 
@@ -154,7 +160,7 @@ export const corpusCommand = new Command('corpus')
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              threshold: parseFloat(options.threshold),
+              threshold: parseFloatOrThrow(options.threshold, '--threshold'),
             },
             { spinner: true }
           );
@@ -224,7 +230,7 @@ export const corpusCommand = new Command('corpus')
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              time_window_days: parseInt(options.timeWindow, 10),
+              time_window_days: parseIntOrThrow(options.timeWindow, '--time-window'),
             },
             { spinner: true }
           );

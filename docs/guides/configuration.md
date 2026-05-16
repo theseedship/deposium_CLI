@@ -23,8 +23,10 @@ Settings are loaded in this order (later sources override earlier):
 | `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 | `true`                      |
 | `DEPOSIUM_TENANT`   | Default tenant ID                     | -                       | `tenant-123`                |
 | `DEPOSIUM_SPACE`    | Default space ID                      | -                       | `space-456`                 |
-| `DEPOSIUM_OUTPUT`   | Default output format                 | `table`                 | `json`, `markdown`          |
-| `DEPOSIUM_SILENT`   | Suppress non-essential output         | `false`                 | `true`                      |
+
+Output format and silent mode are per-invocation: pass `--format
+json|table|markdown` and `--silent` on each command (there is no
+global toggle).
 
 > **Note:** `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated. Use `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` instead.
 
@@ -49,14 +51,12 @@ deposium config set default-tenant my-tenant
 
 Keys accepted by `deposium config set` (kebab-case on input, stored internally as camelCase):
 
-| Key              | Type    | Description                               |
-| ---------------- | ------- | ----------------------------------------- |
-| `api-key`        | string  | API authentication key (`dep_live_...`)   |
-| `deposium-url`   | string  | Deposium server URL                       |
-| `default-tenant` | string  | Default tenant ID                         |
-| `default-space`  | string  | Default space ID                          |
-| `output-format`  | string  | Output format (`json`/`table`/`markdown`) |
-| `silent-mode`    | boolean | Suppress non-essential output             |
+| Key              | Type   | Description                                                                                                  |
+| ---------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
+| `api-key`        | string | API authentication key (`dep_live_...`). Stored in the separate credentials file. Service-keys are rejected. |
+| `deposium-url`   | string | Deposium server URL                                                                                          |
+| `default-tenant` | string | Default tenant ID                                                                                            |
+| `default-space`  | string | Default space ID                                                                                             |
 
 > **Note:** `mcp-url` is a deprecated alias for `deposium-url` — still accepted for backwards compatibility.
 >
@@ -198,23 +198,16 @@ export NO_PROXY=localhost,127.0.0.1,.internal.com
 | `markdown` | Markdown-formatted output       |
 
 ```bash
-# Set format per command
+# Set format per command (no global toggle)
 deposium search "query" --format json
-
-# Default format via environment
-export DEPOSIUM_OUTPUT=json
 ```
 
 ## Silent Mode
 
-Suppress all non-essential output:
+Suppress non-essential output per command (no global toggle):
 
 ```bash
-# Via flag
 deposium search "query" --silent
-
-# Via environment
-export DEPOSIUM_SILENT=true
 ```
 
 ## Example Configurations
@@ -243,7 +236,8 @@ DEPOSIUM_API_KEY=prod-key
 # GitHub Actions / GitLab CI
 DEPOSIUM_API_KEY=${{ secrets.DEPOSIUM_API_KEY }}
 DEPOSIUM_URL=https://api.deposium.com
-DEPOSIUM_SILENT=true
+
+# Pass --silent on each command to keep CI logs clean.
 ```
 
 ## Troubleshooting

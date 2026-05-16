@@ -7,6 +7,7 @@ import {
   getErrorMessage,
   resolveTenantSpace,
 } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 /** OpenBench category information */
 interface BenchmarkCategory {
@@ -147,7 +148,7 @@ benchmarkCommand
           category: options.category,
           provider: options.provider,
           model: options.model,
-          sample_limit: parseInt(options.samples, 10),
+          sample_limit: parseIntOrThrow(options.samples, '--samples'),
           use_cache: options.cache !== false,
         },
         { spinner: !options.silent }
@@ -249,7 +250,7 @@ benchmarkCommand
           queries,
           provider: options.provider,
           model: options.model,
-          sample_limit: parseInt(options.samples, 10),
+          sample_limit: parseIntOrThrow(options.samples, '--samples'),
         },
         { spinner: !options.silent }
       );
@@ -310,7 +311,7 @@ benchmarkCommand
               category: options.category,
               provider,
               model,
-              sample_limit: parseInt(options.samples, 10),
+              sample_limit: parseIntOrThrow(options.samples, '--samples'),
               use_cache: true,
             },
             { spinner: false }

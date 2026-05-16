@@ -20,7 +20,6 @@ vi.mock('chalk', () => ({
 const mockConfig = {
   deposiumUrl: 'http://localhost:3000',
   apiKey: 'test-key',
-  silentMode: false,
 };
 
 vi.mock('../utils/config', () => ({

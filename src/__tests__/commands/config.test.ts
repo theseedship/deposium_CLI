@@ -5,7 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock config module
 const mockSetConfig = vi.fn();
+const mockSetApiKey = vi.fn();
 const mockDeleteConfig = vi.fn();
+const mockDeleteApiKey = vi.fn();
 const mockResetConfig = vi.fn();
 const mockGetConfigPath = vi.fn().mockReturnValue('/home/user/.deposium/config.json');
 const mockGetBaseUrl = vi.fn().mockReturnValue('http://localhost:3003');
@@ -15,17 +17,24 @@ const mockGetConfig = vi.fn().mockReturnValue({
   mcpUrl: undefined,
   defaultTenant: 'default',
   defaultSpace: 'default',
-  outputFormat: 'table',
-  silentMode: false,
 });
 
 vi.mock('../../utils/config', () => ({
   getConfig: () => mockGetConfig(),
   getBaseUrl: (config: unknown) => mockGetBaseUrl(config),
   setConfig: (key: string, value: unknown) => mockSetConfig(key, value),
+  setApiKey: (value: string) => mockSetApiKey(value),
   deleteConfig: (key: string) => mockDeleteConfig(key),
+  deleteApiKey: () => mockDeleteApiKey(),
   resetConfig: () => mockResetConfig(),
   getConfigPath: () => mockGetConfigPath(),
+}));
+
+// Mock auth so the service-key guardrail is observable without
+// dragging in the real inquirer-based prompter.
+const mockAssertNotServiceKey = vi.fn();
+vi.mock('../../utils/auth', () => ({
+  assertNotServiceKey: (key: string, source: string) => mockAssertNotServiceKey(key, source),
 }));
 
 import { configCommand } from '../../commands/config';
@@ -41,8 +50,11 @@ describe('config command', () => {
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
     mockSetConfig.mockClear();
+    mockSetApiKey.mockClear();
     mockDeleteConfig.mockClear();
+    mockDeleteApiKey.mockClear();
     mockResetConfig.mockClear();
+    mockAssertNotServiceKey.mockClear();
   });
 
   afterEach(() => {
@@ -65,11 +77,28 @@ describe('config command', () => {
   });
 
   describe('config set', () => {
-    it('should set api-key value', async () => {
+    it('should set api-key value via the credentials store (not main config)', async () => {
       await configCommand.parseAsync(['node', 'test', 'set', 'api-key', 'new-api-key']);
 
-      expect(mockSetConfig).toHaveBeenCalledWith('apiKey', 'new-api-key');
+      // M1 regression: api-key is routed to setApiKey (credentials store),
+      // NOT setConfig (main config). The service-key guardrail runs first.
+      expect(mockAssertNotServiceKey).toHaveBeenCalledWith('new-api-key', 'prompt');
+      expect(mockSetApiKey).toHaveBeenCalledWith('new-api-key');
+      expect(mockSetConfig).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalled();
+    });
+
+    it('should reject a service-key passed to config set api-key', async () => {
+      mockAssertNotServiceKey.mockImplementationOnce(() => {
+        throw new Error('Service-keys are for server-side use only');
+      });
+
+      await expect(
+        configCommand.parseAsync(['node', 'test', 'set', 'api-key', 'dep_svc_xxx'])
+      ).rejects.toThrow(/Service-keys/);
+
+      expect(mockSetApiKey).not.toHaveBeenCalled();
+      expect(mockSetConfig).not.toHaveBeenCalled();
     });
 
     it('should set deposium-url value', async () => {
@@ -94,18 +123,6 @@ describe('config command', () => {
       ]);
 
       expect(mockSetConfig).toHaveBeenCalledWith('deposiumUrl', 'https://api.deposium.io');
-    });
-
-    it('should parse boolean true', async () => {
-      await configCommand.parseAsync(['node', 'test', 'set', 'silent-mode', 'true']);
-
-      expect(mockSetConfig).toHaveBeenCalledWith('silentMode', true);
-    });
-
-    it('should parse boolean false', async () => {
-      await configCommand.parseAsync(['node', 'test', 'set', 'silent-mode', 'false']);
-
-      expect(mockSetConfig).toHaveBeenCalledWith('silentMode', false);
     });
 
     it('should reject invalid keys', async () => {
@@ -134,10 +151,21 @@ describe('config command', () => {
       expect(mockSetConfig).toHaveBeenCalledWith('defaultSpace', 'my-space');
     });
 
-    it('should set output-format', async () => {
-      await configCommand.parseAsync(['node', 'test', 'set', 'output-format', 'json']);
+    it('M2: silent-mode and output-format are rejected (dead keys removed)', async () => {
+      exitSpy.mockImplementation(() => {
+        throw new Error('process.exit called');
+      });
 
-      expect(mockSetConfig).toHaveBeenCalledWith('outputFormat', 'json');
+      await expect(
+        configCommand.parseAsync(['node', 'test', 'set', 'silent-mode', 'true'])
+      ).rejects.toThrow('process.exit called');
+
+      await expect(
+        configCommand.parseAsync(['node', 'test', 'set', 'output-format', 'json'])
+      ).rejects.toThrow('process.exit called');
+
+      expect(mockSetConfig).not.toHaveBeenCalledWith('silentMode', expect.anything());
+      expect(mockSetConfig).not.toHaveBeenCalledWith('outputFormat', expect.anything());
     });
   });
 

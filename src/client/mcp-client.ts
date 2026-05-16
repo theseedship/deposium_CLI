@@ -141,7 +141,7 @@ export type {
 } from './validate-types';
 
 import { buildAuthError } from './auth-error';
-import { generateRequestId, isRetryableError, sleep, createAxiosErrorResult } from './internals';
+import { generateRequestId, createAxiosErrorResult, withRetry } from './internals';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
   ValidateToolInput,
@@ -208,11 +208,9 @@ export class MCPClient {
       'Content-Type': 'application/json',
       Accept: 'application/json, text/event-stream',
       'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
-      // Sprint connector evaluation PR7 (2026-05-08) — caller tag for
-      // server-side selective canaries (CONNECTOR_LAYER_CLI_ENABLED) and
-      // telemetry partitioning. Server sanitizes against a closed-set
-      // allowlist (`CLIENT_TYPES` in src/utils/trace-context.ts) ; an
-      // off-allowlist value silently falls back to 'unknown'.
+      // Caller tag used by the server for telemetry partitioning and
+      // selective canaries. Server sanitizes against a closed-set
+      // allowlist; an off-allowlist value falls back to 'unknown'.
       'X-Client-Type': 'cli',
     };
 
@@ -243,62 +241,47 @@ export class MCPClient {
     const spinner = options.spinner ? ora(`Calling ${chalk.cyan(toolName)}...`).start() : null;
     const requestId = generateRequestId();
 
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        // Call SolidStart proxy endpoint (validates API key, forwards to MCP backend)
-        const response = await this.client.post(
-          '/api/cli/mcp',
-          {
-            tool: toolName,
-            params: args,
+    try {
+      const responseData = await withRetry<{
+        result?: unknown;
+        error?: unknown;
+        isError?: boolean;
+      }>(
+        async (id) => {
+          const response = await this.client.post(
+            '/api/cli/mcp',
+            { tool: toolName, params: args },
+            { headers: { 'X-Request-ID': id } }
+          );
+          return response.data;
+        },
+        {
+          requestId,
+          maxRetries: this.maxRetries,
+          retryBaseDelay: this.retryBaseDelay,
+          onRetry: (attempt, delay) => {
+            if (spinner) {
+              spinner.text = `Retry ${attempt}/${this.maxRetries} for ${chalk.cyan(
+                toolName
+              )} (waiting ${delay}ms)...`;
+            }
           },
-          {
-            headers: {
-              'X-Request-ID': requestId,
-            },
-          }
-        );
-
-        spinner?.succeed(`Tool ${chalk.green(toolName)} completed`);
-
-        // New proxy returns { result, isError } format
-        if (response.data.isError) {
-          return {
-            content: response.data.result ?? response.data.error,
-            isError: true,
-          };
         }
+      );
 
+      spinner?.succeed(`Tool ${chalk.green(toolName)} completed`);
+
+      if (responseData.isError) {
         return {
-          content: response.data.result,
-          isError: false,
+          content: responseData.result ?? responseData.error,
+          isError: true,
         };
-      } catch (error: unknown) {
-        const axiosError = error as AxiosError;
-
-        // Check if we should retry
-        if (
-          axios.isAxiosError(axiosError) &&
-          isRetryableError(axiosError) &&
-          attempt < this.maxRetries
-        ) {
-          const delay = this.retryBaseDelay * Math.pow(2, attempt); // Exponential backoff
-          if (spinner)
-            spinner.text = `Retry ${attempt + 1}/${this.maxRetries} for ${chalk.cyan(toolName)} (waiting ${delay}ms)...`;
-          await sleep(delay);
-          continue;
-        }
-
-        lastError = error as Error;
-        break;
       }
+      return { content: responseData.result, isError: false };
+    } catch (error) {
+      spinner?.fail(`Tool ${chalk.red(toolName)} failed`);
+      return this.handleCallToolError(error as Error, requestId);
     }
-
-    // Handle the final error
-    spinner?.fail(`Tool ${chalk.red(toolName)} failed`);
-    return this.handleCallToolError(lastError, requestId);
   }
 
   /** Handle final error from callTool after retries exhausted */
@@ -323,87 +306,48 @@ export class MCPClient {
    * List all available MCP tools
    */
   async listTools(): Promise<MCPTool[]> {
-    const requestId = generateRequestId();
-
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        // Use the _list_tools pseudo-tool to get available tools via proxy
-        const response = await this.client.post(
-          '/api/cli/mcp',
-          {
-            tool: '_list_tools',
-            params: {},
-          },
-          {
-            headers: { 'X-Request-ID': requestId },
+    try {
+      return await withRetry<MCPTool[]>(
+        async (requestId) => {
+          const response = await this.client.post(
+            '/api/cli/mcp',
+            { tool: '_list_tools', params: {} },
+            { headers: { 'X-Request-ID': requestId } }
+          );
+          if (response.data.isError) {
+            console.error(chalk.red('Failed to list tools:'), response.data.result);
+            return [];
           }
-        );
-
-        // The proxy returns tools in the result field
-        if (response.data.isError) {
-          console.error(chalk.red('Failed to list tools:'), response.data.result);
-          return [];
-        }
-
-        return response.data.result?.tools ?? response.data.result ?? [];
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        if (
-          axios.isAxiosError(axiosError) &&
-          isRetryableError(axiosError) &&
-          attempt < this.maxRetries
-        ) {
-          const delay = this.retryBaseDelay * Math.pow(2, attempt);
-          await sleep(delay);
-          continue;
-        }
-        console.error(chalk.red('Failed to list tools:'), (error as Error).message);
-        return [];
-      }
+          return response.data.result?.tools ?? response.data.result ?? [];
+        },
+        { maxRetries: this.maxRetries, retryBaseDelay: this.retryBaseDelay }
+      );
+    } catch (error) {
+      console.error(chalk.red('Failed to list tools:'), (error as Error).message);
+      return [];
     }
-    return [];
   }
 
   /**
    * Check Deposium API health
    */
   async health(): Promise<MCPHealthResponse> {
-    const requestId = generateRequestId();
-
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        // GET /api/cli/mcp returns health status including MCP backend status
-        const response = await this.client.get('/api/cli/mcp', {
-          headers: { 'X-Request-ID': requestId },
-        });
-        return response.data;
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        if (
-          axios.isAxiosError(axiosError) &&
-          isRetryableError(axiosError) &&
-          attempt < this.maxRetries
-        ) {
-          const delay = this.retryBaseDelay * Math.pow(2, attempt);
-          await sleep(delay);
-          continue;
-        }
-
-        if (axios.isAxiosError(axiosError)) {
-          if (axiosError.code === 'ECONNREFUSED') {
-            throw new Error(
-              `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-                'Make sure the Deposium server is running'
-            );
-          }
-          if (axiosError.response?.status === 401) {
-            throw buildAuthError(axiosError.response?.data);
-          }
-        }
-        throw error;
+    try {
+      return await withRetry<MCPHealthResponse>(
+        async (requestId) => {
+          const response = await this.client.get('/api/cli/mcp', {
+            headers: { 'X-Request-ID': requestId },
+          });
+          return response.data;
+        },
+        { maxRetries: this.maxRetries, retryBaseDelay: this.retryBaseDelay }
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        this.throwForKnownAxiosError(error, '/api/cli/mcp');
       }
+      throw error;
     }
-    throw new Error('Max retries exceeded');
   }
 
   /**
@@ -413,40 +357,24 @@ export class MCPClient {
    * envelope and returned as a plain array.
    */
   async listSpaces(): Promise<MCPSpace[]> {
-    const requestId = generateRequestId();
-
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        const response = await this.client.get<{ data: MCPSpace[]; count: number }>('/api/spaces', {
-          headers: { 'X-Request-ID': requestId },
-        });
-        return response.data.data;
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        if (
-          axios.isAxiosError(axiosError) &&
-          isRetryableError(axiosError) &&
-          attempt < this.maxRetries
-        ) {
-          await sleep(this.retryBaseDelay * Math.pow(2, attempt));
-          continue;
-        }
-
-        if (axios.isAxiosError(axiosError)) {
-          if (axiosError.code === 'ECONNREFUSED') {
-            throw new Error(
-              `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-                'Make sure the Deposium server is running'
-            );
-          }
-          if (axiosError.response?.status === 401) {
-            throw buildAuthError(axiosError.response?.data);
-          }
-        }
-        throw error;
+    try {
+      const data = await withRetry<{ data: MCPSpace[]; count: number }>(
+        async (requestId) => {
+          const response = await this.client.get<{ data: MCPSpace[]; count: number }>(
+            '/api/spaces',
+            { headers: { 'X-Request-ID': requestId } }
+          );
+          return response.data;
+        },
+        { maxRetries: this.maxRetries, retryBaseDelay: this.retryBaseDelay }
+      );
+      return data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        this.throwForKnownAxiosError(error, '/api/spaces');
       }
+      throw error;
     }
-    throw new Error('Max retries exceeded');
   }
 
   /**
@@ -485,6 +413,72 @@ export class MCPClient {
   /** Delete a document by ID. Calls `DELETE /api/v1/documents/:id`. */
   async deleteDocument(id: number | string): Promise<unknown> {
     return this.authenticatedRequest('DELETE', `/api/v1/documents/${id}`);
+  }
+
+  /**
+   * Upload one or more files via the gateway's batch-upload endpoint.
+   *
+   * Each file is streamed sequentially through `fs.createReadStream` →
+   * `Blob` so peak memory stays bounded by the largest single file
+   * rather than the sum of all files (the previous JSON+base64 path
+   * loaded everything at once).
+   *
+   * Routes through `MCPClient` (rather than a raw fetch in the command
+   * layer) so TLS enforcement, the service-key guardrail, and the
+   * standard ECONNREFUSED message all apply consistently.
+   */
+  async uploadBatch(
+    files: Array<{ path: string; name: string; mimeType: string }>,
+    options: { spaceId?: string; folderId?: string } = {}
+  ): Promise<unknown> {
+    const { readFileSync } = await import('node:fs');
+    const form = new FormData();
+    for (const file of files) {
+      // Read sync per-iteration so the previous Blob is eligible for GC
+      // before the next file is loaded. Node's FormData copies the buffer
+      // into its own storage, so we can release the local reference after
+      // append().
+      const buffer = readFileSync(file.path);
+      form.append('files', new Blob([new Uint8Array(buffer)], { type: file.mimeType }), file.name);
+    }
+    if (options.spaceId) form.append('space_id', options.spaceId);
+    if (options.folderId) form.append('folder_id', options.folderId);
+
+    const url = `${this.baseUrl}/api/v2/files/batch-upload`;
+    const headers: Record<string, string> = {
+      'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
+      'X-Client-Type': 'cli',
+    };
+    if (this.apiKey) headers['X-API-Key'] = this.apiKey;
+
+    let response: Response;
+    try {
+      response = await fetch(url, { method: 'POST', headers, body: form });
+    } catch (error) {
+      if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
+        throw new Error(
+          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
+            'Make sure the Deposium server is running'
+        );
+      }
+      throw error;
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        let parsed: unknown;
+        try {
+          parsed = await response.json();
+        } catch {
+          parsed = undefined;
+        }
+        throw buildAuthError(parsed);
+      }
+      const text = await response.text().catch(() => '');
+      throw new Error(`Batch upload failed (${response.status}): ${text || response.statusText}`);
+    }
+
+    return response.json();
   }
 
   /** List API keys belonging to the authenticated account. Calls `GET /api/api-keys`. */
@@ -532,35 +526,25 @@ export class MCPClient {
    * + auth-error handling. Used by self-service methods (documents, api-keys).
    *
    * Method dispatch and known-error mapping live in two helpers
-   * (`dispatchHttp` and `throwForKnownAxiosError`) so this loop stays under
-   * the cyclomatic-complexity ceiling.
+   * (`dispatchHttp` and `throwForKnownAxiosError`) so this method stays
+   * a thin wrapper over `withRetry`.
    */
   private async authenticatedRequest<T = unknown>(
     method: 'GET' | 'DELETE' | 'POST',
     path: string,
     body?: unknown
   ): Promise<T> {
-    const requestId = generateRequestId();
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.dispatchHttp<T>(method, path, body, requestId);
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        const canRetry =
-          axios.isAxiosError(axiosError) &&
-          isRetryableError(axiosError) &&
-          attempt < this.maxRetries;
-        if (canRetry) {
-          await sleep(this.retryBaseDelay * Math.pow(2, attempt));
-          continue;
-        }
-        if (axios.isAxiosError(axiosError)) {
-          this.throwForKnownAxiosError(axiosError, path);
-        }
-        throw error;
+    try {
+      return await withRetry<T>(
+        (requestId) => this.dispatchHttp<T>(method, path, body, requestId),
+        { maxRetries: this.maxRetries, retryBaseDelay: this.retryBaseDelay }
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        this.throwForKnownAxiosError(error, path);
       }
+      throw error;
     }
-    throw new Error('Max retries exceeded');
   }
 
   /** Internal: dispatch the HTTP method to the underlying axios client. */
@@ -867,10 +851,9 @@ export class MCPClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
-      // Sprint connector evaluation PR7 (2026-05-08) — same caller tag
-      // as the constructor's axios default headers. Mirrored explicitly
-      // here because postStream uses native fetch (axios path is
-      // separate) and would otherwise drop the header.
+      // Same caller tag as the constructor's axios default headers.
+      // Mirrored explicitly here because postStream uses native fetch
+      // (axios path is separate) and would otherwise drop the header.
       'X-Client-Type': 'cli',
     };
     if (this.apiKey) {
@@ -998,7 +981,16 @@ export class MCPClient {
         options.onError?.(data as unknown as SSEError);
         break;
       case 'chat_prompt':
-        options.onChatPrompt?.(data as unknown as SSEChatPrompt);
+        if (options.onChatPrompt) {
+          options.onChatPrompt(data as unknown as SSEChatPrompt);
+        } else {
+          // SDK consumers who don't register a handler would otherwise see
+          // the stream silently stall. Surface the drop so they can wire
+          // one up (or pass `--on-ambiguous=fail` from the CLI).
+          console.warn(
+            'Received chat_prompt event but no onChatPrompt handler was registered — the prompt was dropped. Register an onChatPrompt callback to respond to HITL pauses.'
+          );
+        }
         break;
     }
   }

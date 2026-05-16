@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const duckdbCommand = new Command('duckdb')
   .alias('db')
@@ -24,7 +25,7 @@ duckdbCommand
       const result = await client.callTool(
         'duckdb_serve',
         {
-          port: parseInt(options.port, 10),
+          port: parseIntOrThrow(options.port, '--port'),
           host: options.host,
         },
         { spinner: !options.silent }

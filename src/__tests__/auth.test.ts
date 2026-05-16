@@ -38,6 +38,7 @@ import {
   ensureAuthenticated,
   promptApiKey,
   assertNotServiceKey,
+  isNetworkDownError,
 } from '../utils/auth';
 import { getApiKey, setApiKey, hasApiKey } from '../utils/config';
 import inquirer from 'inquirer';
@@ -162,6 +163,21 @@ describe('auth.ts', () => {
       expect(headers['X-API-Key']).toBe('test-key');
     });
 
+    test('H3 regression: 5xx-class error is thrown (no silent stored-key fallback)', async () => {
+      globalThis.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 503,
+          statusText: 'Service Unavailable',
+          json: () => Promise.resolve({}),
+        } as Response)
+      );
+
+      await expect(validateApiKeyWithServer('http://localhost:3000', 'key')).rejects.toThrow(
+        /Validation failed/
+      );
+    });
+
     test('should call correct endpoint', async () => {
       let capturedUrl: string | undefined;
 
@@ -177,6 +193,57 @@ describe('auth.ts', () => {
       await validateApiKeyWithServer('https://api.example.com', 'key');
 
       expect(capturedUrl).toBe('https://api.example.com/api/auth/validate-key');
+    });
+  });
+
+  // ============================================================================
+  // isNetworkDownError — H3 regression: distinguish network-down (fall back)
+  // from server-broken (re-prompt). String matching is forbidden — only
+  // structural error codes count.
+  // ============================================================================
+  describe('isNetworkDownError', () => {
+    test('ECONNREFUSED with cause is classified as network-down', () => {
+      const err = new Error('fetch failed');
+      (err as { cause: unknown }).cause = { code: 'ECONNREFUSED' };
+      expect(isNetworkDownError(err)).toBe(true);
+    });
+
+    test('ENOTFOUND (DNS miss) is classified as network-down', () => {
+      const err = new Error('getaddrinfo failed');
+      (err as { cause: unknown }).cause = { code: 'ENOTFOUND' };
+      expect(isNetworkDownError(err)).toBe(true);
+    });
+
+    test('ETIMEDOUT and ECONNRESET are classified as network-down', () => {
+      const t = new Error('timeout');
+      (t as { cause: unknown }).cause = { code: 'ETIMEDOUT' };
+      expect(isNetworkDownError(t)).toBe(true);
+
+      const r = new Error('reset');
+      (r as { cause: unknown }).cause = { code: 'ECONNRESET' };
+      expect(isNetworkDownError(r)).toBe(true);
+    });
+
+    test('5xx-class validation error is NOT classified as network-down', () => {
+      // validateApiKeyWithServer throws `Validation failed: <status>` for
+      // non-ok / non-401 responses. That's the server responding — the
+      // fallback path should re-prompt, not silently trust the cache.
+      const err = new Error('Validation failed: Service Unavailable');
+      expect(isNetworkDownError(err)).toBe(false);
+    });
+
+    test('the friendly "Cannot connect..." error is recognized as network-down', () => {
+      // `validateApiKeyWithServer` rewrites ECONNREFUSED into a friendly
+      // message before the caller sees it. Round-tripping must still
+      // route into the offline-friendly fall-back branch.
+      const err = new Error('Cannot connect to Deposium API at http://localhost:3003');
+      expect(isNetworkDownError(err)).toBe(true);
+    });
+
+    test('arbitrary errors are NOT classified as network-down', () => {
+      expect(isNetworkDownError(new Error('boom'))).toBe(false);
+      expect(isNetworkDownError(undefined)).toBe(false);
+      expect(isNetworkDownError('string error')).toBe(false);
     });
   });
 
@@ -468,9 +535,38 @@ describe('auth.ts', () => {
 
       expect(result).toBe('offline-key');
       expect(inquirer.prompt).not.toHaveBeenCalled();
-      // warned the user
+      // warned the user (offline-friendly path)
       const logs = logSpy.mock.calls.map((c) => String(c[0]));
-      expect(logs.some((s) => s.includes('Could not validate'))).toBe(true);
+      expect(logs.some((s) => /Could not reach Deposium API/i.test(s))).toBe(true);
+    });
+
+    test('H3 regression: stored key + 5xx server error → re-prompts (does NOT silently trust cache)', async () => {
+      vi.mocked(hasApiKey).mockReturnValue(true);
+      vi.mocked(getApiKey).mockReturnValue('stored-key');
+      // 5xx → validateApiKeyWithServer throws "Validation failed: ..."
+      globalThis.fetch = vi
+        .fn()
+        // first call: 5xx during stored-key validation
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+          statusText: 'Service Unavailable',
+          json: () => Promise.resolve({}),
+        } as Response)
+        // second call: the re-prompted key validates successfully
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ valid: true }),
+        } as Response);
+      vi.mocked(inquirer.prompt).mockResolvedValueOnce({ apiKey: 'fresh-key-12345' });
+
+      const result = await ensureAuthenticated('http://localhost:3000');
+
+      // The OLD behavior silently returned 'stored-key' on 5xx. The fix
+      // re-prompts and saves the new key.
+      expect(result).toBe('fresh-key-12345');
+      expect(setApiKey).toHaveBeenCalledWith('fresh-key-12345');
     });
 
     test('no stored key → prompts, validates, saves', async () => {

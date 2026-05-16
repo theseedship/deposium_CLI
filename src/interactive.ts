@@ -90,7 +90,7 @@ export async function startInteractive(): Promise<void> {
       corpus: () => handleCorpus(client, config),
       compound: () => handleCompound(client, compoundChatHistory),
       health: () => handleHealth(client),
-      intelligence: () => handleIntelligence(client),
+      intelligence: () => handleIntelligence(client, config),
       dspy: () => handleDSPy(client),
       leanrag: () => handleLeanRAG(client, config),
       mermaid: () => handleMermaid(client, config),
@@ -269,7 +269,7 @@ async function handleHealth(client: MCPClient): Promise<void> {
   formatOutput(health, 'table');
 }
 
-async function handleIntelligence(client: MCPClient): Promise<void> {
+async function handleIntelligence(client: MCPClient, config: DeposiumConfig): Promise<void> {
   const { action } = await inquirer.prompt([
     {
       type: 'select',
@@ -294,13 +294,21 @@ async function handleIntelligence(client: MCPClient): Promise<void> {
     elicit: 'smart_elicit',
   };
 
-  const result = await client.callTool(
-    toolMap[action],
-    action === 'suggest'
-      ? { partial_query: query, tenant_id: 'default', space_id: 'default' }
-      : { query_text: query },
-    { spinner: true }
-  );
+  let toolArgs: Record<string, unknown>;
+  if (action === 'suggest') {
+    // suggest needs a scope — prompt for the same tenant/space as
+    // the rest of the menu instead of hardcoding 'default'.
+    const scope = await promptTenantSpace(config);
+    toolArgs = {
+      partial_query: query,
+      tenant_id: scope.tenant,
+      space_id: scope.space,
+    };
+  } else {
+    toolArgs = { query_text: query };
+  }
+
+  const result = await client.callTool(toolMap[action], toolArgs, { spinner: true });
 
   if (!result.isError) {
     formatOutput(result.content, 'table');
@@ -402,11 +410,35 @@ async function handleEvaluate(client: MCPClient): Promise<void> {
     },
   ]);
 
-  const result = await client.callTool(
-    `eval_${action}`,
-    action === 'feedback' ? { queryId: 'demo', userId: 'demo', score: 0.8 } : {},
-    { spinner: true }
-  );
+  let toolArgs: Record<string, unknown> = {};
+  if (action === 'feedback') {
+    // Prompt for the actual fields instead of submitting demo data.
+    const answers = await inquirer.prompt([
+      { type: 'input', name: 'query_id', message: 'Query ID:' },
+      { type: 'input', name: 'user_id', message: 'User ID:' },
+      {
+        type: 'input',
+        name: 'score',
+        message: 'Quality score (0..1):',
+        validate: (input: string) => {
+          const n = Number.parseFloat(input);
+          if (Number.isNaN(n) || n < 0 || n > 1) return 'Enter a number between 0 and 1.';
+          return true;
+        },
+      },
+      { type: 'input', name: 'feedback', message: 'Feedback (optional):' },
+    ]);
+    toolArgs = {
+      query_id: answers.query_id,
+      user_id: answers.user_id,
+      score: Number.parseFloat(answers.score),
+      // Empty string from inquirer → drop the field so the server sees
+      // "no feedback text" rather than an explicit empty.
+      feedback: answers.feedback === '' ? undefined : answers.feedback,
+    };
+  }
+
+  const result = await client.callTool(`eval_${action}`, toolArgs, { spinner: true });
 
   if (!result.isError) {
     formatOutput(result.content, 'table');

@@ -105,8 +105,14 @@ program
     const insecure = globalOpts.insecure ?? process.env.DEPOSIUM_INSECURE === 'true';
     const baseUrl = getBaseUrl(config, { insecure });
     // Skip config check for commands that don't use API, or if using default localhost
-    const noApiCommands = ['config', 'auth', 'upload-batch'];
-    if (!config.deposiumUrl && !config.mcpUrl && !noApiCommands.includes(program.args[0])) {
+    const noApiCommands = ['config', 'auth'];
+    const currentCommand = program.args[0];
+    if (
+      currentCommand &&
+      !noApiCommands.includes(currentCommand) &&
+      !config.deposiumUrl &&
+      !config.mcpUrl
+    ) {
       console.log(chalk.yellow('⚠️  Deposium server URL not configured.'));
       console.log(chalk.gray(`Using default: ${chalk.cyan(baseUrl)}`));
       console.log(

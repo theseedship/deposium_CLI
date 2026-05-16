@@ -1,21 +1,27 @@
 /**
- * Batch Upload Command — multipart POST of multiple files in one request.
- * Uploads multiple files to Deposium via the batch upload API
+ * Batch Upload Command — uploads multiple files to Deposium via the
+ * `/api/v2/files/batch-upload` endpoint.
+ *
+ * Routes through `MCPClient.uploadBatch()` (rather than a hand-rolled
+ * fetch) so TLS enforcement, the service-key guardrail, the standard
+ * ECONNREFUSED message, and the `X-Client-Type: cli` telemetry tag all
+ * apply consistently across CLI surfaces.
  *
  * Usage:
  *   deposium upload-batch ./docs/*.pdf --space-id=abc123
+ *
+ * @module commands/upload-batch
  */
 
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { glob } from 'glob';
-import { readFile, stat } from 'fs/promises';
+import { stat } from 'fs/promises';
 import * as path from 'path';
 import * as mimeTypes from 'mime-types';
-import { getConfig } from '../utils/config';
 import { divider, createInfoBox } from '../utils/formatter';
-import { getErrorMessage } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, getErrorMessage } from '../utils/command-helpers';
 
 interface FileInfo {
   path: string;
@@ -27,10 +33,8 @@ interface FileInfo {
 interface BatchUploadOptions {
   spaceId?: string;
   folderId?: string;
-  apiKey?: string;
   dryRun?: boolean;
   parallel?: number;
-  apiUrl?: string;
 }
 
 interface BatchUploadResponse {
@@ -48,27 +52,6 @@ interface BatchUploadResponse {
 }
 
 /**
- * Get API URL from options or config
- */
-function getApiUrl(options: BatchUploadOptions): string {
-  // Priority: CLI option > Environment variable > Config > Default
-  return (
-    options.apiUrl ??
-    process.env.DEPOSIUM_API_URL ??
-    process.env.DEPOSIUM_URL ??
-    'http://localhost:3003'
-  );
-}
-
-/**
- * Get API key from options or config
- */
-function getApiKey(options: BatchUploadOptions): string | undefined {
-  const config = getConfig();
-  return options.apiKey ?? process.env.DEPOSIUM_API_KEY ?? config.apiKey;
-}
-
-/**
  * Get file info including size and MIME type
  */
 async function getFileInfo(filePath: string): Promise<FileInfo> {
@@ -82,14 +65,6 @@ async function getFileInfo(filePath: string): Promise<FileInfo> {
     size: stats.size,
     mimeType,
   };
-}
-
-/**
- * Read file and convert to base64
- */
-async function readFileAsBase64(filePath: string): Promise<string> {
-  const buffer = await readFile(filePath);
-  return buffer.toString('base64');
 }
 
 /**
@@ -213,124 +188,66 @@ function displayResults(result: BatchUploadResponse): void {
   console.log('');
 }
 
-/** Handle upload error with user-friendly messages */
-function handleUploadError(error: unknown, apiUrl: string): never {
-  const msg = getErrorMessage(error);
-
-  if (msg.includes('401') || msg.includes('Authentication')) {
-    console.log(chalk.red('\n❌ Authentication failed'));
-    console.log(chalk.yellow('Check your API key and try again.\n'));
-  } else if (msg.includes('402') || msg.includes('Insufficient credits')) {
-    console.log(chalk.red('\n❌ Insufficient credits'));
-    console.log(chalk.yellow('Add more credits to your account and try again.\n'));
-  } else if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
-    console.log(chalk.red('\n❌ Cannot connect to Deposium API'));
-    console.log(chalk.gray(`  URL: ${apiUrl}`));
-    console.log(chalk.yellow('\nMake sure the server is running.\n'));
-  } else {
-    console.log(chalk.red(`\n❌ Error: ${msg}\n`));
-  }
-
-  process.exit(1);
-}
-
 export const uploadBatchCommand = new Command('upload-batch')
   .description('Upload multiple files to Deposium')
   .argument('<pattern>', 'Glob pattern for files (e.g., "./docs/*.pdf")')
   .option('--space-id <id>', 'Target space ID')
   .option('--folder-id <id>', 'Target folder ID within the space')
-  .option('--api-key <key>', 'API key (overrides DEPOSIUM_API_KEY)')
-  .option('--api-url <url>', 'API URL (overrides DEPOSIUM_API_URL)')
   .option('--dry-run', 'Show cost estimate without uploading')
   .option('--parallel <n>', 'Number of parallel uploads (reserved for future use)', '3')
-  .action(async (pattern: string, options: BatchUploadOptions) => {
-    const apiUrl = getApiUrl(options);
-    const apiKey = getApiKey(options);
+  .action(
+    withErrorHandling(async (pattern: string, options: BatchUploadOptions) => {
+      console.log(chalk.bold('\n📦 Deposium Batch Upload\n'));
 
-    if (!apiKey) {
-      console.log(chalk.red('\n❌ API key is required'));
-      console.log(chalk.yellow('\nSet your API key:'));
-      console.log(chalk.cyan('  export DEPOSIUM_API_KEY=your-api-key'));
-      console.log(chalk.gray('  or use --api-key option\n'));
-      process.exit(1);
-    }
+      const fileInfos = await resolveFiles(pattern);
+      const totalSize = fileInfos.reduce((sum, f) => sum + f.size, 0);
+      const estimatedCostCents = Math.max(1, Math.ceil((totalSize / (1024 * 1024)) * 0.1));
 
-    console.log(chalk.bold('\n📦 Deposium Batch Upload\n'));
-
-    const fileInfos = await resolveFiles(pattern);
-    const totalSize = fileInfos.reduce((sum, f) => sum + f.size, 0);
-    const estimatedCostCents = Math.max(1, Math.ceil((totalSize / (1024 * 1024)) * 0.1));
-
-    // Display file list and summary
-    console.log(divider('Files to Upload', 'light'));
-    console.log('');
-    fileInfos.forEach((file) => {
-      console.log(chalk.gray(`  - ${file.name} (${formatBytes(file.size)})`));
-    });
-    console.log('');
-    console.log(createInfoBox('Summary', '', 'info'));
-    console.log(chalk.white(`  Files:        ${fileInfos.length}`));
-    console.log(chalk.white(`  Total size:   ${formatBytes(totalSize)}`));
-    console.log(chalk.cyan(`  Est. cost:    ${formatCost(estimatedCostCents)}`));
-    if (options.spaceId) console.log(chalk.gray(`  Space ID:     ${options.spaceId}`));
-    if (options.folderId) console.log(chalk.gray(`  Folder ID:    ${options.folderId}`));
-    console.log('');
-
-    if (options.dryRun) {
-      console.log(chalk.yellow('🔍 Dry run - no files uploaded'));
-      console.log(chalk.gray('Remove --dry-run to actually upload files.\n'));
-      process.exit(0);
-    }
-
-    validateLimits(fileInfos, totalSize);
-
-    const batchSpinner = ora('Preparing batch upload...').start();
-
-    try {
-      const filesWithContent = await Promise.all(
-        fileInfos.map(async (file) => ({
-          name: file.name,
-          size: file.size,
-          mime_type: file.mimeType,
-          content_base64: await readFileAsBase64(file.path),
-        }))
-      );
-
-      batchSpinner.text = 'Uploading to Deposium...';
-
-      const response = await fetch(`${apiUrl}/api/v2/files/batch-upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-        body: JSON.stringify({
-          files: filesWithContent,
-          options: { space_id: options.spaceId, folder_id: options.folderId },
-        }),
+      // Display file list and summary
+      console.log(divider('Files to Upload', 'light'));
+      console.log('');
+      fileInfos.forEach((file) => {
+        console.log(chalk.gray(`  - ${file.name} (${formatBytes(file.size)})`));
       });
+      console.log('');
+      console.log(createInfoBox('Summary', '', 'info'));
+      console.log(chalk.white(`  Files:        ${fileInfos.length}`));
+      console.log(chalk.white(`  Total size:   ${formatBytes(totalSize)}`));
+      console.log(chalk.cyan(`  Est. cost:    ${formatCost(estimatedCostCents)}`));
+      if (options.spaceId) console.log(chalk.gray(`  Space ID:     ${options.spaceId}`));
+      if (options.folderId) console.log(chalk.gray(`  Folder ID:    ${options.folderId}`));
+      console.log('');
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        let errorMessage = `HTTP ${response.status}`;
-        try {
-          const errorJson = JSON.parse(errorBody);
-          errorMessage = errorJson.error ?? errorJson.message ?? errorMessage;
-          if (errorJson.details) {
-            errorMessage +=
-              ': ' +
-              (Array.isArray(errorJson.details) ? errorJson.details.join(', ') : errorJson.details);
-          }
-        } catch {
-          // Response body isn't JSON — append a truncated text excerpt so the
-          // user still sees context about the failure.
-          if (errorBody) errorMessage += `: ${errorBody.substring(0, 200)}`;
-        }
-        throw new Error(errorMessage);
+      if (options.dryRun) {
+        console.log(chalk.yellow('🔍 Dry run - no files uploaded'));
+        console.log(chalk.gray('Remove --dry-run to actually upload files.\n'));
+        process.exit(0);
       }
 
-      const result = (await response.json()) as BatchUploadResponse;
-      batchSpinner.succeed('Batch upload completed!');
-      displayResults(result);
-    } catch (error: unknown) {
-      batchSpinner.fail('Batch upload failed');
-      handleUploadError(error, apiUrl);
-    }
-  });
+      validateLimits(fileInfos, totalSize);
+
+      // Centralized client: routes through enforceUrlSecurity() (HTTPS
+      // outside localhost), the service-key guardrail, and the standard
+      // ECONNREFUSED message — same security posture as every other
+      // command. (H2 / M3 / M7 audit fixes.)
+      const { client, baseUrl } = await initializeCommand();
+      const batchSpinner = ora('Uploading to Deposium...').start();
+
+      try {
+        const result = (await client.uploadBatch(
+          fileInfos.map((f) => ({ path: f.path, name: f.name, mimeType: f.mimeType })),
+          { spaceId: options.spaceId, folderId: options.folderId }
+        )) as BatchUploadResponse;
+        batchSpinner.succeed('Batch upload completed!');
+        displayResults(result);
+      } catch (error: unknown) {
+        batchSpinner.fail('Batch upload failed');
+        // The client already shapes the common cases (auth, ECONNREFUSED)
+        // into human messages. Surface them verbatim with one extra
+        // contextual line for upload-specific framing.
+        console.log(chalk.red(`\n❌ ${getErrorMessage(error)}`));
+        console.log(chalk.gray(`  URL: ${baseUrl}\n`));
+        process.exit(1);
+      }
+    })
+  );

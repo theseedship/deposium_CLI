@@ -17,9 +17,8 @@ import { getErrorMessage } from './utils/command-helpers';
  * `--on-ambiguous` policy — what the CLI does when the server emits a
  * `chat_prompt` HITL pause.
  *
- * Phase I ships 4 modes. Phase W.2 will add `resume-file` and
- * `fail-with-token` (stateful modes that need persistence across process
- * restarts).
+ * Stateful modes (`resume-file`, `fail-with-token`) that need
+ * persistence across process restarts are not yet implemented.
  */
 export type OnAmbiguousMode = 'prompt' | 'fail' | 'dump' | 'pick-first';
 
@@ -48,14 +47,13 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 
   const config = getConfig();
   const baseUrl = getBaseUrl(config);
-  const mcpDirectUrl = getMcpDirectUrl(config);
   const onAmbiguous = resolveOnAmbiguousMode(options.onAmbiguous);
 
   let streamUrl: string;
   let directMcp = false;
 
   if (options.direct) {
-    streamUrl = mcpDirectUrl;
+    streamUrl = getMcpDirectUrl(config);
     directMcp = true;
     console.warn(
       chalk.yellow(
@@ -114,7 +112,6 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
       const fullResponse = await runChatTurn({
         client,
         streamUrl,
-        mcpDirectUrl,
         directMcp,
         message: trimmedMessage,
         conversationHistory: chatHistory.toConversationHistory(6),
@@ -140,8 +137,9 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 
 export interface RunChatTurnArgs {
   client: MCPClient;
+  /** Base URL the SSE stream + resume both target. Edge Runtime by
+   *  default; direct MCP only when `directMcp=true`. */
   streamUrl: string;
-  mcpDirectUrl: string;
   directMcp: boolean;
   message: string;
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -153,7 +151,9 @@ export interface RunChatTurnArgs {
 export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const citations: SSECitation[] = [];
   let fullResponse = '';
-  let pendingPrompt: SSEChatPrompt | null = null;
+  // Queue rather than single-slot so multiple chat_prompts in one
+  // stream are drained in order instead of silently overwritten.
+  const pendingPrompts: SSEChatPrompt[] = [];
 
   const streamOpts: ChatStreamOptions = {
     conversationHistory: args.conversationHistory,
@@ -164,7 +164,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     },
     onCitation: (c) => citations.push(c),
     onChatPrompt: (prompt) => {
-      pendingPrompt = prompt;
+      pendingPrompts.push(prompt);
     },
     onError: (err) => {
       console.error(chalk.red('\n❌ ' + (err.message ?? err.error ?? 'Stream error')));
@@ -179,10 +179,11 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   });
 
   // Resume loop — server may emit multiple chat_prompts in sequence
-  // (e.g. disambiguate → confirm step action → done).
-  while (pendingPrompt) {
-    const prompt: SSEChatPrompt = pendingPrompt;
-    pendingPrompt = null;
+  // (e.g. disambiguate → confirm step action → done). The resume URL
+  // matches the stream URL: in non-`--direct` mode this is Edge
+  // Runtime so the gateway's auth + rate-limiting apply on resume too.
+  while (pendingPrompts.length > 0) {
+    const prompt = pendingPrompts.shift() as SSEChatPrompt;
 
     process.stdout.write('\n');
     const decision = await handleChatPrompt(prompt, args.onAmbiguous, args.prompter);
@@ -190,7 +191,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
     process.stdout.write(chalk.green('AI: '));
 
-    await args.client.resumeAgent(args.mcpDirectUrl, prompt.correlation_id, decision, streamOpts);
+    await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
   }
 
   process.stdout.write('\n');
@@ -293,8 +294,8 @@ async function inquirerPrompt(prompt: SSEChatPrompt): Promise<AgentResumePayload
   }
 
   throw new Error(
-    `chat_prompt type='${prompt.type}' is not yet supported in CLI — ` +
-      `forms will ship in Phase W.2. Use --on-ambiguous=dump to inspect the payload.`
+    `chat_prompt type='${prompt.type}' is not yet supported in the CLI. ` +
+      `Use --on-ambiguous=dump to inspect the payload.`
   );
 }
 

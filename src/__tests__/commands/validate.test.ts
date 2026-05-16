@@ -93,6 +93,21 @@ describe('parseOnAmbiguous', () => {
     expect(parseOnAmbiguous(undefined)).toBe('fail');
     Object.defineProperty(process.stdin, 'isTTY', { value: original, configurable: true });
   });
+
+  test('--json forces fail by default even in a TTY (M4 regression)', () => {
+    const original = process.stdin.isTTY;
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    expect(parseOnAmbiguous(undefined, { json: true })).toBe('fail');
+    Object.defineProperty(process.stdin, 'isTTY', { value: original, configurable: true });
+  });
+
+  test('--json + explicit --on-ambiguous=prompt is rejected (M4 regression)', () => {
+    expect(() => parseOnAmbiguous('prompt', { json: true })).toThrow(/incompatible with --json/);
+  });
+
+  test('--json + explicit --on-ambiguous=dump is accepted', () => {
+    expect(parseOnAmbiguous('dump', { json: true })).toBe('dump');
+  });
 });
 
 describe('parseLanguage', () => {

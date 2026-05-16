@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const uiCommand = new Command('ui').description(
   'Interactive UI dashboards and visualizations'
@@ -22,7 +23,7 @@ uiCommand
 
       const result = await client.callTool(
         'ui_show_dashboard',
-        { port: parseInt(options.port, 10) },
+        { port: parseIntOrThrow(options.port, '--port') },
         { spinner: !options.silent }
       );
 
@@ -50,7 +51,7 @@ uiCommand
 
       const result = await client.callTool(
         'ui_show_search',
-        { port: parseInt(options.port, 10) },
+        { port: parseIntOrThrow(options.port, '--port') },
         { spinner: !options.silent }
       );
 
@@ -80,8 +81,8 @@ uiCommand
       const result = await client.callTool(
         'ui_show_health',
         {
-          port: parseInt(options.port, 10),
-          refresh_interval: parseInt(options.refresh, 10),
+          port: parseIntOrThrow(options.port, '--port'),
+          refresh_interval: parseIntOrThrow(options.refresh, '--refresh'),
         },
         { spinner: !options.silent }
       );
@@ -110,7 +111,7 @@ uiCommand
 
       const result = await client.callTool(
         'ui_show_tools',
-        { port: parseInt(options.port, 10) },
+        { port: parseIntOrThrow(options.port, '--port') },
         { spinner: !options.silent }
       );
 
@@ -140,8 +141,8 @@ uiCommand
       const result = await client.callTool(
         'ui_show_embeddings',
         {
-          port: parseInt(options.port, 10),
-          refresh_interval: parseInt(options.refresh, 10),
+          port: parseIntOrThrow(options.port, '--port'),
+          refresh_interval: parseIntOrThrow(options.refresh, '--refresh'),
         },
         { spinner: !options.silent }
       );

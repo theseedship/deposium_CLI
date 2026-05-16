@@ -2,18 +2,18 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const logsCommand = new Command('logs').description(
   'View, search, and analyze MCP server logs'
 );
 
-// view.logs - View recent logs
+// view.logs - View recent logs (snapshot — there is no streaming yet)
 logsCommand
   .command('view')
-  .description('View recent MCP server logs')
+  .description('View recent MCP server logs (snapshot)')
   .option('--level <level>', 'Log level filter (error|warn|info|debug)', 'info')
   .option('--limit <number>', 'Number of log entries', '100')
-  .option('--tail', 'Tail logs in real-time')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
@@ -26,8 +26,7 @@ logsCommand
         'view_logs',
         {
           level: options.level,
-          limit: parseInt(options.limit, 10),
-          tail: options.tail ?? false,
+          limit: parseIntOrThrow(options.limit, '--limit'),
         },
         { spinner: !options.silent }
       );
@@ -121,8 +120,8 @@ logsCommand
         {
           pattern,
           level: options.level,
-          limit: parseInt(options.limit, 10),
-          context: parseInt(options.context, 10),
+          limit: parseIntOrThrow(options.limit, '--limit'),
+          context: parseIntOrThrow(options.context, '--context'),
         },
         { spinner: !options.silent }
       );

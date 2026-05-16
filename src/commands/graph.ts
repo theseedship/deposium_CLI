@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const graphCommand = new Command('graph')
   .description('Graph analysis and queries')
@@ -26,7 +27,7 @@ export const graphCommand = new Command('graph')
               tenant_id: tenantId,
               space_id: spaceId,
               pattern,
-              limit: parseInt(options.limit, 10),
+              limit: parseIntOrThrow(options.limit, '--limit'),
             },
             { spinner: true }
           );
@@ -138,10 +139,10 @@ export const graphCommand = new Command('graph')
               space_id: spaceId,
               source_pattern: options.sourcePattern,
               target_pattern: options.targetPattern,
-              min_hops: parseInt(options.minHops, 10),
-              max_hops: parseInt(options.maxHops, 10),
+              min_hops: parseIntOrThrow(options.minHops, '--min-hops'),
+              max_hops: parseIntOrThrow(options.maxHops, '--max-hops'),
               edge_filters: edgeFilters,
-              limit: parseInt(options.limit, 10),
+              limit: parseIntOrThrow(options.limit, '--limit'),
             },
             { spinner: true }
           );
@@ -180,8 +181,8 @@ export const graphCommand = new Command('graph')
               space_id: spaceId,
               source_id: from,
               target_id: to,
-              min_hops: parseInt(options.minHops, 10),
-              max_hops: parseInt(options.maxHops, 10),
+              min_hops: parseIntOrThrow(options.minHops, '--min-hops'),
+              max_hops: parseIntOrThrow(options.maxHops, '--max-hops'),
               avoid_cycles: options.avoidCycles ?? false,
             },
             { spinner: true }
@@ -218,7 +219,7 @@ export const graphCommand = new Command('graph')
               tenant_id: tenantId,
               space_id: spaceId,
               node_id: nodeId,
-              k: parseInt(options.hops, 10),
+              k: parseIntOrThrow(options.hops, '--hops'),
               include_properties: options.includeProperties ?? false,
             },
             { spinner: true }
@@ -252,7 +253,7 @@ export const graphCommand = new Command('graph')
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              min_component_size: parseInt(options.minSize, 10),
+              min_component_size: parseIntOrThrow(options.minSize, '--min-size'),
             },
             { spinner: true }
           );

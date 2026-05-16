@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import { parseIntOrThrow, parseFloatOrThrow } from '../utils/parsers';
 
 export const evaluateCommand = new Command('evaluate')
   .alias('eval')
@@ -24,8 +25,8 @@ evaluateCommand
       const result = await client.callTool(
         'eval_metrics',
         {
-          userId: options.userId,
-          includeGlobal: options.includeGlobal ?? false,
+          user_id: options.userId,
+          include_global: options.includeGlobal ?? false,
         },
         { spinner: !options.silent }
       );
@@ -56,8 +57,8 @@ evaluateCommand
       const result = await client.callTool(
         'eval_dashboard',
         {
-          userId: options.userId,
-          timeRange: options.timeRange,
+          user_id: options.userId,
+          time_range: options.timeRange,
         },
         { spinner: !options.silent }
       );
@@ -95,9 +96,13 @@ evaluateCommand
       const result = await client.callTool(
         'eval_feedback',
         {
-          queryId: options.queryId,
-          userId: options.userId,
-          score: parseFloat(options.score),
+          // snake_case to match the rest of the API surface
+          // (tenant_id, space_id, query_text, …). The previous
+          // camelCase payload was inconsistent and likely silently
+          // ignored server-side.
+          query_id: options.queryId,
+          user_id: options.userId,
+          score: parseFloatOrThrow(options.score, '--score'),
           feedback: options.feedback,
         },
         { spinner: !options.silent }
@@ -132,7 +137,7 @@ evaluateCommand
         {
           code,
           language: options.language,
-          timeout: parseInt(options.timeout, 10),
+          timeout: parseIntOrThrow(options.timeout, '--timeout'),
         },
         { spinner: !options.silent }
       );
@@ -167,7 +172,7 @@ evaluateCommand
         {
           tenant_id: tenantId,
           space_id: spaceId,
-          max_nodes: parseInt(options.maxNodes, 10),
+          max_nodes: parseIntOrThrow(options.maxNodes, '--max-nodes'),
         },
         { spinner: !options.silent }
       );

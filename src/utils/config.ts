@@ -112,9 +112,15 @@ export function deriveEncryptionKey(): string {
 /**
  * Migrate plaintext config to encrypted format.
  *
- * If the config file exists as valid JSON (plaintext), reads its data,
- * renames the old file to `.plaintext.bak`, and returns the data
- * for re-insertion into the encrypted Conf store.
+ * If the config file is a JSON document on disk (the pre-encryption
+ * format), reads its data, renames the old file to `.plaintext.bak`,
+ * and returns the data for re-insertion into the encrypted Conf store.
+ *
+ * The encrypted Conf store writes hex-encoded ciphertext, so any file
+ * starting with `{` or `[` is plaintext by construction — we use that
+ * structural check before attempting `JSON.parse` so we never confuse
+ * a corrupted-but-coincidentally-parseable ciphertext blob with a
+ * plaintext config.
  *
  * @param filePath - Path to the config file to check
  * @returns Parsed config data if migration is needed, null otherwise
@@ -123,6 +129,16 @@ export function migrateIfPlaintext(filePath: string): Record<string, unknown> | 
   try {
     if (!fs.existsSync(filePath)) return null;
     const raw = fs.readFileSync(filePath, 'utf-8');
+    // Plaintext JSON always starts with `{` (object) or `[` (array)
+    // after optional BOM/whitespace. The encrypted Conf format starts
+    // with the hex IV — never `{` or `[`. Bail out early so we don't
+    // even feed ciphertext to JSON.parse.
+    const firstChar = raw
+      .replace(/^\uFEFF/, '')
+      .trimStart()
+      .charAt(0);
+    if (firstChar !== '{' && firstChar !== '[') return null;
+
     const data = JSON.parse(raw);
     if (typeof data !== 'object' || data === null) return null;
     // Valid JSON object → plaintext config that needs migration
@@ -144,8 +160,6 @@ export interface DeposiumConfig {
   apiKey?: string;
   defaultTenant?: string;
   defaultSpace?: string;
-  outputFormat?: 'json' | 'table' | 'markdown';
-  silentMode?: boolean;
 }
 
 // Migrate plaintext config before creating encrypted store
@@ -214,10 +228,6 @@ export function getConfig(): DeposiumConfig {
     apiKey: process.env.DEPOSIUM_API_KEY ?? credentials.get('apiKey') ?? config.get('apiKey'),
     defaultTenant: process.env.DEPOSIUM_TENANT ?? config.get('defaultTenant'),
     defaultSpace: process.env.DEPOSIUM_SPACE ?? config.get('defaultSpace'),
-    outputFormat:
-      (process.env.DEPOSIUM_OUTPUT as 'json' | 'table' | 'markdown') ||
-      config.get('outputFormat', 'table'),
-    silentMode: process.env.DEPOSIUM_SILENT === 'true' || config.get('silentMode', false),
   };
 }
 

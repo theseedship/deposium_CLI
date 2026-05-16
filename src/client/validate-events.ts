@@ -145,7 +145,7 @@ function renderThematicComplete(p: ValidateThematicCompleteEvent): string {
 
 function renderN1Complete(p: ValidateEvents['validate:n1_complete']): string {
   const { pass, fail, partial } = p.thematic_count;
-  const banner = chalk.cyan(`[N1 récap] ${pass} pass, ${fail} fail, ${partial} partial`);
+  const banner = chalk.cyan(`[N1 summary] ${pass} pass, ${fail} fail, ${partial} partial`);
   if (p.level_2_starting) {
     return banner + chalk.gray(' — N2 starting…');
   }
@@ -164,9 +164,9 @@ function renderComplete(p: ValidateEvents['validate:complete']): string {
   const verdict = t.thematic_fail === 0 && t.folder_pass !== false ? 'PASS' : 'FAIL';
   const color = verdict === 'PASS' ? chalk.green : chalk.red;
   return color(
-    `\n[FINAL] Verdict global : ${verdict}\n` +
+    `\n[FINAL] Overall verdict: ${verdict}\n` +
       `        thematic=${t.thematic_pass}/${t.thematic_pass + t.thematic_fail}${folder}\n` +
-      `        Run ID : ${p.run_id}`
+      `        Run ID: ${p.run_id}`
   );
 }
 

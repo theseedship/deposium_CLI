@@ -171,20 +171,18 @@ describe('config.ts', () => {
   });
 
   describe('getConfig', () => {
-    test('should return default values when nothing is configured', () => {
+    test('should return undefined values when nothing is configured', () => {
       // Clear env vars
       delete process.env.DEPOSIUM_URL;
       delete process.env.DEPOSIUM_MCP_URL;
       delete process.env.DEPOSIUM_API_KEY;
       delete process.env.DEPOSIUM_TENANT;
       delete process.env.DEPOSIUM_SPACE;
-      delete process.env.DEPOSIUM_OUTPUT;
-      delete process.env.DEPOSIUM_SILENT;
 
       const config = getConfig();
 
-      expect(config.outputFormat).toBe('table');
-      expect(config.silentMode).toBe(false);
+      expect(config.deposiumUrl).toBeUndefined();
+      expect(config.apiKey).toBeUndefined();
     });
 
     test('should prioritize environment variables over config file', () => {
@@ -192,8 +190,6 @@ describe('config.ts', () => {
       process.env.DEPOSIUM_API_KEY = 'env-api-key';
       process.env.DEPOSIUM_TENANT = 'env-tenant';
       process.env.DEPOSIUM_SPACE = 'env-space';
-      process.env.DEPOSIUM_OUTPUT = 'json';
-      process.env.DEPOSIUM_SILENT = 'true';
 
       // Set config file values
       confStore['deposiumUrl'] = 'https://config-url.example.com';
@@ -205,8 +201,6 @@ describe('config.ts', () => {
       expect(config.apiKey).toBe('env-api-key');
       expect(config.defaultTenant).toBe('env-tenant');
       expect(config.defaultSpace).toBe('env-space');
-      expect(config.outputFormat).toBe('json');
-      expect(config.silentMode).toBe(true);
     });
 
     test('should fall back to config file when env vars not set', () => {

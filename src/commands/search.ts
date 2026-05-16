@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import { parseIntOrThrow } from '../utils/parsers';
 
 export const searchCommand = new Command('search')
   .description('Search documents using DuckDB VSS, FTS, or fuzzy matching')
@@ -32,7 +33,7 @@ export const searchCommand = new Command('search')
           use_fts: options.fts ?? false,
           use_fuzzy: options.fuzzy ?? false,
           use_graph: options.graph ?? false,
-          top_k: parseInt(options.topK, 10),
+          top_k: parseIntOrThrow(options.topK, '--top-k'),
         },
         { spinner: !options.silent }
       );
