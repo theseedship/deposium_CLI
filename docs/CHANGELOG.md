@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-05-25
+
+### Security
+
+- Resolved moderate-severity advisory **GHSA-jxxr-4gwj-5jf2**
+  (brace-expansion DoS) transitively via `npm update`.
+
+### Internal
+
+- In-range dependency refresh: axios 1.16.1, vitest 4.1.7,
+  `@typescript-eslint/*` 8.59.4, inquirer 13.4.3, ora 9.4.0, tsx 4.22.3,
+  prettier 3.8.3, dotenv 17.4.2, eslint 9.39.4, and others. No public
+  API change; 453/453 tests pass.
+
 ## [1.4.0] - 2026-05-16
 
 Internal audit cycle — fixes for one production-blocking bug, one
