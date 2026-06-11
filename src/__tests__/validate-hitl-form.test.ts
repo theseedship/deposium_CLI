@@ -62,21 +62,34 @@ describe('handleValidateChatPrompt — mode dispatch', () => {
     );
   });
 
-  test('mode=dump prints prompt JSON and exits 0', async () => {
+  test('mode=dump writes prompt JSON to stdout then exits 0', async () => {
     const prompt = makePrompt();
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const exitError = new Error('__TEST_EXIT__');
+    // The implementation uses process.stdout.write(json, cb) + cb→exit(0)
+    // so the pipe buffer flushes before Node terminates. Mock both.
+    const written: string[] = [];
+    const writeSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation((chunk: unknown, cbOrEnc?: unknown, cb?: unknown) => {
+        written.push(String(chunk));
+        const callback =
+          typeof cbOrEnc === 'function' ? cbOrEnc : typeof cb === 'function' ? cb : undefined;
+        (callback as ((err?: Error | null) => void) | undefined)?.();
+        return true;
+      });
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw exitError;
+      throw new Error('__TEST_EXIT__');
     });
 
-    await expect(handleValidateChatPrompt(prompt, 'dump')).rejects.toBe(exitError);
+    // Function returns a never-resolving promise after scheduling exit;
+    // race against a microtask tick to assert without hanging.
+    handleValidateChatPrompt(prompt, 'dump').catch(() => {});
+    await Promise.resolve();
 
     expect(exitSpy).toHaveBeenCalledWith(0);
-    const printed = logSpy.mock.calls[0]?.[0] as string;
-    expect(JSON.parse(printed).chat_prompt.correlation_id).toBe('corr-1');
+    expect(written).toHaveLength(1);
+    expect(JSON.parse(written[0].trim()).chat_prompt.correlation_id).toBe('corr-1');
 
-    logSpy.mockRestore();
+    writeSpy.mockRestore();
     exitSpy.mockRestore();
   });
 
