@@ -957,11 +957,18 @@ export class MCPClient {
 
     if (!eventType || !dataStr) return;
 
+    // Catch ONLY JSON parse failures — a malformed `data:` payload is
+    // expected to be skipped (a warning event usually follows). Errors
+    // thrown by consumer callbacks (`onToken`, `onChatPrompt`, …) must
+    // propagate; swallowing them masks real bugs in SDK consumers and
+    // makes the stream look like it's silently stalling.
+    let parsed: Record<string, unknown>;
     try {
-      this.dispatchSSEEvent(eventType, JSON.parse(dataStr), options);
+      parsed = JSON.parse(dataStr) as Record<string, unknown>;
     } catch {
-      // Skip malformed JSON — a warning event will follow if it matters
+      return;
     }
+    this.dispatchSSEEvent(eventType, parsed, options);
   }
 
   /** Dispatch a parsed SSE event to the appropriate callback */
