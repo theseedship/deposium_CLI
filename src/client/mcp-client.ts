@@ -136,14 +136,12 @@ export type {
 
 import { buildAuthError } from './auth-error';
 import { connectionRefusedError, throwForKnownAxiosError } from './http-errors';
-import { generateRequestId, createAxiosErrorResult, withRetry, parseSSEEvent } from './internals';
+import { generateRequestId, createAxiosErrorResult, withRetry } from './internals';
 import { postSSE, parseSSEStream, type SSEStreamContext } from './sse-stream';
+import { consumeValidateStream } from './validate-stream';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
   ValidateToolInput,
-  ValidateChatPrompt,
-  ValidateEvents,
-  ValidateEventName,
   ValidateReportJson,
   ValidateStreamHandlers,
 } from './validate-types';
@@ -674,7 +672,7 @@ export class MCPClient {
       });
 
       const response = await postSSE(url, body, this.sseContext(), 'Validate stream');
-      const result = await this.consumeValidateStream(response, handlers);
+      const result = await consumeValidateStream(response, handlers);
 
       if (result.kind === 'terminal') {
         return { run_id: result.run_id, status: result.status };
@@ -725,96 +723,6 @@ export class MCPClient {
       }
       throw error;
     }
-  }
-
-  /**
-   * Read a single SSE response stream into validate-event dispatch. Returns
-   * either a terminal result (`validate:complete` / `validate:failed`) or a
-   * `paused` marker carrying the `chat_prompt` payload.
-   */
-  private async consumeValidateStream(
-    response: Response,
-    handlers: ValidateStreamHandlers
-  ): Promise<
-    | { kind: 'terminal'; run_id: string; status: 'complete' | 'failed' }
-    | { kind: 'paused'; prompt: ValidateChatPrompt }
-  > {
-    const responseBody = response.body;
-    if (!responseBody) {
-      throw new Error('Validate stream has no body');
-    }
-    const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        if (buffer.trim()) {
-          const result = await this.handleValidateChunk(buffer, handlers);
-          if (result) return result;
-        }
-        throw new Error('Validate stream ended without a terminal event');
-      }
-
-      buffer += value;
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() ?? '';
-
-      for (const part of parts) {
-        const result = await this.handleValidateChunk(part, handlers);
-        if (result) {
-          // Cancel the stream so the connection can close before we resume.
-          reader.cancel().catch(() => {});
-          return result;
-        }
-      }
-    }
-  }
-
-  /**
-   * Parse a single SSE chunk and dispatch. Returns a paused/terminal
-   * marker when the event is `chat_prompt`, `validate:complete`, or
-   * `validate:failed`; otherwise returns null and the caller continues.
-   */
-  private async handleValidateChunk(
-    part: string,
-    handlers: ValidateStreamHandlers
-  ): Promise<
-    | { kind: 'terminal'; run_id: string; status: 'complete' | 'failed' }
-    | { kind: 'paused'; prompt: ValidateChatPrompt }
-    | null
-  > {
-    if (!part.trim()) return null;
-
-    const { eventType, dataStr } = parseSSEEvent(part);
-    if (!eventType || !dataStr) return null;
-
-    let data: unknown;
-    try {
-      data = JSON.parse(dataStr);
-    } catch {
-      return null; // Skip malformed JSON — non-terminal.
-    }
-
-    if (eventType === 'chat_prompt') {
-      return { kind: 'paused', prompt: data as ValidateChatPrompt };
-    }
-
-    if (eventType === 'validate:complete' || eventType === 'validate:failed') {
-      const payload = data as
-        | ValidateEvents['validate:complete']
-        | ValidateEvents['validate:failed'];
-      await handlers.onEvent(eventType, payload as never);
-      return {
-        kind: 'terminal',
-        run_id: payload.run_id,
-        status: eventType === 'validate:complete' ? 'complete' : 'failed',
-      };
-    }
-
-    // Other validate:* events or generic 'error' — dispatch and continue.
-    await handlers.onEvent(eventType as ValidateEventName, data as never);
-    return null;
   }
 
   /**
