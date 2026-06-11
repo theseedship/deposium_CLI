@@ -12,6 +12,36 @@ import type { MCPToolResult } from './types';
 import { buildAuthError } from './auth-error';
 
 /**
+ * Parse a single SSE event frame into `{ eventType, dataStr }`.
+ *
+ * Per the SSE spec (https://html.spec.whatwg.org/multipage/server-sent-events.html):
+ *   - Multiple `data:` lines in one event are concatenated with `\n`
+ *     (NOT overwritten — the previous bug).
+ *   - The colon may or may not be followed by a single space; the spec
+ *     strips one optional leading space from each line's content.
+ *   - Lines starting with `:` are comments (heartbeats); ignore them.
+ *   - Unknown field names are ignored.
+ *
+ * Returns empty strings when no event/data was found — caller decides
+ * whether that's a skip-this-chunk or a noop.
+ */
+export function parseSSEEvent(part: string): { eventType: string; dataStr: string } {
+  let eventType = '';
+  const dataLines: string[] = [];
+  for (const line of part.split('\n')) {
+    if (line.startsWith(':')) continue; // SSE comment / heartbeat
+    const colon = line.indexOf(':');
+    if (colon === -1) continue;
+    const field = line.slice(0, colon);
+    // Strip exactly one optional leading space from the value.
+    const value = line.slice(colon + 1).replace(/^ /, '');
+    if (field === 'event') eventType = value.trim();
+    else if (field === 'data') dataLines.push(value);
+  }
+  return { eventType, dataStr: dataLines.join('\n') };
+}
+
+/**
  * Generate a unique request ID for tracing
  */
 export function generateRequestId(): string {

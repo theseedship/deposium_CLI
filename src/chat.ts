@@ -229,8 +229,16 @@ export async function handleChatPrompt(
   }
 
   if (mode === 'dump') {
-    console.log(JSON.stringify({ chat_prompt: prompt }, null, 2));
-    process.exit(0);
+    // Use write+callback rather than console.log+process.exit because
+    // process.exit is synchronous and Node may terminate before the
+    // kernel pipe buffer flushes — truncating the JSON for downstream
+    // `| jq` consumers on slow pipes or CI runners.
+    process.stdout.write(JSON.stringify({ chat_prompt: prompt }, null, 2) + '\n', () => {
+      process.exit(0);
+    });
+    // Unreachable in practice, but keeps the type system happy and
+    // satisfies the "this function never returns" contract.
+    return new Promise(() => {});
   }
 
   if (mode === 'pick-first') {

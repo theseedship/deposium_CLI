@@ -364,11 +364,21 @@ export function setApiKey(key: string): void {
 }
 
 /**
- * Remove the API key from the credentials store.
- * Does not touch the legacy `apiKey` field in the main config.
+ * Remove the API key from BOTH the credentials store and the legacy
+ * `apiKey` field in the main config.
+ *
+ * Why both: `getApiKey()` falls back to the legacy slot when the
+ * credentials store is empty (backward-compat with pre-encryption
+ * installs that never migrated). If `deleteApiKey()` only cleared
+ * credentials, a partial-migration system (e.g. one where the
+ * `migrateIfPlaintext` move failed mid-way on a read-only filesystem)
+ * would resurrect the legacy key on the very next `getApiKey()` call —
+ * meaning `deposium auth logout` would visibly succeed but a follow-up
+ * `auth status` would show the user still authenticated.
  */
 export function deleteApiKey(): void {
   credentials.delete('apiKey');
+  config.delete('apiKey');
 }
 
 /**

@@ -62,22 +62,39 @@ describe('handleValidateChatPrompt — mode dispatch', () => {
     );
   });
 
-  test('mode=dump prints prompt JSON and exits 0', async () => {
+  test('mode=dump writes prompt JSON to stdout then exits 0', async () => {
     const prompt = makePrompt();
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const exitError = new Error('__TEST_EXIT__');
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw exitError;
+    // The implementation uses process.stdout.write(json, cb) + cb→exit(0).
+    // Wait for exit explicitly so an upstream `await` insertion wouldn't
+    // silently break the assertion timing.
+    const written: string[] = [];
+    const writeSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation((chunk: unknown, cbOrEnc?: unknown, cb?: unknown) => {
+        written.push(String(chunk));
+        const callback =
+          typeof cbOrEnc === 'function' ? cbOrEnc : typeof cb === 'function' ? cb : undefined;
+        (callback as ((err?: Error | null) => void) | undefined)?.();
+        return true;
+      });
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('exit never called')), 1000);
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: unknown) => {
+        clearTimeout(timer);
+        expect(code).toBe(0);
+        resolve();
+        throw new Error('__TEST_EXIT__');
+      });
+      handleValidateChatPrompt(prompt, 'dump').catch(() => {});
+      void exitSpy;
     });
 
-    await expect(handleValidateChatPrompt(prompt, 'dump')).rejects.toBe(exitError);
+    expect(written).toHaveLength(1);
+    expect(JSON.parse(written[0].trim()).chat_prompt.correlation_id).toBe('corr-1');
 
-    expect(exitSpy).toHaveBeenCalledWith(0);
-    const printed = logSpy.mock.calls[0]?.[0] as string;
-    expect(JSON.parse(printed).chat_prompt.correlation_id).toBe('corr-1');
-
-    logSpy.mockRestore();
-    exitSpy.mockRestore();
+    writeSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   test('mode=prompt delegates to the injected prompter', async () => {

@@ -57,8 +57,16 @@ export async function handleValidateChatPrompt(
   }
 
   if (mode === 'dump') {
-    console.log(JSON.stringify({ chat_prompt: prompt }, null, 2));
-    process.exit(0);
+    // Use write+callback rather than console.log+process.exit because
+    // process.exit is synchronous and Node may terminate before the
+    // kernel pipe buffer flushes — truncating the JSON for downstream
+    // `| jq` consumers on slow pipes or CI runners.
+    process.stdout.write(JSON.stringify({ chat_prompt: prompt }, null, 2) + '\n', () => {
+      process.exit(0);
+    });
+    // Unreachable in practice but keeps the function's return-shape
+    // contract honest.
+    return new Promise(() => {});
   }
 
   // mode === 'prompt' — interactive
@@ -83,6 +91,17 @@ async function interactivePrompt(prompt: ValidateChatPrompt): Promise<HitlPrompt
       return promptClassificationCorrection(prompt);
     case 'rule_clarification':
       return promptRuleClarification(prompt);
+    default: {
+      // Exhaustiveness check — if the server adds a 4th waiting_for
+      // discriminant and the client wasn't updated, fall through here
+      // instead of returning undefined and tripping a NPE in the caller.
+      const _exhaustive: never = prompt.waiting_for;
+      throw new Error(
+        `Unsupported chat_prompt waiting_for='${String(_exhaustive)}'. ` +
+          `Update the CLI to a version that handles this prompt type. ` +
+          `Correlation ID: ${prompt.correlation_id}`
+      );
+    }
   }
 }
 

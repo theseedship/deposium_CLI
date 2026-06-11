@@ -141,7 +141,7 @@ export type {
 } from './validate-types';
 
 import { buildAuthError } from './auth-error';
-import { generateRequestId, createAxiosErrorResult, withRetry } from './internals';
+import { generateRequestId, createAxiosErrorResult, withRetry, parseSSEEvent } from './internals';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
   ValidateToolInput,
@@ -819,12 +819,7 @@ export class MCPClient {
   > {
     if (!part.trim()) return null;
 
-    let eventType = '';
-    let dataStr = '';
-    for (const line of part.split('\n')) {
-      if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-      else if (line.startsWith('data: ')) dataStr = line.slice(6);
-    }
+    const { eventType, dataStr } = parseSSEEvent(part);
     if (!eventType || !dataStr) return null;
 
     let data: unknown;
@@ -947,14 +942,7 @@ export class MCPClient {
   private handleSSEChunk(part: string, options: ChatStreamOptions): void {
     if (!part.trim()) return;
 
-    let eventType = '';
-    let dataStr = '';
-    for (const line of part.split('\n')) {
-      if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-      else if (line.startsWith('data: ')) dataStr = line.slice(6);
-      // Ignore SSE comments (lines starting with ':') — heartbeats
-    }
-
+    const { eventType, dataStr } = parseSSEEvent(part);
     if (!eventType || !dataStr) return;
 
     // Catch ONLY JSON parse failures — a malformed `data:` payload is

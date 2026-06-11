@@ -117,25 +117,44 @@ describe('handleChatPrompt', () => {
     await expect(handleChatPrompt(prompt, 'fail')).rejects.toThrow(/intent_disambiguate/);
   });
 
-  test('dump mode — prints JSON and exits 0', async () => {
+  test('dump mode — writes JSON to stdout then exits 0', async () => {
     const { handleChatPrompt } = await import('../chat');
     const prompt = makeChoicePrompt();
 
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    // Simulate real exit behaviour: exit halts execution. We throw a sentinel
-    // so the test can assert cleanly instead of letting the function fall
-    // through and hang on the interactive prompter.
-    const exitError = new Error('__TEST_EXIT__');
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw exitError;
+    // The implementation uses process.stdout.write(json, cb) + cb→exit(0).
+    // Wait for process.exit to actually be called rather than relying on
+    // a fixed number of microtask ticks — that pattern would break
+    // silently if a future refactor inserted an `await` upstream of the
+    // write call.
+    const written: string[] = [];
+    const writeSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation((chunk: unknown, cbOrEnc?: unknown, cb?: unknown) => {
+        written.push(String(chunk));
+        const callback =
+          typeof cbOrEnc === 'function' ? cbOrEnc : typeof cb === 'function' ? cb : undefined;
+        (callback as ((err?: Error | null) => void) | undefined)?.();
+        return true;
+      });
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('exit never called')), 1000);
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+        clearTimeout(timer);
+        resolve();
+        throw new Error('__TEST_EXIT__');
+      });
+      handleChatPrompt(prompt, 'dump').catch(() => {});
+      // Cleanup after resolve runs.
+      void exitSpy;
     });
 
-    await expect(handleChatPrompt(prompt, 'dump')).rejects.toBe(exitError);
-
-    expect(logSpy).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(logSpy.mock.calls[0][0] as string);
+    expect(written).toHaveLength(1);
+    const payload = JSON.parse(written[0].trim());
     expect(payload.chat_prompt.correlation_id).toBe('cid-choice');
-    expect(exitSpy).toHaveBeenCalledWith(0);
+
+    writeSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   test('pick-first mode — auto-selects options[0].value for choice', async () => {
