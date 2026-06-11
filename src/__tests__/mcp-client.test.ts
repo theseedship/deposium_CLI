@@ -8,6 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { MCPClient } from '../client/mcp-client';
+import type { ChatStreamOptions } from '../client/types';
 
 // Mock ora
 vi.mock('ora', () => ({
@@ -1073,11 +1074,17 @@ describe('MCPClient — wire format guard', () => {
  * stream look like it's silently stalling.
  */
 describe('handleSSEChunk catch scope (client/sse-stream)', () => {
+  // `as unknown as ChatStreamOptions` keeps the nominal type visible so
+  // a future ChatStreamOptions change (new required field, signature
+  // drift on onToken / onMetadata) surfaces here at compile time.
+  // `as never` would silence those errors too aggressively.
   test('skips malformed JSON without throwing', async () => {
     const { handleSSEChunk } = await import('../client/sse-stream');
     const onToken = vi.fn();
     expect(() =>
-      handleSSEChunk('event: token\ndata: {not valid json', { onToken } as never)
+      handleSSEChunk('event: token\ndata: {not valid json', {
+        onToken,
+      } as unknown as ChatStreamOptions)
     ).not.toThrow();
     expect(onToken).not.toHaveBeenCalled();
   });
@@ -1088,7 +1095,9 @@ describe('handleSSEChunk catch scope (client/sse-stream)', () => {
       throw new Error('consumer bug');
     });
     expect(() =>
-      handleSSEChunk('event: token\ndata: {"token":"hi"}', { onToken } as never)
+      handleSSEChunk('event: token\ndata: {"token":"hi"}', {
+        onToken,
+      } as unknown as ChatStreamOptions)
     ).toThrow('consumer bug');
     expect(onToken).toHaveBeenCalledWith('hi');
   });
@@ -1100,7 +1109,10 @@ describe('handleSSEChunk catch scope (client/sse-stream)', () => {
       throw new Error('zod assertion failed');
     });
     expect(() =>
-      handleSSEChunk('event: metadata\ndata: {"foo":"bar"}', { onToken, onMetadata } as never)
+      handleSSEChunk('event: metadata\ndata: {"foo":"bar"}', {
+        onToken,
+        onMetadata,
+      } as unknown as ChatStreamOptions)
     ).toThrow('zod assertion failed');
   });
 });
