@@ -8,6 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { MCPClient } from '../client/mcp-client';
+import type { ChatStreamOptions } from '../client/types';
 
 // Mock ora
 vi.mock('ora', () => ({
@@ -1065,46 +1066,53 @@ describe('MCPClient — wire format guard', () => {
 });
 
 /**
- * `handleSSEChunk` is private but its catch-scope is load-bearing for
- * SDK consumers: malformed JSON should be skipped silently, but errors
- * thrown by user-supplied event callbacks (onToken / onChatPrompt / …)
- * MUST propagate. Swallowing the latter masks consumer bugs and makes
- * the stream look like it's silently stalling.
+ * `handleSSEChunk` lives in client/sse-stream.ts and is the single
+ * dispatcher for chat-mode SSE events. Its catch-scope contract is
+ * load-bearing: malformed JSON gets silently skipped, but errors from
+ * user-supplied event callbacks (onToken / onChatPrompt / …) MUST
+ * propagate — swallowing them masks consumer bugs and makes the
+ * stream look like it's silently stalling.
  */
-describe('MCPClient — handleSSEChunk catch scope', () => {
-  type SSEChunkHandler = (part: string, options: Record<string, unknown>) => void;
-  let client: MCPClient;
-  let handleSSEChunk: SSEChunkHandler;
-
-  beforeEach(() => {
-    client = new MCPClient('http://localhost:3000', 'api-key');
-    const fn = (client as unknown as { handleSSEChunk: SSEChunkHandler }).handleSSEChunk;
-    handleSSEChunk = fn.bind(client);
-  });
-
-  test('skips malformed JSON without throwing', () => {
+describe('handleSSEChunk catch scope (client/sse-stream)', () => {
+  // `as unknown as ChatStreamOptions` keeps the nominal type visible so
+  // a future ChatStreamOptions change (new required field, signature
+  // drift on onToken / onMetadata) surfaces here at compile time.
+  // `as never` would silence those errors too aggressively.
+  test('skips malformed JSON without throwing', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
     const onToken = vi.fn();
-    expect(() => handleSSEChunk('event: token\ndata: {not valid json', { onToken })).not.toThrow();
+    expect(() =>
+      handleSSEChunk('event: token\ndata: {not valid json', {
+        onToken,
+      } as unknown as ChatStreamOptions)
+    ).not.toThrow();
     expect(onToken).not.toHaveBeenCalled();
   });
 
-  test('propagates errors thrown by consumer onToken callback', () => {
+  test('propagates errors thrown by consumer onToken callback', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
     const onToken = vi.fn(() => {
       throw new Error('consumer bug');
     });
-    expect(() => handleSSEChunk('event: token\ndata: {"token":"hi"}', { onToken })).toThrow(
-      'consumer bug'
-    );
+    expect(() =>
+      handleSSEChunk('event: token\ndata: {"token":"hi"}', {
+        onToken,
+      } as unknown as ChatStreamOptions)
+    ).toThrow('consumer bug');
     expect(onToken).toHaveBeenCalledWith('hi');
   });
 
-  test('propagates errors thrown by consumer onMetadata callback', () => {
+  test('propagates errors thrown by consumer onMetadata callback', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
     const onToken = vi.fn();
     const onMetadata = vi.fn(() => {
       throw new Error('zod assertion failed');
     });
     expect(() =>
-      handleSSEChunk('event: metadata\ndata: {"foo":"bar"}', { onToken, onMetadata })
+      handleSSEChunk('event: metadata\ndata: {"foo":"bar"}', {
+        onToken,
+        onMetadata,
+      } as unknown as ChatStreamOptions)
     ).toThrow('zod assertion failed');
   });
 });

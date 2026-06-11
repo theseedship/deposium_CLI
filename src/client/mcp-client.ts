@@ -33,7 +33,7 @@
  * ```
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -85,12 +85,6 @@ import type {
   MCPToolResult,
   MCPTool,
   MCPHealthResponse,
-  SSEMetadata,
-  SSEToolCall,
-  SSECitation,
-  SSEDone,
-  SSEError,
-  SSEChatPrompt,
   ChatStreamOptions,
   AgentResumePayload,
   MCPSpace,
@@ -141,13 +135,13 @@ export type {
 } from './validate-types';
 
 import { buildAuthError } from './auth-error';
-import { generateRequestId, createAxiosErrorResult, withRetry, parseSSEEvent } from './internals';
+import { connectionRefusedError, throwForKnownAxiosError } from './http-errors';
+import { generateRequestId, createAxiosErrorResult, withRetry } from './internals';
+import { postSSE, parseSSEStream, type SSEStreamContext } from './sse-stream';
+import { consumeValidateStream } from './validate-stream';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
   ValidateToolInput,
-  ValidateChatPrompt,
-  ValidateEvents,
-  ValidateEventName,
   ValidateReportJson,
   ValidateStreamHandlers,
 } from './validate-types';
@@ -344,7 +338,7 @@ export class MCPClient {
       );
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.throwForKnownAxiosError(error, '/api/cli/mcp');
+        throwForKnownAxiosError(error, this.baseUrl, '/api/cli/mcp');
       }
       throw error;
     }
@@ -371,7 +365,7 @@ export class MCPClient {
       return data.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.throwForKnownAxiosError(error, '/api/spaces');
+        throwForKnownAxiosError(error, this.baseUrl, '/api/spaces');
       }
       throw error;
     }
@@ -459,10 +453,7 @@ export class MCPClient {
       response = await fetch(url, { method: 'POST', headers, body: form });
     } catch (error) {
       if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
-        throw new Error(
-          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-            'Make sure the Deposium server is running'
-        );
+        throw connectionRefusedError(this.baseUrl);
       }
       throw error;
     }
@@ -550,7 +541,7 @@ export class MCPClient {
       );
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.throwForKnownAxiosError(error, path);
+        throwForKnownAxiosError(error, this.baseUrl, path);
       }
       throw error;
     }
@@ -571,30 +562,6 @@ export class MCPClient {
       return (await this.client.delete<T>(path, config)).data;
     }
     return (await this.client.post<T>(path, body, config)).data;
-  }
-
-  /**
-   * Internal: convert an axios error into a thrown domain error for the
-   * standard cases (ECONNREFUSED, 401, 404). Falls through (re-throws the
-   * original) for unknown axios shapes; the caller is responsible for the
-   * non-axios path.
-   */
-  private throwForKnownAxiosError(error: AxiosError, path: string): never {
-    if (error.code === 'ECONNREFUSED') {
-      throw new Error(
-        `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-          'Make sure the Deposium server is running'
-      );
-    }
-    if (error.response?.status === 401) {
-      throw buildAuthError(error.response?.data);
-    }
-    if (error.response?.status === 404) {
-      const data = error.response?.data as { error?: string; message?: string } | undefined;
-      const detail = data?.error ?? data?.message ?? `Resource not found: ${path}`;
-      throw new Error(`Not found (404): ${detail}`);
-    }
-    throw error;
   }
 
   /**
@@ -621,8 +588,8 @@ export class MCPClient {
       confidence_threshold: options.confidenceThreshold,
     });
 
-    const response = await this.postStream(url, body, 'Chat stream');
-    await this.parseSSEStream(response, options);
+    const response = await postSSE(url, body, this.sseContext(), 'Chat stream');
+    await parseSSEStream(response, options);
   }
 
   /**
@@ -642,8 +609,8 @@ export class MCPClient {
       response: responsePayload,
     });
 
-    const response = await this.postStream(url, body, 'Agent resume');
-    await this.parseSSEStream(response, options);
+    const response = await postSSE(url, body, this.sseContext(), 'Agent resume');
+    await parseSSEStream(response, options);
   }
 
   /**
@@ -704,8 +671,8 @@ export class MCPClient {
         },
       });
 
-      const response = await this.postStream(url, body, 'Validate stream');
-      const result = await this.consumeValidateStream(response, handlers);
+      const response = await postSSE(url, body, this.sseContext(), 'Validate stream');
+      const result = await consumeValidateStream(response, handlers);
 
       if (result.kind === 'terminal') {
         return { run_id: result.run_id, status: result.status };
@@ -739,18 +706,16 @@ export class MCPClient {
       );
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axios.isAxiosError(axiosError)) {
-        if (axiosError.code === 'ECONNREFUSED') {
-          throw new Error(
-            `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-              'Make sure the Deposium server is running'
-          );
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNREFUSED') {
+          throw connectionRefusedError(this.baseUrl);
         }
-        if (axiosError.response?.status === 401) {
-          throw buildAuthError(axiosError.response?.data);
+        if (error.response?.status === 401) {
+          throw buildAuthError(error.response?.data);
         }
-        if (axiosError.response?.status === 404) {
+        // Custom 404 wording specific to this endpoint — not delegated
+        // to throwForKnownAxiosError which uses a generic "Not found".
+        if (error.response?.status === 404) {
           throw new Error(
             `Report not found for run_id=${runId}. The run may not exist or may not be complete yet.`
           );
@@ -761,241 +726,15 @@ export class MCPClient {
   }
 
   /**
-   * Read a single SSE response stream into validate-event dispatch. Returns
-   * either a terminal result (`validate:complete` / `validate:failed`) or a
-   * `paused` marker carrying the `chat_prompt` payload.
+   * Build the SSE context (User-Agent, X-API-Key, baseUrl for errors)
+   * that `postSSE` from ./sse-stream needs. Kept private — these are
+   * implementation details of how the class authenticates.
    */
-  private async consumeValidateStream(
-    response: Response,
-    handlers: ValidateStreamHandlers
-  ): Promise<
-    | { kind: 'terminal'; run_id: string; status: 'complete' | 'failed' }
-    | { kind: 'paused'; prompt: ValidateChatPrompt }
-  > {
-    const responseBody = response.body;
-    if (!responseBody) {
-      throw new Error('Validate stream has no body');
-    }
-    const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        if (buffer.trim()) {
-          const result = await this.handleValidateChunk(buffer, handlers);
-          if (result) return result;
-        }
-        throw new Error('Validate stream ended without a terminal event');
-      }
-
-      buffer += value;
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() ?? '';
-
-      for (const part of parts) {
-        const result = await this.handleValidateChunk(part, handlers);
-        if (result) {
-          // Cancel the stream so the connection can close before we resume.
-          reader.cancel().catch(() => {});
-          return result;
-        }
-      }
-    }
-  }
-
-  /**
-   * Parse a single SSE chunk and dispatch. Returns a paused/terminal
-   * marker when the event is `chat_prompt`, `validate:complete`, or
-   * `validate:failed`; otherwise returns null and the caller continues.
-   */
-  private async handleValidateChunk(
-    part: string,
-    handlers: ValidateStreamHandlers
-  ): Promise<
-    | { kind: 'terminal'; run_id: string; status: 'complete' | 'failed' }
-    | { kind: 'paused'; prompt: ValidateChatPrompt }
-    | null
-  > {
-    if (!part.trim()) return null;
-
-    const { eventType, dataStr } = parseSSEEvent(part);
-    if (!eventType || !dataStr) return null;
-
-    let data: unknown;
-    try {
-      data = JSON.parse(dataStr);
-    } catch {
-      return null; // Skip malformed JSON — non-terminal.
-    }
-
-    if (eventType === 'chat_prompt') {
-      return { kind: 'paused', prompt: data as ValidateChatPrompt };
-    }
-
-    if (eventType === 'validate:complete' || eventType === 'validate:failed') {
-      const payload = data as
-        | ValidateEvents['validate:complete']
-        | ValidateEvents['validate:failed'];
-      await handlers.onEvent(eventType, payload as never);
-      return {
-        kind: 'terminal',
-        run_id: payload.run_id,
-        status: eventType === 'validate:complete' ? 'complete' : 'failed',
-      };
-    }
-
-    // Other validate:* events or generic 'error' — dispatch and continue.
-    await handlers.onEvent(eventType as ValidateEventName, data as never);
-    return null;
-  }
-
-  /** Shared POST for SSE endpoints — sets headers, handles 401/429/generic errors */
-  private async postStream(url: string, body: string, label: string): Promise<Response> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
-      // Same caller tag as the constructor's axios default headers.
-      // Mirrored explicitly here because postStream uses native fetch
-      // (axios path is separate) and would otherwise drop the header.
-      'X-Client-Type': 'cli',
+  private sseContext(): SSEStreamContext {
+    return {
+      baseUrl: this.baseUrl,
+      apiKey: this.apiKey,
+      userAgent: `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
     };
-    if (this.apiKey) {
-      headers['X-API-Key'] = this.apiKey;
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(url, { method: 'POST', headers, body });
-    } catch (error) {
-      // Native fetch wraps the underlying socket error in `cause`.
-      // Normalize ECONNREFUSED to the same friendly message every other
-      // method emits (health, listSpaces, callTool, …) so users get a
-      // consistent UX when the server is down.
-      if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
-        throw new Error(
-          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-            'Make sure the Deposium server is running'
-        );
-      }
-      throw error;
-    }
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        let parsed: unknown;
-        try {
-          parsed = await response.json();
-        } catch {
-          parsed = undefined;
-        }
-        throw buildAuthError(parsed);
-      }
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After') ?? '60';
-        throw new Error(
-          `Rate limit exceeded (429)\n` +
-            `Retry after ${retryAfter} seconds.\n` +
-            `Contact your administrator to upgrade your rate-limit tier.`
-        );
-      }
-      const text = await response.text().catch(() => '');
-      throw new Error(`${label} error (${response.status}): ${text || response.statusText}`);
-    }
-
-    if (!response.body) {
-      throw new Error(`No response body from ${label.toLowerCase()}`);
-    }
-
-    return response;
-  }
-
-  /** Parse SSE stream and dispatch events. Shared between chatStream + resumeAgent. */
-  private async parseSSEStream(response: Response, options: ChatStreamOptions): Promise<void> {
-    const responseBody = response.body;
-    if (!responseBody) {
-      throw new Error('SSE response has no body');
-    }
-    const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += value;
-
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() ?? '';
-
-      for (const part of parts) {
-        this.handleSSEChunk(part, options);
-      }
-    }
-
-    // Flush any trailing chunk that didn't end with \n\n (rare at stream close)
-    if (buffer.trim()) {
-      this.handleSSEChunk(buffer, options);
-    }
-  }
-
-  private handleSSEChunk(part: string, options: ChatStreamOptions): void {
-    if (!part.trim()) return;
-
-    const { eventType, dataStr } = parseSSEEvent(part);
-    if (!eventType || !dataStr) return;
-
-    // Catch ONLY JSON parse failures — a malformed `data:` payload is
-    // expected to be skipped (a warning event usually follows). Errors
-    // thrown by consumer callbacks (`onToken`, `onChatPrompt`, …) must
-    // propagate; swallowing them masks real bugs in SDK consumers and
-    // makes the stream look like it's silently stalling.
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(dataStr) as Record<string, unknown>;
-    } catch {
-      return;
-    }
-    this.dispatchSSEEvent(eventType, parsed, options);
-  }
-
-  /** Dispatch a parsed SSE event to the appropriate callback */
-  private dispatchSSEEvent(
-    eventType: string,
-    data: Record<string, unknown>,
-    options: ChatStreamOptions
-  ): void {
-    switch (eventType) {
-      case 'token':
-        options.onToken((data as unknown as { token: string }).token ?? '');
-        break;
-      case 'metadata':
-        options.onMetadata?.(data as unknown as SSEMetadata);
-        break;
-      case 'citation':
-        options.onCitation?.(data as unknown as SSECitation);
-        break;
-      case 'tool_call':
-        options.onToolCall?.(data as unknown as SSEToolCall);
-        break;
-      case 'done':
-        options.onDone?.(data as unknown as SSEDone);
-        break;
-      case 'error':
-        options.onError?.(data as unknown as SSEError);
-        break;
-      case 'chat_prompt':
-        if (options.onChatPrompt) {
-          options.onChatPrompt(data as unknown as SSEChatPrompt);
-        } else {
-          // SDK consumers who don't register a handler would otherwise see
-          // the stream silently stall. Surface the drop so they can wire
-          // one up (or pass `--on-ambiguous=fail` from the CLI).
-          console.warn(
-            'Received chat_prompt event but no onChatPrompt handler was registered — the prompt was dropped. Register an onChatPrompt callback to respond to HITL pauses.'
-          );
-        }
-        break;
-    }
   }
 }
