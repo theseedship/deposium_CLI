@@ -208,7 +208,7 @@ describe('validateCommand action', () => {
     exitSpy.mockRestore();
   });
 
-  test('--json status=failed: prints report (no exit, exit code via report.status)', async () => {
+  test('--json status=failed: prints report AND exits 1 so CI scripts can fail fast', async () => {
     validateDossierMock.mockResolvedValueOnce({ run_id: 'rF', status: 'failed' });
     fetchValidateReportMock.mockResolvedValueOnce({
       run_id: 'rF',
@@ -216,15 +216,16 @@ describe('validateCommand action', () => {
       verdicts: { thematic: {} },
     });
 
+    const exitError = new Error('__TEST_EXIT__');
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('SHOULD_NOT_EXIT');
+      throw exitError;
     });
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    await runCommand(['d-1', '--json']);
-
-    // No process.exit(1) call in --json mode — caller reads report.status.
-    expect(exitSpy).not.toHaveBeenCalled();
+    // The report is printed BEFORE process.exit(1) is called, so the
+    // caller still gets the full JSON body on stdout.
+    await expect(runCommand(['d-1', '--json'])).rejects.toBe(exitError);
+    expect(exitSpy).toHaveBeenCalledWith(1);
     const printed = logSpy.mock.calls.map((c) => c[0] as string).join('\n');
     expect(printed).toContain('"status": "failed"');
 

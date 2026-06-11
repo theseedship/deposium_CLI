@@ -231,9 +231,11 @@ export const validateCommand = new Command('validate')
         console.log(JSON.stringify(report, null, 2));
       }
 
-      // Exit code: 0 on complete, 1 on failed. Silent in --json since the
-      // report itself carries `status`.
-      if (status === 'failed' && !json) {
+      // Exit code: 0 on complete, 1 on failed. Propagated in --json mode
+      // too — the report on stdout carries `status`, but CI scripts that
+      // pipe to `jq` and check `$?` need a non-zero exit to fail fast
+      // without parsing the body.
+      if (status === 'failed') {
         process.exit(1);
       }
     })
