@@ -8,7 +8,12 @@ import {
   deleteApiKey,
   setApiKey,
 } from '../utils/config';
-import { promptApiKey, validateApiKeyWithServer, maskApiKey } from '../utils/auth';
+import {
+  promptApiKey,
+  validateApiKeyWithServer,
+  maskApiKey,
+  assertNotServiceKey,
+} from '../utils/auth';
 import { getErrorMessage } from '../utils/command-helpers';
 
 export const authCommand = new Command('auth')
@@ -115,6 +120,12 @@ export const authCommand = new Command('auth')
         console.log(chalk.gray('Deposium URL: ') + chalk.cyan(baseUrl));
 
         if (envKey) {
+          // Reject service-keys BEFORE sending them to the server — mirrors
+          // ensureAuthenticated. Otherwise the validate-key request leaks
+          // a dep_svc_* secret into server access logs via X-API-Key, even
+          // though we know we'll reject it anyway.
+          assertNotServiceKey(envKey, 'env');
+
           console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
           console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(envKey)));
           console.log(
@@ -125,7 +136,6 @@ export const authCommand = new Command('auth')
 
           console.log(chalk.gray('\nValidating credentials...'));
           try {
-            const { validateApiKeyWithServer } = await import('../utils/auth');
             const isValid = await validateApiKeyWithServer(baseUrl, envKey);
 
             if (isValid) {
@@ -143,6 +153,11 @@ export const authCommand = new Command('auth')
           }
         } else if (hasApiKey()) {
           const apiKey = getApiKey() ?? '';
+
+          // Same guard as the env-var branch — a stored service-key
+          // should be rejected at the CLI boundary before we transmit it.
+          assertNotServiceKey(apiKey, 'stored');
+
           console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
           console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(apiKey)));
           console.log(chalk.gray('Source: ') + chalk.cyan('stored credentials'));
@@ -150,7 +165,6 @@ export const authCommand = new Command('auth')
           // Try to validate the key
           console.log(chalk.gray('\nValidating credentials...'));
           try {
-            const { validateApiKeyWithServer } = await import('../utils/auth');
             const isValid = await validateApiKeyWithServer(baseUrl, apiKey);
 
             if (isValid) {
