@@ -83,6 +83,17 @@ async function interactivePrompt(prompt: ValidateChatPrompt): Promise<HitlPrompt
       return promptClassificationCorrection(prompt);
     case 'rule_clarification':
       return promptRuleClarification(prompt);
+    default: {
+      // Exhaustiveness check — if the server adds a 4th waiting_for
+      // discriminant and the client wasn't updated, fall through here
+      // instead of returning undefined and tripping a NPE in the caller.
+      const _exhaustive: never = prompt.waiting_for;
+      throw new Error(
+        `Unsupported chat_prompt waiting_for='${String(_exhaustive)}'. ` +
+          `Update the CLI to a version that handles this prompt type. ` +
+          `Correlation ID: ${prompt.correlation_id}`
+      );
+    }
   }
 }
 
