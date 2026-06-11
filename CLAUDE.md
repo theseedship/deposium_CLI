@@ -95,7 +95,7 @@ export const myCommand = new Command('my-command').action(
 - Config encrypted: `Conf({ encryptionKey })` with AES-256-GCM (key derived via scryptSync)
 - API key stored in separate `~/.deposium/credentials` (encrypted, chmod 0600)
 - Chat streams routed via Edge Runtime gateway (auth + rate-limiting)
-- JSON parsing uses Zod validation (`safeParseJSON`)
+- JSON parsing wraps `JSON.parse` with sanitized error messages (`safeParseJSON`) — note this is a parse-only guard, NOT shape validation. Adding runtime Zod schemas for the 8 user-facing JSON inputs is tracked as a follow-up.
 - No hardcoded credentials
 
 ## Testing Guidelines
