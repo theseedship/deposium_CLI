@@ -2,6 +2,7 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { getApiKey, setApiKey, hasApiKey } from './config';
 import { getErrorMessage, hasErrorCauseWithCode, isErrorWithCode } from './errors';
+import { connectionRefusedError } from '../client/http-errors';
 
 /**
  * Reject `dep_svc_*` keys at the CLI boundary.
@@ -97,7 +98,7 @@ export async function validateApiKeyWithServer(baseUrl: string, apiKey: string):
     // Node). Both shapes are covered without any error-message string
     // matching (which would break under i18n).
     if (hasErrorCauseWithCode(error, 'ECONNREFUSED') || isErrorWithCode(error, 'ECONNREFUSED')) {
-      throw new Error(`Cannot connect to Deposium API at ${baseUrl}`);
+      throw connectionRefusedError(baseUrl);
     }
     // Re-throw other errors
     throw error;

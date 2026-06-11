@@ -141,6 +141,7 @@ export type {
 } from './validate-types';
 
 import { buildAuthError } from './auth-error';
+import { connectionRefusedError, throwForKnownAxiosError } from './http-errors';
 import { generateRequestId, createAxiosErrorResult, withRetry, parseSSEEvent } from './internals';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
@@ -344,7 +345,7 @@ export class MCPClient {
       );
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.throwForKnownAxiosError(error, '/api/cli/mcp');
+        throwForKnownAxiosError(error, this.baseUrl, '/api/cli/mcp');
       }
       throw error;
     }
@@ -371,7 +372,7 @@ export class MCPClient {
       return data.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.throwForKnownAxiosError(error, '/api/spaces');
+        throwForKnownAxiosError(error, this.baseUrl, '/api/spaces');
       }
       throw error;
     }
@@ -459,10 +460,7 @@ export class MCPClient {
       response = await fetch(url, { method: 'POST', headers, body: form });
     } catch (error) {
       if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
-        throw new Error(
-          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-            'Make sure the Deposium server is running'
-        );
+        throw connectionRefusedError(this.baseUrl);
       }
       throw error;
     }
@@ -550,7 +548,7 @@ export class MCPClient {
       );
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.throwForKnownAxiosError(error, path);
+        throwForKnownAxiosError(error, this.baseUrl, path);
       }
       throw error;
     }
@@ -571,30 +569,6 @@ export class MCPClient {
       return (await this.client.delete<T>(path, config)).data;
     }
     return (await this.client.post<T>(path, body, config)).data;
-  }
-
-  /**
-   * Internal: convert an axios error into a thrown domain error for the
-   * standard cases (ECONNREFUSED, 401, 404). Falls through (re-throws the
-   * original) for unknown axios shapes; the caller is responsible for the
-   * non-axios path.
-   */
-  private throwForKnownAxiosError(error: AxiosError, path: string): never {
-    if (error.code === 'ECONNREFUSED') {
-      throw new Error(
-        `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-          'Make sure the Deposium server is running'
-      );
-    }
-    if (error.response?.status === 401) {
-      throw buildAuthError(error.response?.data);
-    }
-    if (error.response?.status === 404) {
-      const data = error.response?.data as { error?: string; message?: string } | undefined;
-      const detail = data?.error ?? data?.message ?? `Resource not found: ${path}`;
-      throw new Error(`Not found (404): ${detail}`);
-    }
-    throw error;
   }
 
   /**
@@ -739,18 +713,16 @@ export class MCPClient {
       );
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axios.isAxiosError(axiosError)) {
-        if (axiosError.code === 'ECONNREFUSED') {
-          throw new Error(
-            `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-              'Make sure the Deposium server is running'
-          );
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNREFUSED') {
+          throw connectionRefusedError(this.baseUrl);
         }
-        if (axiosError.response?.status === 401) {
-          throw buildAuthError(axiosError.response?.data);
+        if (error.response?.status === 401) {
+          throw buildAuthError(error.response?.data);
         }
-        if (axiosError.response?.status === 404) {
+        // Custom 404 wording specific to this endpoint — not delegated
+        // to throwForKnownAxiosError which uses a generic "Not found".
+        if (error.response?.status === 404) {
           throw new Error(
             `Report not found for run_id=${runId}. The run may not exist or may not be complete yet.`
           );
@@ -873,10 +845,7 @@ export class MCPClient {
       // method emits (health, listSpaces, callTool, …) so users get a
       // consistent UX when the server is down.
       if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
-        throw new Error(
-          `Cannot connect to Deposium API at ${this.baseUrl}\n` +
-            'Make sure the Deposium server is running'
-        );
+        throw connectionRefusedError(this.baseUrl);
       }
       throw error;
     }
