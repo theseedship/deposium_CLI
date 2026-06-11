@@ -222,12 +222,32 @@ benchmarkCommand
         try {
           queries = safeParseJSON<typeof queries>(options.queries, '--queries');
         } catch {
-          // Inline JSON parse failed — treat --queries as a file path instead.
-          // If the file read or its parse fail, that error propagates up with
-          // clearer context ("--queries (file)") than the swallowed inline error.
+          // Inline JSON parse failed — fall back to treating --queries as a
+          // file path. If `readFile` or its parse then fails, raise a clean
+          // error that names the path WITHOUT echoing the file content.
+          // (`safeParseJSON`'s default error includes up to 100 chars of the
+          // input — fine for inline JSON the user typed, leaks for a file
+          // they didn't mean to expose: `--queries=/etc/hosts` would have
+          // spilled `/etc/hosts` to the terminal.)
           const fs = await import('fs/promises');
-          const content = await fs.readFile(options.queries, 'utf-8');
-          queries = safeParseJSON<typeof queries>(content, '--queries (file)');
+          const filePath = options.queries as string;
+          let content: string;
+          try {
+            content = await fs.readFile(filePath, 'utf-8');
+          } catch (readError) {
+            throw new Error(
+              `--queries: not valid inline JSON and could not be read as a file path ` +
+                `(${filePath}): ${readError instanceof Error ? readError.message : String(readError)}`
+            );
+          }
+          try {
+            queries = JSON.parse(content) as typeof queries;
+          } catch (parseError) {
+            throw new Error(
+              `--queries: file ${filePath} does not contain valid JSON: ` +
+                (parseError instanceof Error ? parseError.message : String(parseError))
+            );
+          }
         }
       } else {
         // Default example queries for demo
