@@ -71,11 +71,16 @@ apiKeysCommand
         rate_limit_tier: options.tier,
       });
 
-      // Loud one-time-only warning before printing the secret
+      // The secret is already in the response body — print it twice only
+      // when the human is reading the output. For JSON (default for piping
+      // into files / scripts), skip the warning so the stdout payload is
+      // pure JSON the caller can `jq` over without stripping a banner.
       const secret = created.secret ?? created.key;
-      if (secret) {
-        console.log(chalk.yellow.bold('\n⚠️  Save this secret NOW. It will not be shown again.\n'));
-        console.log(chalk.bold(`  ${secret}\n`));
+      if (secret && options.format !== 'json') {
+        process.stderr.write(
+          chalk.yellow.bold('\n⚠️  Save this secret NOW. It will not be shown again.\n') +
+            chalk.bold(`  ${secret}\n\n`)
+        );
       }
 
       formatOutput(created, options.format);
@@ -152,12 +157,14 @@ apiKeysCommand
 
       const rotated = await client.rotateApiKey(id);
 
+      // Same rationale as `create`: skip the warning when format is JSON so
+      // the stdout payload stays parseable.
       const secret = rotated.secret ?? rotated.key;
-      if (secret) {
-        console.log(
-          chalk.yellow.bold('\n⚠️  Save this NEW secret NOW. It will not be shown again.\n')
+      if (secret && options.format !== 'json') {
+        process.stderr.write(
+          chalk.yellow.bold('\n⚠️  Save this NEW secret NOW. It will not be shown again.\n') +
+            chalk.bold(`  ${secret}\n\n`)
         );
-        console.log(chalk.bold(`  ${secret}\n`));
       }
 
       formatOutput(rotated, options.format);

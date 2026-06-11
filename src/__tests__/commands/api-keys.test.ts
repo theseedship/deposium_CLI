@@ -138,12 +138,37 @@ describe('api-keys command', () => {
       });
     });
 
-    it('warns loudly when secret is shown', async () => {
+    it('warns loudly on stderr when secret is shown in non-json format', async () => {
       mockCreateApiKey.mockResolvedValue({ id: 'k', name: 'X', secret: 'dep_live_xyz' });
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+      await apiKeysCommand.parseAsync([
+        'node',
+        'test',
+        'create',
+        '--name',
+        'X',
+        '--format',
+        'table',
+        '--silent',
+      ]);
+      const stderr = stderrSpy.mock.calls.flat().map(String).join('\n');
+      expect(stderr).toContain('Save this secret NOW');
+      expect(stderr).toContain('dep_live_xyz');
+      stderrSpy.mockRestore();
+    });
+
+    it('skips the warning in json format so stdout stays parseable JSON', async () => {
+      mockCreateApiKey.mockResolvedValue({ id: 'k', name: 'X', secret: 'dep_live_json' });
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+      // Default --format is `json`
       await apiKeysCommand.parseAsync(['node', 'test', 'create', '--name', 'X', '--silent']);
-      const logs = consoleLogSpy.mock.calls.flat().map(String).join('\n');
-      expect(logs).toContain('Save this secret NOW');
-      expect(logs).toContain('dep_live_xyz');
+      const stdout = consoleLogSpy.mock.calls.flat().map(String).join('\n');
+      const stderr = stderrSpy.mock.calls.flat().map(String).join('\n');
+      expect(stdout).not.toContain('Save this secret NOW');
+      expect(stderr).not.toContain('Save this secret NOW');
+      // Secret still appears exactly once via formatOutput's JSON body
+      expect(stdout).toContain('dep_live_json');
+      stderrSpy.mockRestore();
     });
 
     it('handles FEATURE_LOCKED gracefully', async () => {
