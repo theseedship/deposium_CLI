@@ -71,12 +71,14 @@ apiKeysCommand
         rate_limit_tier: options.tier,
       });
 
-      // The secret is already in the response body — print it twice only
-      // when the human is reading the output. For JSON (default for piping
-      // into files / scripts), skip the warning so the stdout payload is
-      // pure JSON the caller can `jq` over without stripping a banner.
+      // Warning goes to stderr (always), JSON body to stdout (via
+      // formatOutput). Two separate streams = `> out.json` captures pure
+      // JSON, while interactive users still see the loud one-time alert
+      // regardless of --format. Skipping the warning on json-format would
+      // silently drop the alert for the default invocation — a regression
+      // in security UX since the secret can never be retrieved again.
       const secret = created.secret ?? created.key;
-      if (secret && options.format !== 'json') {
+      if (secret) {
         process.stderr.write(
           chalk.yellow.bold('\n⚠️  Save this secret NOW. It will not be shown again.\n') +
             chalk.bold(`  ${secret}\n\n`)
@@ -157,10 +159,11 @@ apiKeysCommand
 
       const rotated = await client.rotateApiKey(id);
 
-      // Same rationale as `create`: skip the warning when format is JSON so
-      // the stdout payload stays parseable.
+      // Same rationale as `create`: warning to stderr (always), JSON body
+      // to stdout. Never gate the warning on format — the secret can't be
+      // retrieved again.
       const secret = rotated.secret ?? rotated.key;
-      if (secret && options.format !== 'json') {
+      if (secret) {
         process.stderr.write(
           chalk.yellow.bold('\n⚠️  Save this NEW secret NOW. It will not be shown again.\n') +
             chalk.bold(`  ${secret}\n\n`)

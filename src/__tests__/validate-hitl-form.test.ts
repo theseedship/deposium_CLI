@@ -64,8 +64,9 @@ describe('handleValidateChatPrompt — mode dispatch', () => {
 
   test('mode=dump writes prompt JSON to stdout then exits 0', async () => {
     const prompt = makePrompt();
-    // The implementation uses process.stdout.write(json, cb) + cb→exit(0)
-    // so the pipe buffer flushes before Node terminates. Mock both.
+    // The implementation uses process.stdout.write(json, cb) + cb→exit(0).
+    // Wait for exit explicitly so an upstream `await` insertion wouldn't
+    // silently break the assertion timing.
     const written: string[] = [];
     const writeSpy = vi
       .spyOn(process.stdout, 'write')
@@ -76,21 +77,24 @@ describe('handleValidateChatPrompt — mode dispatch', () => {
         (callback as ((err?: Error | null) => void) | undefined)?.();
         return true;
       });
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('__TEST_EXIT__');
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('exit never called')), 1000);
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: unknown) => {
+        clearTimeout(timer);
+        expect(code).toBe(0);
+        resolve();
+        throw new Error('__TEST_EXIT__');
+      });
+      handleValidateChatPrompt(prompt, 'dump').catch(() => {});
+      void exitSpy;
     });
 
-    // Function returns a never-resolving promise after scheduling exit;
-    // race against a microtask tick to assert without hanging.
-    handleValidateChatPrompt(prompt, 'dump').catch(() => {});
-    await Promise.resolve();
-
-    expect(exitSpy).toHaveBeenCalledWith(0);
     expect(written).toHaveLength(1);
     expect(JSON.parse(written[0].trim()).chat_prompt.correlation_id).toBe('corr-1');
 
     writeSpy.mockRestore();
-    exitSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   test('mode=prompt delegates to the injected prompter', async () => {

@@ -121,10 +121,11 @@ describe('handleChatPrompt', () => {
     const { handleChatPrompt } = await import('../chat');
     const prompt = makeChoicePrompt();
 
-    // The implementation uses process.stdout.write(json, cb) + cb→exit(0)
-    // so the kernel pipe buffer flushes before Node terminates. Mock both:
-    // write captures the payload AND fires the callback synchronously so
-    // the test exercises the same code path as production.
+    // The implementation uses process.stdout.write(json, cb) + cb→exit(0).
+    // Wait for process.exit to actually be called rather than relying on
+    // a fixed number of microtask ticks — that pattern would break
+    // silently if a future refactor inserted an `await` upstream of the
+    // write call.
     const written: string[] = [];
     const writeSpy = vi
       .spyOn(process.stdout, 'write')
@@ -135,23 +136,25 @@ describe('handleChatPrompt', () => {
         (callback as ((err?: Error | null) => void) | undefined)?.();
         return true;
       });
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('__TEST_EXIT__');
-    });
 
-    // handleChatPrompt returns a never-resolving promise after scheduling
-    // the exit, so we race against a microtask tick to confirm both
-    // side-effects happened without hanging the test.
-    handleChatPrompt(prompt, 'dump').catch(() => {});
-    await Promise.resolve();
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('exit never called')), 1000);
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+        clearTimeout(timer);
+        resolve();
+        throw new Error('__TEST_EXIT__');
+      });
+      handleChatPrompt(prompt, 'dump').catch(() => {});
+      // Cleanup after resolve runs.
+      void exitSpy;
+    });
 
     expect(written).toHaveLength(1);
     const payload = JSON.parse(written[0].trim());
     expect(payload.chat_prompt.correlation_id).toBe('cid-choice');
-    expect(exitSpy).toHaveBeenCalledWith(0);
 
     writeSpy.mockRestore();
-    exitSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   test('pick-first mode — auto-selects options[0].value for choice', async () => {

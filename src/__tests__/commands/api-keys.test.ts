@@ -138,7 +138,7 @@ describe('api-keys command', () => {
       });
     });
 
-    it('warns loudly on stderr when secret is shown in non-json format', async () => {
+    it('warns loudly on stderr (not stdout) regardless of format', async () => {
       mockCreateApiKey.mockResolvedValue({ id: 'k', name: 'X', secret: 'dep_live_xyz' });
       const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
       await apiKeysCommand.parseAsync([
@@ -157,16 +157,19 @@ describe('api-keys command', () => {
       stderrSpy.mockRestore();
     });
 
-    it('skips the warning in json format so stdout stays parseable JSON', async () => {
+    it('warns on stderr in json format too — stdout stays parseable JSON', async () => {
       mockCreateApiKey.mockResolvedValue({ id: 'k', name: 'X', secret: 'dep_live_json' });
       const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
       // Default --format is `json`
       await apiKeysCommand.parseAsync(['node', 'test', 'create', '--name', 'X', '--silent']);
       const stdout = consoleLogSpy.mock.calls.flat().map(String).join('\n');
       const stderr = stderrSpy.mock.calls.flat().map(String).join('\n');
+      // Warning fires on stderr — interactive users must see it because
+      // this secret can't be retrieved again.
+      expect(stderr).toContain('Save this secret NOW');
+      expect(stderr).toContain('dep_live_json');
+      // ...but stdout stays pure JSON so `> out.json` and `| jq` work.
       expect(stdout).not.toContain('Save this secret NOW');
-      expect(stderr).not.toContain('Save this secret NOW');
-      // Secret still appears exactly once via formatOutput's JSON body
       expect(stdout).toContain('dep_live_json');
       stderrSpy.mockRestore();
     });

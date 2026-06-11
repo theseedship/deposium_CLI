@@ -243,9 +243,16 @@ benchmarkCommand
           try {
             queries = JSON.parse(content) as typeof queries;
           } catch (parseError) {
+            // V8's JSON.parse error message embeds a snippet of the
+            // failing input (e.g. `Unexpected token 'S', "SECRET_TOK"...`)
+            // — including it here would re-leak the file content the
+            // outer try/catch was designed to suppress. Extract just the
+            // position info if present; otherwise stay generic.
+            const raw = parseError instanceof Error ? parseError.message : '';
+            const position = raw.match(/at position \d+|line \d+ column \d+/i)?.[0];
             throw new Error(
-              `--queries: file ${filePath} does not contain valid JSON: ` +
-                (parseError instanceof Error ? parseError.message : String(parseError))
+              `--queries: file ${filePath} does not contain valid JSON` +
+                (position ? ` (${position})` : '')
             );
           }
         }
