@@ -27,26 +27,39 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-// Use vi.hoisted to ensure confStore is initialized before vi.mock factories
-// (avoids TDZ errors when migration code calls config.set() at module load)
-const { confStore } = vi.hoisted(() => {
-  const confStore: Record<string, unknown> = {};
-  return { confStore };
+// Use vi.hoisted to ensure stores are initialized before vi.mock factories
+// (avoids TDZ errors when migration code calls config.set() at module load).
+// Two named stores so credentials and legacy-config don't share state —
+// production runs them as separate Conf instances and the legacy-slot
+// fallback in getApiKey relies on that.
+const { confStores } = vi.hoisted(() => {
+  const confStores: Record<'config' | 'credentials', Record<string, unknown>> = {
+    config: {},
+    credentials: {},
+  };
+  return { confStores };
 });
 
 vi.mock('conf', () => ({
   default: class MockConf {
+    private store: Record<string, unknown>;
+    constructor(opts: { configName?: string }) {
+      // Route reads/writes to the named store. Defaults to 'config' for
+      // any unexpected configName so legacy callers don't TypeError.
+      const name = (opts?.configName ?? 'config') as 'config' | 'credentials';
+      this.store = confStores[name] ?? confStores.config;
+    }
     get(key: string, defaultValue?: unknown) {
-      return confStore[key] !== undefined ? confStore[key] : defaultValue;
+      return this.store[key] !== undefined ? this.store[key] : defaultValue;
     }
     set(key: string, value: unknown) {
-      confStore[key] = value;
+      this.store[key] = value;
     }
     delete(key: string) {
-      delete confStore[key];
+      delete this.store[key];
     }
     clear() {
-      Object.keys(confStore).forEach((key) => delete confStore[key]);
+      Object.keys(this.store).forEach((key) => delete this.store[key]);
     }
     path = '/mock/path/config.json';
   },
@@ -75,7 +88,8 @@ describe('config.ts', () => {
 
   beforeEach(() => {
     // Clear the mock store
-    Object.keys(confStore).forEach((key) => delete confStore[key]);
+    Object.keys(confStores.config).forEach((key) => delete confStores.config[key]);
+    Object.keys(confStores.credentials).forEach((key) => delete confStores.credentials[key]);
   });
 
   afterEach(() => {
@@ -192,8 +206,8 @@ describe('config.ts', () => {
       process.env.DEPOSIUM_SPACE = 'env-space';
 
       // Set config file values
-      confStore['deposiumUrl'] = 'https://config-url.example.com';
-      confStore['apiKey'] = 'config-api-key';
+      confStores.config['deposiumUrl'] = 'https://config-url.example.com';
+      confStores.config['apiKey'] = 'config-api-key';
 
       const config = getConfig();
 
@@ -208,8 +222,8 @@ describe('config.ts', () => {
       delete process.env.DEPOSIUM_API_KEY;
 
       // Set config file values
-      confStore['deposiumUrl'] = 'https://config-url.example.com';
-      confStore['apiKey'] = 'config-api-key';
+      confStores.config['deposiumUrl'] = 'https://config-url.example.com';
+      confStores.config['apiKey'] = 'config-api-key';
 
       const config = getConfig();
 
@@ -273,7 +287,7 @@ describe('config.ts', () => {
   describe('setConfig', () => {
     test('should store config value', () => {
       setConfig('apiKey', 'test-key');
-      expect(confStore['apiKey']).toBe('test-key');
+      expect(confStores.config['apiKey']).toBe('test-key');
     });
   });
 
@@ -319,6 +333,32 @@ describe('config.ts', () => {
       setApiKey('temp-key');
       deleteApiKey();
       expect(getApiKey()).toBeUndefined();
+    });
+
+    // Regression: pre-fix, deleteApiKey only cleared credentials. On a
+    // partial-migration install (legacy `apiKey` in main config never
+    // moved to credentials), `logout` visibly succeeded but the next
+    // `getApiKey()` resurrected the legacy key — user still authenticated.
+    test('deleteApiKey also clears the legacy config slot', () => {
+      // Simulate a pre-encryption install: key sitting in the legacy
+      // `config` store, NOT in credentials.
+      confStores.config.apiKey = 'legacy-key-from-pre-migration';
+      expect(getApiKey()).toBe('legacy-key-from-pre-migration');
+
+      deleteApiKey();
+
+      expect(getApiKey()).toBeUndefined();
+      expect(confStores.config.apiKey).toBeUndefined();
+      expect(confStores.credentials.apiKey).toBeUndefined();
+    });
+
+    test('deleteApiKey clears both stores when both are populated', () => {
+      confStores.config.apiKey = 'legacy';
+      confStores.credentials.apiKey = 'modern';
+      deleteApiKey();
+      expect(confStores.config.apiKey).toBeUndefined();
+      expect(confStores.credentials.apiKey).toBeUndefined();
+      expect(hasApiKey()).toBe(false);
     });
 
     test('hasApiKey should return false when no key set', () => {
