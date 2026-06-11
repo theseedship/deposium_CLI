@@ -1036,4 +1036,30 @@ describe('MCPClient — wire format guard', () => {
     await client.getApiKeyUsage('k1');
     expect(spy.get).toHaveBeenCalledWith('/api/api-keys/k1/usage', expect.anything());
   });
+
+  // Defense-in-depth: a CLI arg containing path separators, query
+  // markers, or other reserved URL chars must NOT smuggle traversal or
+  // extra params into the request path. Server should also reject, but
+  // sending a malformed URL is policy-breaking at the client layer.
+  test('getDocument(id) URL-encodes path-traversal attempts', async () => {
+    spy.get.mockResolvedValueOnce({ data: { ok: true, data: {} } });
+    await client.getDocument('../api-keys');
+    expect(spy.get).toHaveBeenCalledWith('/api/v1/documents/..%2Fapi-keys', expect.anything());
+  });
+
+  test('deleteApiKey(id) URL-encodes query-param smuggling attempts', async () => {
+    spy.delete.mockResolvedValueOnce({ data: { ok: true } });
+    await client.deleteApiKey('k1?admin=true');
+    expect(spy.delete).toHaveBeenCalledWith('/api/api-keys/k1%3Fadmin%3Dtrue', expect.anything());
+  });
+
+  test('rotateApiKey(id) URL-encodes whitespace and slashes', async () => {
+    spy.post.mockResolvedValueOnce({ data: { id: 'x', secret: 's' } });
+    await client.rotateApiKey('k1/../etc');
+    expect(spy.post).toHaveBeenCalledWith(
+      '/api/api-keys/k1%2F..%2Fetc/rotate',
+      undefined,
+      expect.anything()
+    );
+  });
 });

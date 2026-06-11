@@ -405,14 +405,17 @@ export class MCPClient {
   async getDocument(id: number | string): Promise<MCPDocumentDetail> {
     const data = await this.authenticatedRequest<{ ok: boolean; data: MCPDocumentDetail }>(
       'GET',
-      `/api/v1/documents/${id}`
+      `/api/v1/documents/${encodeURIComponent(String(id))}`
     );
     return data.data;
   }
 
   /** Delete a document by ID. Calls `DELETE /api/v1/documents/:id`. */
   async deleteDocument(id: number | string): Promise<unknown> {
-    return this.authenticatedRequest('DELETE', `/api/v1/documents/${id}`);
+    return this.authenticatedRequest(
+      'DELETE',
+      `/api/v1/documents/${encodeURIComponent(String(id))}`
+    );
   }
 
   /**
@@ -505,7 +508,7 @@ export class MCPClient {
 
   /** Delete an API key. Calls `DELETE /api/api-keys/:id`. Irreversible. */
   async deleteApiKey(id: string): Promise<unknown> {
-    return this.authenticatedRequest('DELETE', `/api/api-keys/${id}`);
+    return this.authenticatedRequest('DELETE', `/api/api-keys/${encodeURIComponent(id)}`);
   }
 
   /**
@@ -513,12 +516,18 @@ export class MCPClient {
    * Calls `POST /api/api-keys/:id/rotate`. The response includes the new secret.
    */
   async rotateApiKey(id: string): Promise<MCPApiKeyCreated> {
-    return this.authenticatedRequest<MCPApiKeyCreated>('POST', `/api/api-keys/${id}/rotate`);
+    return this.authenticatedRequest<MCPApiKeyCreated>(
+      'POST',
+      `/api/api-keys/${encodeURIComponent(id)}/rotate`
+    );
   }
 
   /** Get usage stats for an API key. Calls `GET /api/api-keys/:id/usage`. */
   async getApiKeyUsage(id: string): Promise<MCPApiKeyUsage> {
-    return this.authenticatedRequest<MCPApiKeyUsage>('GET', `/api/api-keys/${id}/usage`);
+    return this.authenticatedRequest<MCPApiKeyUsage>(
+      'GET',
+      `/api/api-keys/${encodeURIComponent(id)}/usage`
+    );
   }
 
   /**
@@ -725,7 +734,7 @@ export class MCPClient {
     const requestId = generateRequestId();
     try {
       const response = await this.client.get<ValidateReportJson>(
-        `/api/v1/reports/${runId}?format=json`,
+        `/api/v1/reports/${encodeURIComponent(runId)}?format=json`,
         { headers: { 'X-Request-ID': requestId } }
       );
       return response.data;
