@@ -33,7 +33,7 @@
  * ```
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -85,12 +85,6 @@ import type {
   MCPToolResult,
   MCPTool,
   MCPHealthResponse,
-  SSEMetadata,
-  SSEToolCall,
-  SSECitation,
-  SSEDone,
-  SSEError,
-  SSEChatPrompt,
   ChatStreamOptions,
   AgentResumePayload,
   MCPSpace,
@@ -143,6 +137,7 @@ export type {
 import { buildAuthError } from './auth-error';
 import { connectionRefusedError, throwForKnownAxiosError } from './http-errors';
 import { generateRequestId, createAxiosErrorResult, withRetry, parseSSEEvent } from './internals';
+import { postSSE, parseSSEStream, type SSEStreamContext } from './sse-stream';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
   ValidateToolInput,
@@ -595,8 +590,8 @@ export class MCPClient {
       confidence_threshold: options.confidenceThreshold,
     });
 
-    const response = await this.postStream(url, body, 'Chat stream');
-    await this.parseSSEStream(response, options);
+    const response = await postSSE(url, body, this.sseContext(), 'Chat stream');
+    await parseSSEStream(response, options);
   }
 
   /**
@@ -616,8 +611,8 @@ export class MCPClient {
       response: responsePayload,
     });
 
-    const response = await this.postStream(url, body, 'Agent resume');
-    await this.parseSSEStream(response, options);
+    const response = await postSSE(url, body, this.sseContext(), 'Agent resume');
+    await parseSSEStream(response, options);
   }
 
   /**
@@ -678,7 +673,7 @@ export class MCPClient {
         },
       });
 
-      const response = await this.postStream(url, body, 'Validate stream');
+      const response = await postSSE(url, body, this.sseContext(), 'Validate stream');
       const result = await this.consumeValidateStream(response, handlers);
 
       if (result.kind === 'terminal') {
@@ -822,149 +817,16 @@ export class MCPClient {
     return null;
   }
 
-  /** Shared POST for SSE endpoints — sets headers, handles 401/429/generic errors */
-  private async postStream(url: string, body: string, label: string): Promise<Response> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
-      // Same caller tag as the constructor's axios default headers.
-      // Mirrored explicitly here because postStream uses native fetch
-      // (axios path is separate) and would otherwise drop the header.
-      'X-Client-Type': 'cli',
+  /**
+   * Build the SSE context (User-Agent, X-API-Key, baseUrl for errors)
+   * that `postSSE` from ./sse-stream needs. Kept private — these are
+   * implementation details of how the class authenticates.
+   */
+  private sseContext(): SSEStreamContext {
+    return {
+      baseUrl: this.baseUrl,
+      apiKey: this.apiKey,
+      userAgent: `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
     };
-    if (this.apiKey) {
-      headers['X-API-Key'] = this.apiKey;
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(url, { method: 'POST', headers, body });
-    } catch (error) {
-      // Native fetch wraps the underlying socket error in `cause`.
-      // Normalize ECONNREFUSED to the same friendly message every other
-      // method emits (health, listSpaces, callTool, …) so users get a
-      // consistent UX when the server is down.
-      if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
-        throw connectionRefusedError(this.baseUrl);
-      }
-      throw error;
-    }
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        let parsed: unknown;
-        try {
-          parsed = await response.json();
-        } catch {
-          parsed = undefined;
-        }
-        throw buildAuthError(parsed);
-      }
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After') ?? '60';
-        throw new Error(
-          `Rate limit exceeded (429)\n` +
-            `Retry after ${retryAfter} seconds.\n` +
-            `Contact your administrator to upgrade your rate-limit tier.`
-        );
-      }
-      const text = await response.text().catch(() => '');
-      throw new Error(`${label} error (${response.status}): ${text || response.statusText}`);
-    }
-
-    if (!response.body) {
-      throw new Error(`No response body from ${label.toLowerCase()}`);
-    }
-
-    return response;
-  }
-
-  /** Parse SSE stream and dispatch events. Shared between chatStream + resumeAgent. */
-  private async parseSSEStream(response: Response, options: ChatStreamOptions): Promise<void> {
-    const responseBody = response.body;
-    if (!responseBody) {
-      throw new Error('SSE response has no body');
-    }
-    const reader = responseBody.pipeThrough(new TextDecoderStream()).getReader();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += value;
-
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() ?? '';
-
-      for (const part of parts) {
-        this.handleSSEChunk(part, options);
-      }
-    }
-
-    // Flush any trailing chunk that didn't end with \n\n (rare at stream close)
-    if (buffer.trim()) {
-      this.handleSSEChunk(buffer, options);
-    }
-  }
-
-  private handleSSEChunk(part: string, options: ChatStreamOptions): void {
-    if (!part.trim()) return;
-
-    const { eventType, dataStr } = parseSSEEvent(part);
-    if (!eventType || !dataStr) return;
-
-    // Catch ONLY JSON parse failures — a malformed `data:` payload is
-    // expected to be skipped (a warning event usually follows). Errors
-    // thrown by consumer callbacks (`onToken`, `onChatPrompt`, …) must
-    // propagate; swallowing them masks real bugs in SDK consumers and
-    // makes the stream look like it's silently stalling.
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(dataStr) as Record<string, unknown>;
-    } catch {
-      return;
-    }
-    this.dispatchSSEEvent(eventType, parsed, options);
-  }
-
-  /** Dispatch a parsed SSE event to the appropriate callback */
-  private dispatchSSEEvent(
-    eventType: string,
-    data: Record<string, unknown>,
-    options: ChatStreamOptions
-  ): void {
-    switch (eventType) {
-      case 'token':
-        options.onToken((data as unknown as { token: string }).token ?? '');
-        break;
-      case 'metadata':
-        options.onMetadata?.(data as unknown as SSEMetadata);
-        break;
-      case 'citation':
-        options.onCitation?.(data as unknown as SSECitation);
-        break;
-      case 'tool_call':
-        options.onToolCall?.(data as unknown as SSEToolCall);
-        break;
-      case 'done':
-        options.onDone?.(data as unknown as SSEDone);
-        break;
-      case 'error':
-        options.onError?.(data as unknown as SSEError);
-        break;
-      case 'chat_prompt':
-        if (options.onChatPrompt) {
-          options.onChatPrompt(data as unknown as SSEChatPrompt);
-        } else {
-          // SDK consumers who don't register a handler would otherwise see
-          // the stream silently stall. Surface the drop so they can wire
-          // one up (or pass `--on-ambiguous=fail` from the CLI).
-          console.warn(
-            'Received chat_prompt event but no onChatPrompt handler was registered — the prompt was dropped. Register an onChatPrompt callback to respond to HITL pauses.'
-          );
-        }
-        break;
-    }
   }
 }
