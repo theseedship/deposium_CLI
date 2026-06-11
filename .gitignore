@@ -41,3 +41,8 @@ bun.lockb
 
 # Internal GitNexus indexing helper — regenerated locally
 AGENTS.md
+
+# Local audit reports — never push (repo is public, audits document
+# unfixed security/dead-code gaps until they are addressed)
+AUDIT.md
+AUDIT-*.md
