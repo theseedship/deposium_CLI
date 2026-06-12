@@ -49,18 +49,13 @@ mermaidCommand
   .command('generate')
   .description('Generate Mermaid diagram from data')
   .argument('<type>', 'Diagram type (flowchart|sequence|class|er|gantt|pie)')
-  .option('--data <json>', 'Data JSON for diagram generation (required)')
+  .requiredOption('--data <json>', 'Data JSON for diagram generation')
   .option('--title <text>', 'Diagram title')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'markdown')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (type: string, options) => {
       const { client } = await initializeCommand();
-
-      if (!options.data) {
-        console.error(chalk.red('❌ --data is required'));
-        process.exit(1);
-      }
 
       console.log(chalk.bold('\n🎨 Generating Mermaid diagram...\n'));
 

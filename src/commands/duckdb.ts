@@ -40,18 +40,13 @@ duckdbCommand
 duckdbCommand
   .command('connect')
   .description('Connect to external DuckDB instance')
-  .option('--url <url>', 'DuckDB connection URL (required)')
+  .requiredOption('--url <url>', 'DuckDB connection URL')
   .option('--name <name>', 'Connection name', 'external')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
-
-      if (!options.url) {
-        console.error(chalk.red('❌ --url is required'));
-        process.exit(1);
-      }
 
       console.log(chalk.bold('\n🔗 Connecting to DuckDB...\n'));
 
@@ -74,17 +69,12 @@ duckdbCommand
   .command('federate')
   .description('Execute federated query across multiple DuckDB instances')
   .argument('<query>', 'SQL query to execute')
-  .option('--sources <json>', 'Data sources JSON array (required)')
+  .requiredOption('--sources <json>', 'Data sources JSON array')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
       const { client } = await initializeCommand();
-
-      if (!options.sources) {
-        console.error(chalk.red('❌ --sources is required'));
-        process.exit(1);
-      }
 
       console.log(chalk.bold('\n🌐 Executing federated query...\n'));
 

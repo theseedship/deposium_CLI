@@ -22,7 +22,6 @@ deposium upload-batch <pattern> [options]
 - `--space-id <id>`: Target space ID for the upload.
 - `--folder-id <id>`: Target folder ID within the space.
 - `--dry-run`: Show files found and estimated cost without uploading.
-- `--parallel <n>`: Number of parallel uploads (default: 3, reserved for future use).
 
 ## Examples
 

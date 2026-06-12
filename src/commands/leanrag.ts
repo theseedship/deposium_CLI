@@ -52,7 +52,7 @@ leanragCommand
 leanragCommand
   .command('aggregate')
   .description('Aggregate and rank LeanRAG results')
-  .argument('<results>', 'Results JSON (use - for stdin)')
+  .argument('<results>', 'Results JSON')
   .option('--strategy <type>', 'Aggregation strategy (reciprocal_rank|weighted)', 'reciprocal_rank')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')

@@ -73,20 +73,15 @@ evaluateCommand
 evaluateCommand
   .command('feedback')
   .description('Submit feedback for query quality improvement')
-  .option('--query-id <id>', 'Query ID (required)')
-  .option('--user-id <id>', 'User ID (required)')
-  .option('--score <number>', 'Quality score 0-1 (required)')
+  .requiredOption('--query-id <id>', 'Query ID')
+  .requiredOption('--user-id <id>', 'User ID')
+  .requiredOption('--score <number>', 'Quality score 0-1')
   .option('--feedback <text>', 'Feedback text')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
-
-      if (!options.queryId || !options.userId || !options.score) {
-        console.error(chalk.red('❌ --query-id, --user-id, and --score are required'));
-        process.exit(1);
-      }
 
       console.log(chalk.bold('\n💬 Submitting feedback...\n'));
 

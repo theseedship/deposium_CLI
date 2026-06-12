@@ -72,7 +72,7 @@ intelligenceCommand
 intelligenceCommand
   .command('summarize')
   .description('Generate intelligent summaries of search results')
-  .argument('<results>', 'Results JSON (use - for stdin)')
+  .argument('<results>', 'Results JSON')
   .option('--max-tokens <number>', 'Maximum summary tokens', '500')
   .option('--focus <text>', 'Focus area for summary')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'markdown')
@@ -83,7 +83,8 @@ intelligenceCommand
 
       console.log(chalk.bold('\n📝 Summarizing results...\n'));
 
-      // Parse results input
+      // Parse results input. Stdin (`-`) is a planned feature that
+      // never shipped — fail fast instead of silently mis-parsing.
       let resultsData;
       if (results === '-') {
         console.error(

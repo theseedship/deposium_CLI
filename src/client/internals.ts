@@ -51,9 +51,10 @@ export function generateRequestId(): string {
 }
 
 /**
- * Check if an error is retryable (transient network/server errors)
+ * Check if an error is retryable (transient network/server errors).
+ * Internal — used only by `withRetry` below.
  */
-export function isRetryableError(error: AxiosError): boolean {
+function isRetryableError(error: AxiosError): boolean {
   // Network errors (no response received)
   if (!error.response) {
     return error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND';
@@ -65,16 +66,18 @@ export function isRetryableError(error: AxiosError): boolean {
 }
 
 /**
- * Sleep for a specified duration
+ * Sleep for a specified duration. Internal — used by `withRetry`'s
+ * exponential backoff.
  */
-export function sleep(ms: number): Promise<void> {
+function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
- * Sanitize error data to remove stack traces
+ * Sanitize error data to remove stack traces. Internal — used by
+ * `createAxiosErrorResult` below.
  */
-export function sanitizeErrorData(
+function sanitizeErrorData(
   errorData: Record<string, unknown> | undefined
 ): Record<string, unknown> {
   if (!errorData) return {};

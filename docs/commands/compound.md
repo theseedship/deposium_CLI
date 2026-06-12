@@ -17,7 +17,10 @@ deposium compound [command] [options]
 
 ### `analyze`
 
-Deep reasoning with multi-tool orchestration. Carries conversation history across calls.
+Deep reasoning with multi-tool orchestration. The CLI command is one-shot —
+each invocation is a fresh process and does not carry conversation history
+across calls. Use `deposium chat` or `deposium interactive` for a REPL with
+persistent history.
 
 ```bash
 deposium compound analyze "Explain quantum computing"
@@ -26,21 +29,13 @@ deposium compound analyze "Explain quantum computing"
 **Options:**
 
 - `-f, --format <type>` — Output format (`json`, `markdown`) (default: `markdown`)
-- `-c, --clear` — Clear conversation history before running this query (start fresh)
-- `-s, --show-history` — Display conversation history before running the query
 
 **Examples:**
 
 ```bash
-# Build on previous context
+# Single-turn deep analysis
 deposium compound analyze "Explain neural networks"
 deposium compound analyze "How would I implement one in Python?"
-
-# Start a fresh topic
-deposium compound analyze "New topic about databases" --clear
-
-# Review history before asking
-deposium compound analyze "Continue previous thread" --show-history
 ```
 
 ### `research`

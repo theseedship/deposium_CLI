@@ -98,50 +98,27 @@ Example flow:
 
 ### Command Line Mode
 
-When using the `deposium compound analyze` command:
-
-#### Basic usage (with history):
+The standalone `deposium compound analyze` command is one-shot — each
+invocation is a fresh process and does not carry conversation history
+across calls. For multi-turn conversations with persistent history, use
+the REPL via `deposium chat` or `deposium interactive`.
 
 ```bash
 deposium compound analyze "What is TypeScript?"
-deposium compound analyze "How does it differ from JavaScript?"
-```
-
-#### Show conversation history:
-
-```bash
-deposium compound analyze "continue from last topic" --show-history
-```
-
-#### Clear history before query:
-
-```bash
-deposium compound analyze "Start fresh topic" --clear
-```
-
-#### Combined options:
-
-```bash
-deposium compound analyze "New question" --show-history --clear
+deposium compound analyze "How does it differ from JavaScript?"  # independent process, no shared context
 ```
 
 ## Features
 
 ### Message History
 
-- Stores up to 10 messages total (user + assistant)
-- Provides last 6 messages as context to AI
-- Persists throughout a session (until you exit the CLI)
-
-### History Management
-
-- **View**: See all previous messages in the conversation
-- **Clear**: Start a fresh conversation anytime
-- **Count**: See how many messages are in your conversation
+The `deposium chat` REPL keeps up to 10 messages (user + assistant) in
+memory for the duration of the session and sends the 6 most recent to
+the backend as context.
 
 ### Context Awareness
 
-Each message sent to the AI includes:
+Each message sent to the AI from the REPL includes:
 
 ```
 User: [previous question]
@@ -157,26 +134,18 @@ This allows the AI to understand:
 - What it already explained
 - How the current question relates to previous ones
 
-## Example Conversations
-
-### Building on Context
+## Example Conversation
 
 ```bash
-$ deposium compound analyze "Explain neural networks"
+$ deposium chat
+> Explain neural networks
 [AI explains neural networks]
 
-$ deposium compound analyze "How would I implement one in Python?"
+> How would I implement one in Python?
 [AI provides Python code, knowing you want a neural network]
 
-$ deposium compound analyze "What libraries would make this easier?"
-[AI suggests TensorFlow/PyTorch, knowing you're doing neural networks in Python]
-```
-
-### Starting Fresh
-
-```bash
-$ deposium compound analyze "New topic about databases" --clear
-[AI starts with clean context about databases]
+> What libraries would make this easier?
+[AI suggests TensorFlow/PyTorch, knowing the prior context]
 ```
 
 ## Technical Details
