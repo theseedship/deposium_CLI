@@ -42,7 +42,12 @@ vi.mock('../client/mcp-client', () => ({
   },
 }));
 
-import { initializeCommand, handleCommandError, withErrorHandling } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  handleCommandError,
+  withErrorHandling,
+  runMcpTool,
+} from '../utils/command-helpers';
 
 describe('command-helpers.ts', () => {
   describe('initializeCommand', () => {
@@ -158,6 +163,76 @@ describe('command-helpers.ts', () => {
 
       await action('test', 42);
       expect(receivedArgs).toEqual(['test', 42]);
+    });
+  });
+
+  describe('runMcpTool', () => {
+    type CallToolMock = ReturnType<typeof vi.fn>;
+    let exitSpy: ReturnType<typeof vi.spyOn>;
+    let errorSpy: ReturnType<typeof vi.spyOn>;
+    let callTool: CallToolMock;
+    let mockClient: { callTool: CallToolMock };
+
+    beforeEach(() => {
+      callTool = vi.fn();
+      mockClient = { callTool };
+      exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+        throw new Error('process.exit called');
+      });
+      errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    test('returns unwrapped content on success', async () => {
+      callTool.mockResolvedValue({ isError: false, content: { rows: [1, 2, 3] } });
+      const content = await runMcpTool(
+        mockClient as never,
+        'my_tool',
+        { foo: 'bar' },
+        { label: 'Search' }
+      );
+      expect(content).toEqual({ rows: [1, 2, 3] });
+    });
+
+    test('forwards toolName + args + spinner=true (default) to callTool', async () => {
+      callTool.mockResolvedValue({ isError: false, content: 'ok' });
+      await runMcpTool(mockClient as never, 'my_tool', { a: 1 }, { label: 'X' });
+      expect(callTool).toHaveBeenCalledWith('my_tool', { a: 1 }, { spinner: true });
+    });
+
+    test('forwards spinner: false when caller opts out', async () => {
+      callTool.mockResolvedValue({ isError: false, content: 'ok' });
+      await runMcpTool(mockClient as never, 't', {}, { label: 'X', spinner: false });
+      expect(callTool).toHaveBeenCalledWith('t', {}, { spinner: false });
+    });
+
+    test('on isError: emits "❌ <label> failed:" + content to stderr then exits 1', async () => {
+      callTool.mockResolvedValue({ isError: true, content: 'tool boom' });
+      await expect(
+        runMcpTool(mockClient as never, 't', {}, { label: 'Evaluation' })
+      ).rejects.toThrow('process.exit called');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('❌ Evaluation failed:'),
+        'tool boom'
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    test('on isError with object content: passes content through verbatim', async () => {
+      // Some tools return a structured error envelope rather than a string;
+      // the helper must not stringify it (callers like compound rely on
+      // the raw object reaching the user's console).
+      const errorContent = { error: 'BAD_REQUEST', message: 'missing dossier' };
+      callTool.mockResolvedValue({ isError: true, content: errorContent });
+      await expect(
+        runMcpTool(mockClient as never, 't', {}, { label: 'Validation' })
+      ).rejects.toThrow('process.exit called');
+      expect(errorSpy).toHaveBeenCalledWith(expect.any(String), errorContent);
     });
   });
 });

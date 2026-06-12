@@ -150,3 +150,57 @@ export function withErrorHandling<T extends unknown[]>(
     }
   };
 }
+
+/**
+ * Standardized "call tool → bail on isError → return content" pattern
+ * that ~60 command call-sites used to spell out by hand.
+ *
+ * On `result.isError`, prints `chalk.red('\n❌ <label> failed:')` followed
+ * by the error content (which may be a string or a `{ message, … }`
+ * object) and `process.exit(1)`. This format is load-bearing — existing
+ * tests assert on the exact wording, and changing it across the suite
+ * is an explicit decision, not a side-effect of a callsite migration.
+ *
+ * On success, returns `result.content` unwrapped so the caller can pass
+ * it directly to `formatOutput` (or do whatever post-processing it
+ * needs — see `compound analyze` which appends to chat history before
+ * formatting).
+ *
+ * NOT a fit when the caller needs to keep going on error (e.g.
+ * `benchmark compare` skips failed models silently and continues to
+ * the next one). Those sites stay inline.
+ *
+ * @param client    The MCPClient from `initializeCommand()`.
+ * @param toolName  The MCP tool to invoke.
+ * @param args      Tool arguments forwarded to `callTool`.
+ * @param opts      `label` is the verb shown in the error banner
+ *                  ("Search", "Analysis", "Stats", …). `spinner`
+ *                  defaults to `true` because most invocations are
+ *                  interactive; pass `false` when iterating in a loop.
+ * @returns The unwrapped `result.content` on success. On error, never
+ *          returns — `process.exit(1)` is called inside.
+ *
+ * @example
+ * ```typescript
+ * const content = await runMcpTool(
+ *   client,
+ *   'corpus_evaluate',
+ *   { tenant_id, space_id, metric },
+ *   { label: 'Evaluation' }
+ * );
+ * formatOutput(content, options.format);
+ * ```
+ */
+export async function runMcpTool(
+  client: MCPClient,
+  toolName: string,
+  args: Record<string, unknown>,
+  opts: { label: string; spinner?: boolean }
+): Promise<unknown> {
+  const result = await client.callTool(toolName, args, { spinner: opts.spinner ?? true });
+  if (result.isError) {
+    console.error(chalk.red(`\n❌ ${opts.label} failed:`), result.content);
+    process.exit(1);
+  }
+  return result.content;
+}
