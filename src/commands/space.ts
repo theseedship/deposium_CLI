@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 
 export const spaceCommand = new Command('space').description(
   'Manage workspaces (list, show, create)'
@@ -85,23 +85,19 @@ spaceCommand
         console.log(chalk.bold(`\n📂 Creating space ${chalk.cyan(name)}...\n`));
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'deposium_admin',
         {
           operation: 'create_space',
           name,
           description: options.description,
         },
-        { spinner: !options.silent }
+        { label: 'Create', spinner: !options.silent }
       );
-
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Create failed:'), result.content);
-        process.exit(1);
-      }
 
       // `formatOutput` renders the created entity below — no need for a
       // second "Space created" banner above it (audit I5: cosmetic dedupe).
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

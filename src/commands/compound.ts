@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { ChatHistory } from '../utils/chat-history';
 
 // Global chat history for the compound command (persists across calls in same session)
@@ -39,26 +39,21 @@ export const compoundCommand = new Command('compound')
 
           console.log(chalk.bold('\n🤖 Analyzing with Compound AI...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'compound_analyze',
             {
               query,
               context, // Pass context as string directly
             },
-            { spinner: true }
+            { label: 'Analysis' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Analysis failed:'), result.content);
-            process.exit(1);
-          }
-
           // Add AI response to history
-          const responseText =
-            typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+          const responseText = typeof content === 'string' ? content : JSON.stringify(content);
           globalChatHistory.addAssistantMessage(responseText);
 
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
 
           // Show message count
           console.log(
@@ -78,21 +73,17 @@ export const compoundCommand = new Command('compound')
 
           console.log(chalk.bold(`\n🔬 Researching: ${topic}...\n`));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'compound_research',
             {
               topic,
               depth: 'comprehensive',
             },
-            { spinner: true }
+            { label: 'Research' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Research failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   );

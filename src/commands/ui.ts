@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const uiCommand = new Command('ui').description(
@@ -21,18 +21,14 @@ uiCommand
 
       console.log(chalk.bold('\n🎨 Opening dashboard...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'ui_show_dashboard',
         { port: parseIntOrThrow(options.port, '--port') },
-        { spinner: !options.silent }
+        { label: 'Dashboard', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Dashboard failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -49,18 +45,14 @@ uiCommand
 
       console.log(chalk.bold('\n🔍 Opening search interface...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'ui_show_search',
         { port: parseIntOrThrow(options.port, '--port') },
-        { spinner: !options.silent }
+        { label: 'Search UI', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Search UI failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -78,21 +70,17 @@ uiCommand
 
       console.log(chalk.bold('\n💚 Opening health monitor...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'ui_show_health',
         {
           port: parseIntOrThrow(options.port, '--port'),
           refresh_interval: parseIntOrThrow(options.refresh, '--refresh'),
         },
-        { spinner: !options.silent }
+        { label: 'Health monitor', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Health monitor failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -109,18 +97,14 @@ uiCommand
 
       console.log(chalk.bold('\n🛠️  Opening tools explorer...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'ui_show_tools',
         { port: parseIntOrThrow(options.port, '--port') },
-        { spinner: !options.silent }
+        { label: 'Tools explorer', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Tools explorer failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -138,20 +122,16 @@ uiCommand
 
       console.log(chalk.bold('\n⚡ Opening embeddings monitor...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'ui_show_embeddings',
         {
           port: parseIntOrThrow(options.port, '--port'),
           refresh_interval: parseIntOrThrow(options.refresh, '--refresh'),
         },
-        { spinner: !options.silent }
+        { label: 'Embeddings monitor', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Embeddings monitor failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

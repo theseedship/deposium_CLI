@@ -6,6 +6,7 @@ import {
   withErrorHandling,
   getErrorMessage,
   resolveTenantSpace,
+  runMcpTool,
 } from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
@@ -82,21 +83,19 @@ benchmarkCommand
         console.log(chalk.bold('\n📋 Available OpenBench Categories\n'));
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'openbench_list',
         {
           include_details: options.details,
         },
-        { spinner: !options.silent }
+        // Original site said "Failed to list benchmarks:" — helper rewords
+        // to the canonical "❌ <label> failed:" shape used everywhere else.
+        { label: 'Benchmark listing', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Failed to list benchmarks:'), result.content);
-        process.exit(1);
-      }
-
       // Parse and display categories nicely
-      const data = parseAPIResponse<BenchmarkListResponse>(result.content);
+      const data = parseAPIResponse<BenchmarkListResponse>(content);
 
       if (options.format === 'table' && data.categories) {
         console.log(chalk.cyan('Categories:'));
@@ -110,7 +109,7 @@ benchmarkCommand
         console.log(`\n${chalk.cyan('Providers:')} ${data.providers?.join(', ') || 'N/A'}`);
         console.log(`${chalk.cyan('Default:')} ${data.default_provider}/${data.default_model}`);
       } else {
-        formatOutput(result.content, options.format);
+        formatOutput(content, options.format);
       }
     })
   );
@@ -142,7 +141,8 @@ benchmarkCommand
         console.log(chalk.gray(`  Samples: ${options.samples}\n`));
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'openbench_run',
         {
           category: options.category,
@@ -151,16 +151,11 @@ benchmarkCommand
           sample_limit: parseIntOrThrow(options.samples, '--samples'),
           use_cache: options.cache !== false,
         },
-        { spinner: !options.silent }
+        { label: 'Benchmark', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Benchmark failed:'), result.content);
-        process.exit(1);
-      }
-
       // Parse and display score prominently
-      const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
+      const data = parseAPIResponse<BenchmarkRunResponse>(content);
 
       if (options.format === 'table') {
         const scoreColor = data.score >= 0.8 ? 'green' : data.score >= 0.6 ? 'yellow' : 'red';
@@ -187,7 +182,7 @@ benchmarkCommand
           data.errors.forEach((err: string) => console.log(`  ${chalk.yellow(err)}`));
         }
       } else {
-        formatOutput(result.content, options.format);
+        formatOutput(content, options.format);
       }
     })
   );
@@ -269,7 +264,8 @@ benchmarkCommand
         );
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'openbench_corpus_eval',
         {
           tenant_id: tenantId,
@@ -279,19 +275,14 @@ benchmarkCommand
           model: options.model,
           sample_limit: parseIntOrThrow(options.samples, '--samples'),
         },
-        { spinner: !options.silent }
+        { label: 'Corpus evaluation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Corpus evaluation failed:'), result.content);
-        process.exit(1);
-      }
-
       // Parse and display results
-      const data = parseAPIResponse<BenchmarkRunResponse>(result.content);
+      const data = parseAPIResponse<BenchmarkRunResponse>(content);
 
       if (options.format !== 'table') {
-        formatOutput(result.content, options.format);
+        formatOutput(content, options.format);
       } else {
         displayCorpusEvalResults(data, { tenant: tenantId, space: spaceId });
       }
@@ -332,6 +323,10 @@ benchmarkCommand
           if (model.includes('gpt')) provider = 'openai';
           if (model.includes('claude')) provider = 'anthropic';
 
+          // NOT runMcpTool here — `compare` runs the benchmark for each
+          // model in a loop and skips failures silently to keep the
+          // remaining models' results visible. The helper would
+          // process.exit(1) on the first failure and abort the comparison.
           const result = await client.callTool(
             'openbench_run',
             {

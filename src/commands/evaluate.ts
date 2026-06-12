@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow, parseFloatOrThrow } from '../utils/parsers';
 
 export const evaluateCommand = new Command('evaluate')
@@ -22,21 +27,17 @@ evaluateCommand
 
       console.log(chalk.bold('\n📊 Fetching evaluation metrics...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'eval_metrics',
         {
           user_id: options.userId,
           include_global: options.includeGlobal ?? false,
         },
-        { spinner: !options.silent }
+        { label: 'Metrics', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Metrics failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -54,21 +55,17 @@ evaluateCommand
 
       console.log(chalk.bold('\n📈 Generating dashboard...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'eval_dashboard',
         {
           user_id: options.userId,
           time_range: options.timeRange,
         },
-        { spinner: !options.silent }
+        { label: 'Dashboard generation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Dashboard generation failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -93,7 +90,8 @@ evaluateCommand
 
       console.log(chalk.bold('\n💬 Submitting feedback...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'eval_feedback',
         {
           // snake_case to match the rest of the API surface
@@ -105,15 +103,10 @@ evaluateCommand
           score: parseFloatOrThrow(options.score, '--score'),
           feedback: options.feedback,
         },
-        { spinner: !options.silent }
+        { label: 'Feedback submission', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Feedback submission failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -132,22 +125,18 @@ evaluateCommand
 
       console.log(chalk.bold('\n⚡ Executing code in sandbox...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'analyze_code',
         {
           code,
           language: options.language,
           timeout: parseIntOrThrow(options.timeout, '--timeout'),
         },
-        { spinner: !options.silent }
+        { label: 'Code execution', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Code execution failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -167,22 +156,18 @@ evaluateCommand
 
       console.log(chalk.bold('\n🕸️  Generating graph visualization...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'evaluate_graph',
         {
           tenant_id: tenantId,
           space_id: spaceId,
           max_nodes: parseIntOrThrow(options.maxNodes, '--max-nodes'),
         },
-        { spinner: !options.silent }
+        { label: 'Graph evaluation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Graph evaluation failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -205,21 +190,17 @@ evaluateCommand
         ? safeParseJSON<unknown[]>(options.testCases, '--test-cases')
         : undefined;
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'evaluate_quality',
         {
           code,
           test_cases: testCases,
           language: options.language,
         },
-        { spinner: !options.silent }
+        { label: 'Quality assessment', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Quality assessment failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

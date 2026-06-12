@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const duckdbCommand = new Command('duckdb')
@@ -22,21 +22,17 @@ duckdbCommand
 
       console.log(chalk.bold('\n🦆 Starting DuckDB MCP server...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'duckdb_serve',
         {
           port: parseIntOrThrow(options.port, '--port'),
           host: options.host,
         },
-        { spinner: !options.silent }
+        { label: 'Serve', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Serve failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -59,21 +55,17 @@ duckdbCommand
 
       console.log(chalk.bold('\n🔗 Connecting to DuckDB...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'duckdb_connect',
         {
           connection_url: options.url,
           connection_name: options.name,
         },
-        { spinner: !options.silent }
+        { label: 'Connect', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Connect failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -98,21 +90,17 @@ duckdbCommand
 
       const sources = safeParseJSON<Record<string, unknown>[]>(options.sources, '--sources');
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'duckdb_federate',
         {
           query,
           sources,
         },
-        { spinner: !options.silent }
+        { label: 'Federated query', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Federated query failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -130,21 +118,17 @@ duckdbCommand
 
       console.log(chalk.bold('\n📤 Exposing DuckDB via MCP...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'duckdb_expose',
         {
           database_path: options.database,
           readonly: options.readonly ?? false,
         },
-        { spinner: !options.silent }
+        { label: 'Expose', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Expose failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -162,21 +146,17 @@ duckdbCommand
 
       console.log(chalk.bold('\n🔍 Executing MCP query...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'duckdb_query_mcp',
         {
           query,
           connection_name: options.connection,
         },
-        { spinner: !options.silent }
+        { label: 'Query', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Query failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -192,13 +172,13 @@ duckdbCommand
 
       console.log(chalk.bold('\n📊 Fetching MCP server status...\n'));
 
-      const result = await client.callTool('duckdb_mcp_status', {}, { spinner: !options.silent });
+      const content = await runMcpTool(
+        client,
+        'duckdb_mcp_status',
+        {},
+        { label: 'Status check', spinner: !options.silent }
+      );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Status check failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
