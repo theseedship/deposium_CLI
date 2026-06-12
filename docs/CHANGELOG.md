@@ -7,6 +7,116 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-06-12
+
+Second internal audit cycle — closes 5 HIGH-severity findings, 7 MEDIUM
+bugs, and the bulk of the code-health backlog from the post-v1.4.1
+audit. 478/478 tests pass.
+
+### Security
+
+- **`auth status` no longer leaks `dep_svc_*` service-keys**: the env-var
+  and stored-credential paths now reject service-keys at the CLI
+  boundary BEFORE transmitting them via `X-API-Key`. Previously the
+  status check sent the key, got rejected, and the key landed in server
+  access logs anyway. (#A5)
+- **No more path-segment URL injection**: every interpolated ID in the
+  client (documents, api-keys, validate reports) is now run through
+  `encodeURIComponent`. Inputs like `../api-keys` or `1?admin=true`
+  used to rewrite the request path; now they're properly escaped. (#A3)
+- **`benchmark corpus --queries=<file>` no longer leaks file content**:
+  when the JSON parse fails on file-read content, the error message now
+  only names the path and emits position info — never echoes the file
+  body. Previously `--queries=/etc/hosts` would have spilled the first
+  100 chars of `/etc/hosts` to stderr. V8's `JSON.parse` error message
+  is also stripped of the snippet it embeds. (#B2)
+- **`logout` actually logs out on partial-migration installs**: the
+  legacy `apiKey` config slot is now cleared alongside the credentials
+  store. Previously, on installs where the one-time encrypted-store
+  migration didn't complete, the next `getApiKey()` resurrected the
+  legacy key — `auth logout` looked successful but the user remained
+  authenticated. (#B6)
+- **`api-keys create/rotate` no longer duplicates the secret in
+  stdout**: warning always goes to stderr (every format), JSON body
+  always to stdout. `> out.json` now produces a clean parseable file
+  instead of human warning text prepended to the JSON. Interactive
+  users still see the loud one-time alert. (#B7)
+
+### Fixed
+
+- **`validate --json` propagates exit code 1 on failure**: the previous
+  release exited 0 even when the run failed — CI scripts that piped
+  the JSON to `jq` and checked `$?` got false-positive success. (#A1)
+- **SSE chunk dispatch no longer swallows consumer-callback errors**:
+  `handleSSEChunk`'s catch is now narrowed to `JSON.parse` only. SDK
+  consumers' `onToken` / `onMetadata` / `onChatPrompt` errors now
+  propagate instead of being silently lost — fixes "stream looks
+  stalled" symptoms. (#A2)
+- **SSE multi-line `data:` payloads concatenated correctly**: per spec,
+  multiple `data:` lines in one event are joined with `\n`. Previously
+  each new line overwrote the previous one. Also accept the
+  space-less `data:foo` form the spec allows. (#B3)
+- **`validate-hitl-form` has an exhaustive switch on
+  `waiting_for`**: a server adding a 4th `chat_prompt` discriminant no
+  longer falls through to `undefined` and tripping a downstream NPE.
+  TypeScript also flags client/server drift at compile time. (#B4)
+- **`--on-ambiguous=dump` flushes stdout before exiting**: replaces
+  `console.log(json); process.exit(0)` with
+  `process.stdout.write(json, () => process.exit(0))` so the JSON
+  reaches downstream `| jq` consumers even on slow pipes. (#B5)
+
+### Changed
+
+- **`compound analyze --clear` / `--show-history` removed**: those
+  flags were no-ops on the standalone command (one-shot process, no
+  history to clear). Use `deposium chat` or `deposium interactive`
+  for a REPL with persistent history. (#C11)
+- **`upload-batch --parallel` removed**: advertised "reserved for
+  future use" but never read. (#C5)
+- **`parseIntOrThrow` is strict**: `deposium logs view --limit=100GB`
+  used to silently use `100`; now it errors with `--limit must be an
+  integer (got: "100GB")`. Any user accidentally passing garbage gets
+  a clearer signal. (#C9)
+- **`intelligence summarize <results>` and `leanrag aggregate <results>`
+  help strings no longer claim to support `-` for stdin**: stdin
+  reading isn't implemented (the action throws "not yet supported");
+  the help text was lying. (#C6)
+- **Doc correction in CLAUDE.md**: the Security Requirements section
+  no longer claims `safeParseJSON` is Zod-validated. The helper wraps
+  `JSON.parse` with sanitized error messages; runtime shape validation
+  is tracked as a follow-up. (#B1)
+
+### Internal
+
+- **`runMcpTool` helper kills 59 callsites**: the
+  `callTool → check isError → exit → format` boilerplate that repeated
+  across 16 command files is now centralized in
+  `src/utils/command-helpers.ts`. Net −191 LOC on `src/commands/`.
+  One callsite (`benchmark compare`) stays inline because it needs
+  to skip failures and continue the loop. (#C1)
+- **`client/mcp-client.ts` split**: the 997-line module is broken into
+  4 focused files — `mcp-client.ts` (slim class + HTTP API), new
+  `client/sse-stream.ts` (chat / agent-resume helpers), new
+  `client/validate-stream.ts` (pause/resume protocol), and new
+  `client/http-errors.ts` (single source of truth for the
+  "Cannot connect to Deposium API" wording previously duplicated 5×).
+  Resolves the `max-lines` lint warning that had been on the file
+  since v1.4.0. (#C2, #C13)
+- **`chat` and `validate` now use `initializeCommand()`**: they used
+  to hand-roll the 4-line `getConfig → getBaseUrl → ensureAuthenticated
+   → new MCPClient` bootstrap that every other command had moved off
+  long ago. (#C3)
+- **`.requiredOption()` unified**: `evaluate feedback` (3 flags),
+  `duckdb connect` / `federate`, `mermaid generate` — 6 sites that
+  hand-rolled `if (!opt) console.error; process.exit(1)` now use
+  commander's idiomatic check. (#C10)
+- **Dead exports removed**: `sleep`, `sanitizeErrorData`,
+  `isRetryableError` (internals.ts), `DEFAULT_VALIDATE_TOOL`
+  (mcp-client.ts), `CommandContext`, `InitializeOptions` (command-
+  helpers.ts), `ValidateRenderOptions` (validate-events.ts), and a
+  vestigial re-export of `isErrorWithCode` / `hasErrorCauseWithCode`.
+  (#C4)
+
 ## [1.4.1] - 2026-05-25
 
 ### Security
