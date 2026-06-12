@@ -94,17 +94,16 @@ export function resolveTenantSpace(
 }
 
 /**
- * Standard error handler for command actions
+ * Standard error handler for command actions. Provides consistent
+ * error formatting across all commands (chalk-red banner + optional
+ * DEBUG stack trace).
  *
- * Provides consistent error formatting across all commands.
+ * Exported because `command-helpers.test.ts` unit-tests it directly.
+ * Not used by any command file — commands go through `withErrorHandling`
+ * below.
  *
  * @param error - The error to handle
  * @param silent - If true, suppress detailed error output
- */
-/**
- * Exported because `command-helpers.test.ts` unit-tests this directly
- * (silent flag, DEBUG stack-trace mode). Not used by any command file —
- * commands go through `withErrorHandling` below.
  */
 export function handleCommandError(error: unknown, silent: boolean = false): never {
   const message = error instanceof Error ? getErrorMessage(error) : String(error);
