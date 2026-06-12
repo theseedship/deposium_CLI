@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow, parseFloatOrThrow } from '../utils/parsers';
 
 export const corpusCommand = new Command('corpus')
@@ -19,21 +24,17 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_stats',
             {
               tenant_id: tenantId,
               space_id: spaceId,
             },
-            { spinner: true }
+            { label: 'Stats' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Stats failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -51,22 +52,18 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n🎯 Evaluating Corpus Quality...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_evaluate',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               metric: options.metric ?? 'relevance',
             },
-            { spinner: true }
+            { label: 'Evaluation' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Evaluation failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -84,22 +81,18 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_improve',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               focus: options.focus,
             },
-            { spinner: true }
+            { label: 'Improvement analysis' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Improvement analysis failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -122,22 +115,18 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n⚡ Fetching evaluation snapshot...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_realtime_eval',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               interval: parseIntOrThrow(options.interval, '--interval'),
             },
-            { spinner: true }
+            { label: 'Evaluation snapshot' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Evaluation snapshot failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -155,22 +144,18 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n🔍 Monitoring corpus quality...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_monitor',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               threshold: parseFloatOrThrow(options.threshold, '--threshold'),
             },
-            { spinner: true }
+            { label: 'Monitoring' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Monitoring failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -192,22 +177,18 @@ export const corpusCommand = new Command('corpus')
             ? safeParseJSON<string[]>(options.sources, '--sources')
             : undefined;
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_freshness',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               external_sources: sources,
             },
-            { spinner: true }
+            { label: 'Freshness check' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Freshness check failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -225,22 +206,18 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n📉 Detecting concept drift...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'corpus_drift',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               time_window_days: parseIntOrThrow(options.timeWindow, '--time-window'),
             },
-            { spinner: true }
+            { label: 'Drift detection' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Drift detection failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   );

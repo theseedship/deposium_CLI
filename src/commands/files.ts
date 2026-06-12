@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { parseOptionalInt } from '../utils/parsers';
 
 export const filesCommand = new Command('files').description(
@@ -85,18 +85,14 @@ filesCommand
         console.log(chalk.bold(`\n🔍 Validating document ${chalk.cyan(id)}...\n`));
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'check_file',
         { document_id: id },
-        { spinner: !options.silent }
+        { label: 'Validation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Validation failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 

@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const graphCommand = new Command('graph')
@@ -21,7 +26,8 @@ export const graphCommand = new Command('graph')
 
           console.log(chalk.bold('\n🔍 Searching graph...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_search',
             {
               tenant_id: tenantId,
@@ -29,15 +35,10 @@ export const graphCommand = new Command('graph')
               pattern,
               limit: parseIntOrThrow(options.limit, '--limit'),
             },
-            { spinner: true }
+            { label: 'Search' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Search failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -55,22 +56,18 @@ export const graphCommand = new Command('graph')
 
           console.log(chalk.bold('\n🔗 Analyzing Graph...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_analyze',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               algorithm: options.algorithm,
             },
-            { spinner: true }
+            { label: 'Analysis' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Analysis failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -89,7 +86,8 @@ export const graphCommand = new Command('graph')
 
           console.log(chalk.bold(`\n🛤️  Finding path: ${from} → ${to}...\n`));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_path',
             {
               tenant_id: tenantId,
@@ -97,15 +95,10 @@ export const graphCommand = new Command('graph')
               source_id: from,
               target_id: to,
             },
-            { spinner: true }
+            { label: 'Path finding' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Path finding failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -132,7 +125,8 @@ export const graphCommand = new Command('graph')
             ? safeParseJSON<Record<string, unknown>>(options.edgeFilters, '--edge-filters')
             : undefined;
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_multihop',
             {
               tenant_id: tenantId,
@@ -144,15 +138,10 @@ export const graphCommand = new Command('graph')
               edge_filters: edgeFilters,
               limit: parseIntOrThrow(options.limit, '--limit'),
             },
-            { spinner: true }
+            { label: 'Multi-hop query' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Multi-hop query failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -174,7 +163,8 @@ export const graphCommand = new Command('graph')
 
           console.log(chalk.bold(`\n🔗 Finding variable paths: ${from} → ${to}...\n`));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_variable_path',
             {
               tenant_id: tenantId,
@@ -185,15 +175,10 @@ export const graphCommand = new Command('graph')
               max_hops: parseIntOrThrow(options.maxHops, '--max-hops'),
               avoid_cycles: options.avoidCycles ?? false,
             },
-            { spinner: true }
+            { label: 'Variable path finding' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Variable path finding failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -213,7 +198,8 @@ export const graphCommand = new Command('graph')
 
           console.log(chalk.bold(`\n🎯 Analyzing ${options.hops}-hop neighborhood...\n`));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_khop',
             {
               tenant_id: tenantId,
@@ -222,15 +208,10 @@ export const graphCommand = new Command('graph')
               k: parseIntOrThrow(options.hops, '--hops'),
               include_properties: options.includeProperties ?? false,
             },
-            { spinner: true }
+            { label: 'K-hop analysis' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ K-hop analysis failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   )
@@ -248,22 +229,18 @@ export const graphCommand = new Command('graph')
 
           console.log(chalk.bold('\n🧩 Finding Components...\n'));
 
-          const result = await client.callTool(
+          const content = await runMcpTool(
+            client,
             'graph_components',
             {
               tenant_id: tenantId,
               space_id: spaceId,
               min_component_size: parseIntOrThrow(options.minSize, '--min-size'),
             },
-            { spinner: true }
+            { label: 'Component analysis' }
           );
 
-          if (result.isError) {
-            console.error(chalk.red('\n❌ Component analysis failed:'), result.content);
-            process.exit(1);
-          }
-
-          formatOutput(result.content, options.format);
+          formatOutput(content, options.format);
         })
       )
   );

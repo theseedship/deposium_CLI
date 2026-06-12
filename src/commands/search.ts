@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const searchCommand = new Command('search')
@@ -23,7 +28,8 @@ export const searchCommand = new Command('search')
 
       console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'search_hub',
         {
           tenant_id: tenantId,
@@ -35,14 +41,9 @@ export const searchCommand = new Command('search')
           use_graph: options.graph ?? false,
           top_k: parseIntOrThrow(options.topK, '--top-k'),
         },
-        { spinner: !options.silent }
+        { label: 'Search', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Search failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

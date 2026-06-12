@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const intelligenceCommand = new Command('intelligence')
@@ -21,18 +26,14 @@ intelligenceCommand
 
       console.log(chalk.bold('\n🧠 Analyzing query intent...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'smart_analyze',
         { query_text: query },
-        { spinner: !options.silent }
+        { label: 'Analysis', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Analysis failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -52,22 +53,18 @@ intelligenceCommand
 
       console.log(chalk.bold('\n💡 Generating suggestions...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'smart_suggest',
         {
           partial_query: partial,
           tenant_id: tenantId,
           space_id: spaceId,
         },
-        { spinner: !options.silent }
+        { label: 'Suggestion', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Suggestion failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -97,22 +94,18 @@ intelligenceCommand
         resultsData = parseAPIResponse(results);
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'smart_summarize',
         {
           results: resultsData,
           max_tokens: parseIntOrThrow(options.maxTokens, '--max-tokens'),
           focus: options.focus,
         },
-        { spinner: !options.silent }
+        { label: 'Summarization', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Summarization failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -135,21 +128,17 @@ intelligenceCommand
         ? safeParseJSON<Record<string, unknown>>(options.context, '--context')
         : undefined;
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'smart_elicit',
         {
           query_text: query,
           search_results: parseIntOrThrow(options.searchResults, '--search-results'),
           context,
         },
-        { spinner: !options.silent }
+        { label: 'Elicitation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Elicitation failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

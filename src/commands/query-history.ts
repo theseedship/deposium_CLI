@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { parseIntOrThrow, parseOptionalInt } from '../utils/parsers';
 
 export const queryHistoryCommand = new Command('query-history')
@@ -25,7 +25,8 @@ queryHistoryCommand
 
       console.log(chalk.bold('\n📝 Logging query...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'query_log',
         {
           query,
@@ -34,15 +35,10 @@ queryHistoryCommand
           results: parseOptionalInt(options.results, '--results'),
           latency: parseOptionalInt(options.latency, '--latency'),
         },
-        { spinner: !options.silent }
+        { label: 'Query log', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Query log failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -61,7 +57,8 @@ queryHistoryCommand
 
       console.log(chalk.bold('\n💾 Exporting query history...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'query_export',
         {
           user_id: options.userId,
@@ -69,15 +66,10 @@ queryHistoryCommand
           output: options.output,
           time_range: options.timeRange,
         },
-        { spinner: !options.silent }
+        { label: 'Export', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Export failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -97,7 +89,8 @@ queryHistoryCommand
 
       console.log(chalk.bold('\n📜 Retrieving query history...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'query_retrieve',
         {
           user_id: options.userId,
@@ -105,15 +98,10 @@ queryHistoryCommand
           offset: parseIntOrThrow(options.offset, '--offset'),
           engine: options.engine,
         },
-        { spinner: !options.silent }
+        { label: 'Retrieve', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Retrieve failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -132,22 +120,18 @@ queryHistoryCommand
 
       console.log(chalk.bold('\n📊 Fetching query statistics...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'query_stats',
         {
           user_id: options.userId,
           time_range: options.timeRange,
           group_by: options.groupBy,
         },
-        { spinner: !options.silent }
+        { label: 'Stats', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Stats failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -174,19 +158,15 @@ queryHistoryCommand
 
       console.log(chalk.bold('\n🗑️  Cleaning up query history...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'query_cleanup',
         {
           older_than_days: parseIntOrThrow(options.olderThan, '--older-than'),
         },
-        { spinner: !options.silent }
+        { label: 'Cleanup', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Cleanup failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

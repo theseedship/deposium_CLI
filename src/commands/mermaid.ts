@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow, parseOptionalInt } from '../utils/parsers';
 
 export const mermaidCommand = new Command('mermaid').description(
@@ -24,22 +29,18 @@ mermaidCommand
 
       console.log(chalk.bold('\n🔍 Parsing Mermaid diagrams...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'mermaid_parse',
         {
           tenant_id: tenantId,
           space_id: spaceId,
           doc_id: parseOptionalInt(options.docId, '--doc-id'),
         },
-        { spinner: !options.silent }
+        { label: 'Parse', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Parse failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -65,22 +66,18 @@ mermaidCommand
 
       const data = safeParseJSON<Record<string, unknown>>(options.data, '--data');
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'mermaid_generate',
         {
           diagram_type: type,
           data,
           title: options.title,
         },
-        { spinner: !options.silent }
+        { label: 'Generation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Generation failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -102,7 +99,8 @@ mermaidCommand
 
       console.log(chalk.bold('\n🔎 Querying diagrams...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'mermaid_query',
         {
           tenant_id: tenantId,
@@ -111,14 +109,9 @@ mermaidCommand
           diagram_type: options.diagramType,
           top_k: parseIntOrThrow(options.topK, '--top-k'),
         },
-        { spinner: !options.silent }
+        { label: 'Query', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Query failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

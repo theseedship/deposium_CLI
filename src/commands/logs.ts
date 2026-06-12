@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const logsCommand = new Command('logs').description(
@@ -22,21 +22,17 @@ logsCommand
 
       console.log(chalk.bold('\n📜 Viewing logs...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'view_logs',
         {
           level: options.level,
           limit: parseIntOrThrow(options.limit, '--limit'),
         },
-        { spinner: !options.silent }
+        { label: 'View logs', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ View logs failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -53,20 +49,16 @@ logsCommand
 
       console.log(chalk.bold('\n📊 Fetching log statistics...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'get_log_stats',
         {
           time_range: options.timeRange,
         },
-        { spinner: !options.silent }
+        { label: 'Log stats', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Log stats failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -88,14 +80,14 @@ logsCommand
 
       console.log(chalk.bold('\n🗑️  Clearing logs...\n'));
 
-      const result = await client.callTool('clear_logs', {}, { spinner: !options.silent });
+      const content = await runMcpTool(
+        client,
+        'clear_logs',
+        {},
+        { label: 'Clear logs', spinner: !options.silent }
+      );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Clear logs failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -115,7 +107,8 @@ logsCommand
 
       console.log(chalk.bold('\n🔍 Searching logs...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'search_logs',
         {
           pattern,
@@ -123,14 +116,9 @@ logsCommand
           limit: parseIntOrThrow(options.limit, '--limit'),
           context: parseIntOrThrow(options.context, '--context'),
         },
-        { spinner: !options.silent }
+        { label: 'Search logs', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Search logs failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

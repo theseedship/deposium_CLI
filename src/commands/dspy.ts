@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 
 export const dspyCommand = new Command('dspy').description(
   'DSPy intelligent query routing and optimization'
@@ -27,7 +27,8 @@ dspyCommand
         ? safeParseJSON<Record<string, unknown>>(options.params, '--params')
         : {};
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'dspy_route',
         {
           query,
@@ -35,15 +36,10 @@ dspyCommand
           params,
           evaluateResult: options.evaluate ?? false,
         },
-        { spinner: !options.silent }
+        { label: 'Routing', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Routing failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -61,20 +57,16 @@ dspyCommand
 
       console.log(chalk.bold('\n🔍 Analyzing query intent...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'dspy_analyze',
         {
           query,
           includeTemplates: options.includeTemplates ?? false,
         },
-        { spinner: !options.silent }
+        { label: 'Analysis', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Analysis failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );

@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, parseAPIResponse } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, resolveTenantSpace } from '../utils/command-helpers';
+import {
+  initializeCommand,
+  withErrorHandling,
+  resolveTenantSpace,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const leanragCommand = new Command('leanrag').description(
@@ -26,7 +31,8 @@ leanragCommand
 
       console.log(chalk.bold('\n🎯 LeanRAG retrieval...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'leanrag_retrieve',
         {
           tenant_id: tenantId,
@@ -35,15 +41,10 @@ leanragCommand
           top_k: parseIntOrThrow(options.topK, '--top-k'),
           rerank: options.rerank ?? false,
         },
-        { spinner: !options.silent }
+        { label: 'Retrieval', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Retrieval failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -72,21 +73,17 @@ leanragCommand
         resultsData = parseAPIResponse(results);
       }
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'leanrag_aggregate',
         {
           results: resultsData,
           strategy: options.strategy,
         },
-        { spinner: !options.silent }
+        { label: 'Aggregation', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Aggregation failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
 
@@ -106,21 +103,17 @@ leanragCommand
 
       console.log(chalk.bold('\n🔬 LeanRAG analysis...\n'));
 
-      const result = await client.callTool(
+      const content = await runMcpTool(
+        client,
         'leanrag_analyze',
         {
           tenant_id: tenantId,
           space_id: spaceId,
           query_text: query,
         },
-        { spinner: !options.silent }
+        { label: 'Analysis', spinner: !options.silent }
       );
 
-      if (result.isError) {
-        console.error(chalk.red('\n❌ Analysis failed:'), result.content);
-        process.exit(1);
-      }
-
-      formatOutput(result.content, options.format);
+      formatOutput(content, options.format);
     })
   );
