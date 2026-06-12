@@ -25,12 +25,14 @@ describe('parseIntOrThrow', () => {
     expect(() => parseIntOrThrow('', '--limit')).toThrow(/--limit requires/);
   });
 
-  test('partial-numeric strings throw rather than truncating', () => {
+  test('partial-numeric strings throw rather than truncating to the prefix', () => {
     // Raw parseInt('10abc', 10) returns 10 silently — that's the footgun
-    // we're closing. Our helper accepts what Number.parseInt accepts, so
-    // this DOES still parse to 10. Document that with an explicit test
-    // so anyone tightening the rule later can decide intentionally.
-    expect(parseIntOrThrow('10abc', '--limit')).toBe(10);
+    // we close. Reject any input that isn't a clean integer literal.
+    expect(() => parseIntOrThrow('10abc', '--limit')).toThrow(/--limit must be an integer/);
+    expect(() => parseIntOrThrow('100GB', '--limit')).toThrow(/--limit must be an integer/);
+    expect(() => parseIntOrThrow('10.5', '--limit')).toThrow(/--limit must be an integer/);
+    expect(() => parseIntOrThrow('10 ', '--limit')).not.toThrow(); // whitespace is trimmed
+    expect(parseIntOrThrow(' -42 ', '--limit')).toBe(-42); // negatives and pad-whitespace OK
   });
 });
 

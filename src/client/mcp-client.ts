@@ -47,12 +47,11 @@ const CLI_NAME = pkg.name;
 
 /**
  * Default upstream tool name invoked by `validateDossier()`.
- *
- * Override per call via the `tool` option when the server-side macro
- * is renamed or when targeting a different validator that follows the
- * same `validate:*` SSE event contract.
+ * Internal — override per call via the `tool` option when the
+ * server-side macro is renamed or when targeting a different
+ * validator that follows the same `validate:*` SSE event contract.
  */
-export const DEFAULT_VALIDATE_TOOL = 'deposium_validate_dossier';
+const DEFAULT_VALIDATE_TOOL = 'deposium_validate_dossier';
 
 // Re-export public types from ./types so existing imports
 // `import { MCPTool } from './client/mcp-client'` keep working.

@@ -9,34 +9,28 @@ import chalk from 'chalk';
 import { MCPClient, MCPClientOptions } from '../client/mcp-client';
 import { getConfig, getBaseUrl, isInsecureMode, DeposiumConfig } from './config';
 import { ensureAuthenticated } from './auth';
-import {
-  getErrorMessage as _getErrorMessage,
-  isErrorWithCode,
-  hasErrorCauseWithCode,
-} from './errors';
+import { getErrorMessage as _getErrorMessage } from './errors';
 
 /**
- * Re-exports of error type guards and the error-message extractor from
- * `./errors`. Re-exposed here so command authors can import everything
- * they need from a single module (`command-helpers`) without learning
- * the internal layout.
+ * Re-export of the error-message extractor — many command modules need
+ * it alongside the rest of this module's helpers, and pulling it from
+ * here lets them import everything from one place.
  *
- * See `./errors.ts` for full docs on each.
+ * NOTE: `isErrorWithCode` / `hasErrorCauseWithCode` are NOT re-exported
+ * here. They were once, but no consumer used the re-export — everyone
+ * imports them directly from `./errors`. See `./errors.ts` for those.
  */
-export { isErrorWithCode, hasErrorCauseWithCode };
 export const getErrorMessage = _getErrorMessage;
 
-export interface CommandContext {
+interface CommandContext {
   config: DeposiumConfig;
   baseUrl: string;
   apiKey: string;
   client: MCPClient;
 }
 
-export interface InitializeOptions extends MCPClientOptions {
-  /** Skip TLS enforcement entirely (default: false, use for tests only) */
-  skipSecurityValidation?: boolean;
-}
+// initializeCommand's options are forwarded verbatim to MCPClient.
+type InitializeOptions = MCPClientOptions;
 
 /**
  * Initialize a command with API client
@@ -62,7 +56,7 @@ export interface InitializeOptions extends MCPClientOptions {
 export async function initializeCommand(options: InitializeOptions = {}): Promise<CommandContext> {
   const config = getConfig();
   const baseUrl = getBaseUrl(config, {
-    validateSecurity: !options.skipSecurityValidation,
+    validateSecurity: true,
     insecure: isInsecureMode(),
   });
   const apiKey = await ensureAuthenticated(baseUrl);
@@ -100,9 +94,13 @@ export function resolveTenantSpace(
 }
 
 /**
- * Standard error handler for command actions
+ * Standard error handler for command actions. Provides consistent
+ * error formatting across all commands (chalk-red banner + optional
+ * DEBUG stack trace).
  *
- * Provides consistent error formatting across all commands.
+ * Exported because `command-helpers.test.ts` unit-tests it directly.
+ * Not used by any command file — commands go through `withErrorHandling`
+ * below.
  *
  * @param error - The error to handle
  * @param silent - If true, suppress detailed error output

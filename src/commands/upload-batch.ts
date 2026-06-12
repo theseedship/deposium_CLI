@@ -34,7 +34,6 @@ interface BatchUploadOptions {
   spaceId?: string;
   folderId?: string;
   dryRun?: boolean;
-  parallel?: number;
 }
 
 interface BatchUploadResponse {
@@ -194,7 +193,6 @@ export const uploadBatchCommand = new Command('upload-batch')
   .option('--space-id <id>', 'Target space ID')
   .option('--folder-id <id>', 'Target folder ID within the space')
   .option('--dry-run', 'Show cost estimate without uploading')
-  .option('--parallel <n>', 'Number of parallel uploads (reserved for future use)', '3')
   .action(
     withErrorHandling(async (pattern: string, options: BatchUploadOptions) => {
       console.log(chalk.bold('\n📦 Deposium Batch Upload\n'));

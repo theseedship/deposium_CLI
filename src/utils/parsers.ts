@@ -29,11 +29,14 @@ export function parseIntOrThrow(input: string | undefined, optionName: string): 
   if (input === undefined || input === '') {
     throw new Error(`${optionName} requires an integer value.`);
   }
-  const parsed = Number.parseInt(input, 10);
-  if (Number.isNaN(parsed)) {
+  // Reject trailing garbage — `Number.parseInt('100GB', 10)` silently
+  // returns 100, which is almost always a typo. The strict integer
+  // pattern below ensures any input that passes is a valid parseInt
+  // target, so no NaN follow-up check is needed.
+  if (!/^-?\d+$/.test(input.trim())) {
     throw new Error(`${optionName} must be an integer (got: ${JSON.stringify(input)}).`);
   }
-  return parsed;
+  return Number.parseInt(input, 10);
 }
 
 /**

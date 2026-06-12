@@ -26,7 +26,7 @@ import type {
 } from './validate-types';
 
 /** Render-time toggles. `--silent` suppresses everything (used by `--json`). */
-export interface ValidateRenderOptions {
+interface ValidateRenderOptions {
   /** Suppress all output. Used by `--json` mode where SSE feeds the report fetch. */
   silent?: boolean;
   /**

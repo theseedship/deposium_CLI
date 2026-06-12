@@ -4,7 +4,12 @@ import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { ChatHistory } from '../utils/chat-history';
 
-// Global chat history for the compound command (persists across calls in same session)
+// Module-scope chat history. In the standalone `compound analyze` CLI
+// command this resets every invocation (one-shot process); inside the
+// interactive REPL it carries across turns. The `--clear` and
+// `--show-history` flags that used to sit on the standalone command
+// were no-ops in that mode and have been removed — the REPL provides
+// the equivalent commands.
 const globalChatHistory = new ChatHistory(10);
 
 export const compoundCommand = new Command('compound')
@@ -14,22 +19,9 @@ export const compoundCommand = new Command('compound')
       .description('Deep reasoning with multi-tool orchestration')
       .argument('<query>', 'Complex query for analysis')
       .option('-f, --format <type>', 'Output format (json|markdown)', 'markdown')
-      .option('-c, --clear', 'Clear conversation history before this query')
-      .option('-s, --show-history', 'Show conversation history before query')
       .action(
         withErrorHandling(async (query, options) => {
           const { client } = await initializeCommand();
-
-          // Show history if requested
-          if (options.showHistory && !globalChatHistory.isEmpty()) {
-            globalChatHistory.display();
-          }
-
-          // Clear history if requested
-          if (options.clear) {
-            globalChatHistory.clear();
-            console.log(chalk.yellow('🗑️  Conversation history cleared\n'));
-          }
 
           // Add user message to history
           globalChatHistory.addUserMessage(query);
