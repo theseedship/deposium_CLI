@@ -13,7 +13,6 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { MCPClient } from '../client/mcp-client';
 import type {
   HitlDecision,
   OnAmbiguousModeValidate,
@@ -23,9 +22,7 @@ import type {
   ValidateLevel,
   ValidateToolInput,
 } from '../client/mcp-client';
-import { getConfig, getBaseUrl } from '../utils/config';
-import { ensureAuthenticated } from '../utils/auth';
-import { withErrorHandling } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 import { handleValidateChatPrompt } from '../utils/validate-hitl-form';
 import { uploadFileForValidate } from '../utils/validate-file-upload';
 import { renderValidateEvent } from '../client/validate-events';
@@ -186,10 +183,7 @@ export const validateCommand = new Command('validate')
       const language = parseLanguage(options.language);
       const verbose = options.verbose === true;
 
-      const config = getConfig();
-      const baseUrl = getBaseUrl(config);
-      const apiKey = await ensureAuthenticated(baseUrl);
-      const client = new MCPClient(baseUrl, apiKey);
+      const { baseUrl, apiKey, client } = await initializeCommand();
 
       if (!json) {
         console.log(

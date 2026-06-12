@@ -30,6 +30,8 @@ vi.mock('../../utils/auth', () => ({
 vi.mock('../../utils/config', () => ({
   getConfig: vi.fn(() => ({})),
   getBaseUrl: vi.fn(() => 'http://localhost:3000'),
+  // initializeCommand also reads `isInsecureMode()` to pass to getBaseUrl.
+  isInsecureMode: vi.fn(() => false),
 }));
 
 const { validateDossierMock, fetchValidateReportMock } = vi.hoisted(() => ({
