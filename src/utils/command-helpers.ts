@@ -191,16 +191,21 @@ export function withErrorHandling<T extends unknown[]>(
  * formatOutput(content, options.format);
  * ```
  */
-export async function runMcpTool(
+export async function runMcpTool<T = unknown>(
   client: MCPClient,
   toolName: string,
   args: Record<string, unknown>,
   opts: { label: string; spinner?: boolean }
-): Promise<unknown> {
+): Promise<T> {
+  // No try/catch around callTool — if it rejects (network down, auth
+  // error, retry exhausted), the rejection propagates to the caller's
+  // withErrorHandling wrapper which formats and exits. The isError
+  // branch below covers the case where the SERVER returned a
+  // tool-level error (HTTP 200 with isError: true in the body).
   const result = await client.callTool(toolName, args, { spinner: opts.spinner ?? true });
   if (result.isError) {
     console.error(chalk.red(`\n❌ ${opts.label} failed:`), result.content);
     process.exit(1);
   }
-  return result.content;
+  return result.content as T;
 }

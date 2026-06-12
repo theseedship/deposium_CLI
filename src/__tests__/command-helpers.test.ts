@@ -234,5 +234,37 @@ describe('command-helpers.ts', () => {
       ).rejects.toThrow('process.exit called');
       expect(errorSpy).toHaveBeenCalledWith(expect.any(String), errorContent);
     });
+
+    test('callTool rejection propagates to caller (no swallow, no exit)', async () => {
+      // Network errors / connection refused / retry-exhausted come back as
+      // a rejected promise from callTool. runMcpTool must NOT catch them
+      // (the caller's withErrorHandling formats and exits cleanly with a
+      // friendlier message). Verify the rejection passes through AND that
+      // we didn't accidentally fire the "❌ <label> failed:" path.
+      const networkError = new Error('Cannot connect to Deposium API');
+      callTool.mockRejectedValue(networkError);
+      await expect(runMcpTool(mockClient as never, 't', {}, { label: 'Search' })).rejects.toBe(
+        networkError
+      );
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(exitSpy).not.toHaveBeenCalled();
+    });
+
+    test('generic type parameter narrows the return type at call sites', async () => {
+      // Compile-time check disguised as runtime: runMcpTool<Foo> returns
+      // Promise<Foo>, letting callers like `parseAPIResponse<T>(content)`
+      // drop the explicit `as T` they used to need. The cast is still a
+      // "trust me" assertion — callers that care about runtime shape must
+      // still validate downstream — but the type flow is honest.
+      interface FakeResult {
+        score: number;
+        label: string;
+      }
+      callTool.mockResolvedValue({ isError: false, content: { score: 0.95, label: 'ok' } });
+      const content = await runMcpTool<FakeResult>(mockClient as never, 't', {}, { label: 'X' });
+      // No `as FakeResult` cast needed at the call site — type is FakeResult.
+      expect(content.score).toBe(0.95);
+      expect(content.label).toBe('ok');
+    });
   });
 });
