@@ -7,7 +7,7 @@ import type {
   SSECitation,
   SSEChatPrompt,
 } from './client/mcp-client';
-import { getEdgeUrl, getMcpDirectUrl } from './utils/config';
+import { getConfig, getEdgeUrl, getMcpDirectUrl } from './utils/config';
 import { createTitleBox } from './utils/formatter';
 import { ChatHistory } from './utils/chat-history';
 import { getErrorMessage, initializeCommand } from './utils/command-helpers';
@@ -44,11 +44,12 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   console.log(createTitleBox('AI CHAT', 'Streaming conversation with Deposium AI'));
   console.log(chalk.gray('Commands: /exit (quit) | /clear (reset) | /history (view)\n'));
 
-  // Standard CLI bootstrap (config + base URL + auth + axios-based
-  // MCPClient). The chat-specific stream URL (Edge vs Direct) is
-  // derived from the same config and applied below — see
-  // SSEStreamContext in client/sse-stream.ts for how it's used.
-  const { config, client } = await initializeCommand();
+  // Resolve URLs + print mode banner FIRST, BEFORE any prompt that
+  // could come out of initializeCommand → ensureAuthenticated. If the
+  // user has no stored API key, they get prompted; we want them to
+  // see which mode (Edge / Direct) they're authenticating against
+  // before typing their secret.
+  const config = getConfig();
   const onAmbiguous = resolveOnAmbiguousMode(options.onAmbiguous);
 
   let streamUrl: string;
@@ -69,6 +70,11 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   }
 
   console.log(chalk.gray(`HITL policy: --on-ambiguous=${onAmbiguous}\n`));
+
+  // NOW bootstrap (auth + MCPClient). May prompt if the API key is
+  // missing — the user already saw the mode banner above so they
+  // know what they're authenticating against.
+  const { client } = await initializeCommand();
 
   const chatHistory = new ChatHistory(10);
 
