@@ -7,11 +7,10 @@ import type {
   SSECitation,
   SSEChatPrompt,
 } from './client/mcp-client';
-import { getConfig, getBaseUrl, getEdgeUrl, getMcpDirectUrl } from './utils/config';
+import { getEdgeUrl, getMcpDirectUrl } from './utils/config';
 import { createTitleBox } from './utils/formatter';
-import { ensureAuthenticated } from './utils/auth';
 import { ChatHistory } from './utils/chat-history';
-import { getErrorMessage } from './utils/command-helpers';
+import { getErrorMessage, initializeCommand } from './utils/command-helpers';
 
 /**
  * `--on-ambiguous` policy — what the CLI does when the server emits a
@@ -45,8 +44,11 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   console.log(createTitleBox('AI CHAT', 'Streaming conversation with Deposium AI'));
   console.log(chalk.gray('Commands: /exit (quit) | /clear (reset) | /history (view)\n'));
 
-  const config = getConfig();
-  const baseUrl = getBaseUrl(config);
+  // Standard CLI bootstrap (config + base URL + auth + axios-based
+  // MCPClient). The chat-specific stream URL (Edge vs Direct) is
+  // derived from the same config and applied below — see
+  // SSEStreamContext in client/sse-stream.ts for how it's used.
+  const { config, client } = await initializeCommand();
   const onAmbiguous = resolveOnAmbiguousMode(options.onAmbiguous);
 
   let streamUrl: string;
@@ -68,10 +70,6 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 
   console.log(chalk.gray(`HITL policy: --on-ambiguous=${onAmbiguous}\n`));
 
-  // Ensure user is authenticated (validates via SolidStart)
-  const apiKey = await ensureAuthenticated(baseUrl);
-
-  const client = new MCPClient(baseUrl, apiKey);
   const chatHistory = new ChatHistory(10);
 
   while (true) {
