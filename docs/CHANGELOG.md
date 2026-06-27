@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-06-27
+
+Security dep updates + SDK surface alignment. No runtime behavior change
+for end-users; tooltip-level fix for SDK consumers.
+
+### Security
+
+- **npm audit fix** clears 3 transitive advisories that had been on
+  every recent PR's Security Audit check:
+  - `form-data` HIGH (transitive via axios)
+  - `vite` HIGH (transitive via vitest)
+  - `js-yaml` MOD
+  All resolved within semver — no major bumps. Lockfile-only change;
+  the CLI binary shipped to npm is unchanged in behavior.
+
+### Internal
+
+- **`esbuild` dev-dep bumped 0.28.0 → 0.28.1** via Dependabot (#14),
+  closing a transitive LOW advisory.
+
+### Documentation
+
+- **`MCPClient` JSDoc `@example` URLs aligned to prod** (#16). The
+  three example references to `https://api.deposium.io` (a domain
+  that never existed) are replaced with `https://mcp.deposium.ai`.
+  IDE tooltips for `new MCPClient(...)` now show the real endpoint
+  consumers should call. Ships via the `.d.ts` in the npm tarball.
+
 ## [1.4.2] - 2026-06-12
 
 Second internal audit cycle — closes 5 HIGH-severity findings, 7 MEDIUM
