@@ -19,7 +19,7 @@ Settings are loaded in this order (later sources override earlier):
 | ------------------- | ------------------------------------- | ----------------------- | --------------------------- |
 | `DEPOSIUM_API_KEY`  | API authentication key (user-key)     | -                       | `dep_live_...`              |
 | `DEPOSIUM_URL`      | Deposium server URL                   | `http://localhost:3003` | `https://api.mycompany.com` |
-| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.ai` |
+| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.ai`  |
 | `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 | `true`                      |
 | `DEPOSIUM_TENANT`   | Default tenant ID                     | -                       | `tenant-123`                |
 | `DEPOSIUM_SPACE`    | Default space ID                      | -                       | `space-456`                 |
