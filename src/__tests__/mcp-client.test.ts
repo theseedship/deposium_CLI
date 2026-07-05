@@ -1144,4 +1144,73 @@ describe('handleSSEChunk catch scope (client/sse-stream)', () => {
       } as unknown as ChatStreamOptions)
     ).toThrow('zod assertion failed');
   });
+
+  // v1.5.0 — these four events used to be silently dropped by the
+  // switch statement (no default, no case). Consumers displayed the
+  // uncleaned draft and stored it as history, missing the trust signal
+  // entirely.
+  test('routes answer_replace to onAnswerReplace with parsed payload', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
+    const onToken = vi.fn();
+    const onAnswerReplace = vi.fn();
+    handleSSEChunk(
+      'event: answer_replace\ndata: {"id":"a1","final_answer":"clean","reason":"guardian-swap"}',
+      { onToken, onAnswerReplace } as unknown as ChatStreamOptions
+    );
+    expect(onAnswerReplace).toHaveBeenCalledWith({
+      id: 'a1',
+      final_answer: 'clean',
+      reason: 'guardian-swap',
+    });
+  });
+
+  test('routes answer_verified to onAnswerVerified', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
+    const onAnswerVerified = vi.fn();
+    handleSSEChunk('event: answer_verified\ndata: {"id":"a1","final_hash":"deadbeef"}', {
+      onToken: vi.fn(),
+      onAnswerVerified,
+    } as unknown as ChatStreamOptions);
+    expect(onAnswerVerified).toHaveBeenCalledWith({ id: 'a1', final_hash: 'deadbeef' });
+  });
+
+  test('routes verification to onVerification', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
+    const onVerification = vi.fn();
+    handleSSEChunk(
+      'event: verification\ndata: {"validated":true,"passed":false,"action":"blocked","issues":[{"severity":"error","message":"unsupported claim"}]}',
+      { onToken: vi.fn(), onVerification } as unknown as ChatStreamOptions
+    );
+    expect(onVerification).toHaveBeenCalledWith({
+      validated: true,
+      passed: false,
+      action: 'blocked',
+      issues: [{ severity: 'error', message: 'unsupported claim' }],
+    });
+  });
+
+  test('routes answer_blocked to onAnswerBlocked', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
+    const onAnswerBlocked = vi.fn();
+    handleSSEChunk(
+      'event: answer_blocked\ndata: {"id":"a1","reason":"guardian","fallback_answer":"Safe answer"}',
+      { onToken: vi.fn(), onAnswerBlocked } as unknown as ChatStreamOptions
+    );
+    expect(onAnswerBlocked).toHaveBeenCalledWith({
+      id: 'a1',
+      reason: 'guardian',
+      fallback_answer: 'Safe answer',
+    });
+  });
+
+  test('missing callback for verification/answer_replace is a silent no-op (SDK opt-in)', async () => {
+    const { handleSSEChunk } = await import('../client/sse-stream');
+    // No handler → nothing crashes, nothing surfaces (contrast with
+    // chat_prompt which warns because dropping it stalls the stream).
+    expect(() =>
+      handleSSEChunk('event: answer_replace\ndata: {"id":"a1","final_answer":"x","reason":"r"}', {
+        onToken: vi.fn(),
+      } as unknown as ChatStreamOptions)
+    ).not.toThrow();
+  });
 });
