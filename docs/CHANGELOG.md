@@ -99,9 +99,10 @@ Test suite: 478 → 511.
   config/best-practices guides now point `DEPOSIUM_URL` at
   `https://app.deposium.ai` (and `DEPOSIUM_EDGE_URL` at
   `https://edge.deposium.ai`) — the reachable production hosts, verified
-  live. The previously-documented `mcp.deposium.vip` does not resolve for
-  external clients (`ENOTFOUND`); `app.deposium.ai` is the SolidStart host
-  that serves `/api/cli/mcp`, `/api/auth/*`, and the tool endpoints.
+  live. The previous `.vip` MCP host documented before v1.5.0 does not
+  resolve for external clients (`ENOTFOUND`); `app.deposium.ai` is the
+  SolidStart host that serves `/api/cli/mcp`, `/api/auth/*`, and the tool
+  endpoints.
 
 ## [1.4.3] - 2026-06-27
 
