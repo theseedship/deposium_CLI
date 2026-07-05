@@ -18,7 +18,7 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 ### Core Features
 
 - MCP API integration with 200+ server-side tools
-- Semantic, full-text, fuzzy, and graph search
+- Semantic (vector), full-text (BM25), and graph search
 - Interactive chat mode with streaming via Edge Runtime + HITL `--on-ambiguous`
 - Knowledge graph operations
 - Batch document uploads

@@ -89,10 +89,12 @@ Test suite: 478 → 511.
 ### Docs
 
 - Reconciled `docs/commands/{corpus,evaluate,search,files,chat}.md`,
-  `docs/guides/on-ambiguous-flag.md`, and `README.md` with the shipped
-  command surface (removed `--focus`, corrected `--fuzzy`/`--fts`
-  descriptions, added `--type`/`--action`/`--sensitivity`, updated
-  `pick-first` semantics and the `files check` behavior).
+  `docs/commands/README.md`, `docs/guides/on-ambiguous-flag.md`,
+  `docs/guides/best-practices.md`, `README.md`, and `ROADMAP.md` with the
+  shipped command surface (removed `--focus`, corrected `--fuzzy`/`--fts`
+  descriptions everywhere fuzzy was still advertised as working, added
+  `--type`/`--action`/`--sensitivity`, updated `pick-first` semantics and
+  the `files check` behavior).
 
 ## [1.4.3] - 2026-06-27
 

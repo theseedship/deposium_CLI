@@ -14,7 +14,7 @@ This directory contains detailed documentation for all 23 Deposium CLI commands.
 
 ## Search & Discovery
 
-- **[search](search.md)**: Primary document search (Vector, FTS, Fuzzy).
+- **[search](search.md)**: Primary document search (Vector, BM25 FTS).
 - **[graph](graph.md)**: Graph analysis and traversal.
 - **[tools](tools.md)**: List available MCP tools.
 
