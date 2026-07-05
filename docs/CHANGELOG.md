@@ -95,6 +95,13 @@ Test suite: 478 → 511.
   descriptions everywhere fuzzy was still advertised as working, added
   `--type`/`--action`/`--sensitivity`, updated `pick-first` semantics and
   the `files check` behavior).
+- **Corrected the documented production host.** The JSDoc examples and
+  config/best-practices guides now point `DEPOSIUM_URL` at
+  `https://app.deposium.ai` (and `DEPOSIUM_EDGE_URL` at
+  `https://edge.deposium.ai`) — the reachable production hosts, verified
+  live. The previously-documented `mcp.deposium.vip` does not resolve for
+  external clients (`ENOTFOUND`); `app.deposium.ai` is the SolidStart host
+  that serves `/api/cli/mcp`, `/api/auth/*`, and the tool endpoints.
 
 ## [1.4.3] - 2026-06-27
 
