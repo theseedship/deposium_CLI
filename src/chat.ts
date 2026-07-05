@@ -280,7 +280,22 @@ export async function handleChatPrompt(
   return (prompter ?? inquirerPrompt)(prompt);
 }
 
+/**
+ * `--on-ambiguous=pick-first` decision resolver.
+ *
+ * The name is retained for back-compat; the semantics have shifted:
+ * we now prefer the backend's `default_choice.value` (the safe
+ * server-declared default) over `options[0]`. This flips the previous
+ * behavior on confirm-before-action gates, where `options[0]` was
+ * `approve` — actively unsafe for unattended runs, which the server
+ * defaults to `skip`.
+ */
 function autoPickFirst(prompt: SSEChatPrompt): AgentResumePayload {
+  // Server-declared safe default wins for every gate type.
+  if (prompt.default_choice?.value) {
+    return { value: prompt.default_choice.value };
+  }
+
   if (prompt.type === 'choice') {
     const first = prompt.config?.options?.[0];
     if (!first) {
@@ -292,11 +307,15 @@ function autoPickFirst(prompt: SSEChatPrompt): AgentResumePayload {
     return { value: first.value };
   }
   if (prompt.type === 'confirm') {
-    return { value: 'approve' };
+    // No `default_choice` on the wire → err on the side of NOT taking
+    // the action. The v1.4.3 hardcoded `approve` was the opposite of
+    // the server's own safety contract (which defaults to `skip`).
+    return { value: 'skip' };
   }
   throw new Error(
-    `--on-ambiguous=pick-first cannot auto-select for type=${prompt.type}. ` +
-      `Use --on-ambiguous=prompt (interactive) or --on-ambiguous=dump (inspect payload).`
+    `--on-ambiguous=pick-first cannot auto-select for type=${prompt.type} ` +
+      `(no default_choice, no options). Use --on-ambiguous=prompt (interactive) ` +
+      `or --on-ambiguous=dump (inspect payload).`
   );
 }
 
@@ -330,16 +349,81 @@ async function inquirerPrompt(prompt: SSEChatPrompt): Promise<AgentResumePayload
         type: 'confirm',
         name: 'ok',
         message: body,
-        default: true,
+        // Match the server's declared safe default rather than always
+        // starting on `Yes` — for confirm-before-action gates the
+        // default is `skip`, so `Yes` (approve) reads as pressing
+        // Enter to run the action.
+        default: prompt.default_choice?.value ? prompt.default_choice.value === 'approve' : true,
       },
     ]);
-    return { value: ok ? 'approve' : 'abort' };
+    // Map the decline branch to the server's declared safe default
+    // when present (skip/cancel), instead of a hardcoded 'abort'.
+    const declineValue = prompt.default_choice?.value ?? 'abort';
+    return { value: ok ? 'approve' : declineValue };
   }
 
-  throw new Error(
-    `chat_prompt type='${prompt.type}' is not yet supported in the CLI. ` +
-      `Use --on-ambiguous=dump to inspect the payload.`
-  );
+  if (prompt.type === 'form') {
+    // Form gates carry `config.fields` — a mix of text/select fields.
+    // Reuse the per-field pattern from `validate-hitl-form.ts`.
+    const fields = prompt.config?.fields ?? [];
+    if (fields.length === 0) {
+      throw new Error(`chat_prompt type=form has no fields (${prompt.prompt_id}); cannot render`);
+    }
+    const collected: Record<string, string> = {};
+    if (prompt.title) console.log(chalk.bold(`\n${prompt.title}`));
+    if (prompt.message) console.log(chalk.gray(prompt.message));
+    for (const field of fields) {
+      if (field.type === 'text') {
+        const { value } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'value',
+            message: field.label,
+            ...(field.default !== undefined ? { default: field.default } : {}),
+            ...(field.placeholder !== undefined && field.default === undefined
+              ? { default: field.placeholder }
+              : {}),
+            validate: (input: string) => {
+              if (field.required && input.trim().length === 0) {
+                return `${field.label} is required.`;
+              }
+              return true;
+            },
+          },
+        ]);
+        collected[field.name] = value;
+      } else if (field.type === 'select') {
+        const options = field.options ?? [];
+        if (options.length === 0) {
+          throw new Error(`form field '${field.name}' is a select with no options`);
+        }
+        const { value } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'value',
+            message: field.label,
+            choices: options.map((o) => ({
+              name: o.description ? `${o.label}  ${chalk.gray(`— ${o.description}`)}` : o.label,
+              value: o.value,
+            })),
+            default: field.default,
+          },
+        ]);
+        collected[field.name] = value;
+      } else {
+        // Exhaustive check — the type union only lists text/select
+        // today, but a new field kind added server-side would land
+        // here without a matching branch.
+        const unknown = field as { type: string };
+        throw new Error(`Unsupported form field type: ${unknown.type}`);
+      }
+    }
+    return { values: collected };
+  }
+
+  // Exhaustive over the SSEChatPrompt.type union.
+  const exhaustive: never = prompt.type;
+  throw new Error(`Unhandled chat_prompt type: ${String(exhaustive)}`);
 }
 
 function describeDecision(decision: AgentResumePayload): string {
