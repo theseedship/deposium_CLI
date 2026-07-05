@@ -77,3 +77,25 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Best-effort: trigger the docs site (deposium_docs) to rebuild now, so the
+      # published CLI reference (its docs/ is synced from this repo at build time)
+      # goes live immediately instead of waiting for the docs' nightly cron.
+      #
+      # Fires on every REAL publish — tag push AND manual non-dry-run — by mirroring
+      # the publish step's condition, so manual releases notify the docs too.
+      #
+      # Security: triggers via workflow_dispatch using the gh CLI (no third-party
+      # action to vet/pin). DOCS_DISPATCH_TOKEN only needs "Actions: write" scoped
+      # to deposium_docs — it can TRIGGER a rebuild but cannot push content or read
+      # secrets, so a leaked token cannot deface the docs site. continue-on-error +
+      # the docs' nightly cron mean a missing/expired token never blocks a release.
+      #
+      # SECRET REQUIRED: DOCS_DISPATCH_TOKEN — a fine-grained PAT scoped to
+      # theseedship/deposium_docs with Actions: Read and write (nothing else).
+      - name: Notify docs site to rebuild
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: gh workflow run deploy.yml --repo theseedship/deposium_docs
