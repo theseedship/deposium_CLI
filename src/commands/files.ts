@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
 import { parseOptionalInt } from '../utils/parsers';
 
 export const filesCommand = new Command('files').description(
@@ -69,11 +69,17 @@ filesCommand
     })
   );
 
-// files.check — Validate file integrity via the `check_file` MCP tool
+// files.check — Show ingestion/integrity fields (doc_status, num_pages, …)
+//
+// v1.4.3 called the `check_file` MCP tool with `document_id`. That tool
+// is a Greptile code-security scanner requiring `filePath` — every call
+// 400'd. Reuse `client.getDocument`, which surfaces the same integrity
+// signals the advertised behavior implies (`doc_status`, `search_enabled`,
+// `num_pages`, `mime_type`).
 filesCommand
   .command('check')
   .alias('validate')
-  .description('Validate file integrity (checksums, parsing, indexation)')
+  .description('Show document integrity summary (status, indexation, pages)')
   .argument('<id>', 'Document ID (numeric)')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'json')
   .option('--silent', 'Suppress progress messages')
@@ -82,17 +88,22 @@ filesCommand
       const { client } = await initializeCommand();
 
       if (!options.silent) {
-        console.log(chalk.bold(`\n🔍 Validating document ${chalk.cyan(id)}...\n`));
+        console.log(chalk.bold(`\n🔍 Checking document ${chalk.cyan(id)}...\n`));
       }
 
-      const content = await runMcpTool(
-        client,
-        'check_file',
-        { document_id: id },
-        { label: 'Validation', spinner: !options.silent }
-      );
+      const doc = await client.getDocument(id);
 
-      formatOutput(content, options.format);
+      const summary = {
+        id: doc.id,
+        file_name: doc.file_name,
+        doc_status: doc.doc_status,
+        search_enabled: doc.search_enabled,
+        num_pages: doc.num_pages,
+        mime_type: doc.mime_type,
+        size: doc.size,
+      };
+
+      formatOutput(summary, options.format);
     })
   );
 

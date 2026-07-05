@@ -189,28 +189,31 @@ describe('files command', () => {
   // ============================================================================
   // check
   // ============================================================================
+  // v1.5.0: `files check` used to call the `check_file` MCP tool
+  // (Greptile code-security scanner requiring `filePath` — every call
+  // 400'd). It now surfaces integrity fields from `GET /api/v1/documents/:id`
+  // (`getDocument`), which was already wrapped in the client.
   describe('check', () => {
-    it('calls check_file MCP tool with document_id', async () => {
-      mockCallTool.mockResolvedValue({ content: { valid: true, checksum: 'abc' }, isError: false });
+    it('reads document via getDocument and surfaces integrity fields', async () => {
+      mockGetDocument.mockResolvedValue(SAMPLE_DOCS[1]);
       await filesCommand.parseAsync(['node', 'test', 'check', '2459', '--silent']);
-      expect(mockCallTool).toHaveBeenCalledWith(
-        'check_file',
-        { document_id: '2459' },
-        expect.any(Object)
-      );
+      expect(mockGetDocument).toHaveBeenCalledWith('2459');
+      // The old `check_file` MCP path must never be hit — the tool
+      // was fundamentally the wrong target and would 400.
+      expect(mockCallTool).not.toHaveBeenCalled();
     });
 
-    it('handles isError gracefully', async () => {
-      mockCallTool.mockResolvedValue({ content: 'corrupt', isError: true });
+    it('handles getDocument errors gracefully', async () => {
+      mockGetDocument.mockRejectedValue(new Error('Document not found'));
       await filesCommand.parseAsync(['node', 'test', 'check', '2459', '--silent']);
       expect(consoleErrorSpy).toHaveBeenCalled();
       expect(exitSpy).toHaveBeenCalledWith(1);
     });
 
     it('aliased as `validate`', async () => {
-      mockCallTool.mockResolvedValue({ content: { valid: true }, isError: false });
+      mockGetDocument.mockResolvedValue(SAMPLE_DOCS[1]);
       await filesCommand.parseAsync(['node', 'test', 'validate', '2459', '--silent']);
-      expect(mockCallTool).toHaveBeenCalled();
+      expect(mockGetDocument).toHaveBeenCalledWith('2459');
     });
   });
 

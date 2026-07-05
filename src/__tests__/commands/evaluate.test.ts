@@ -52,7 +52,7 @@ describe('evaluate command', () => {
 
   it('metrics subcommand calls eval_metrics', async () => {
     mockCallTool.mockResolvedValue({ content: { precision: 0.9 }, isError: false });
-    await evaluateCommand.parseAsync(['node', 'test', 'metrics', '--silent']);
+    await evaluateCommand.parseAsync(['node', 'test', 'metrics', '--user-id', 'u-1', '--silent']);
     expect(mockCallTool).toHaveBeenCalledWith(
       'eval_metrics',
       expect.any(Object),
@@ -62,14 +62,14 @@ describe('evaluate command', () => {
 
   it('handles isError gracefully', async () => {
     mockCallTool.mockResolvedValue({ content: 'failed', isError: true });
-    await evaluateCommand.parseAsync(['node', 'test', 'metrics', '--silent']);
+    await evaluateCommand.parseAsync(['node', 'test', 'metrics', '--user-id', 'u-1', '--silent']);
     expect(consoleErrorSpy).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
   it('handles network errors gracefully', async () => {
     mockCallTool.mockRejectedValue(new Error('Network error'));
-    await evaluateCommand.parseAsync(['node', 'test', 'metrics', '--silent']);
+    await evaluateCommand.parseAsync(['node', 'test', 'metrics', '--user-id', 'u-1', '--silent']);
     expect(consoleErrorSpy).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
