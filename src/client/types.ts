@@ -158,6 +158,21 @@ export interface SSEChatPromptOption {
  * The v1.4.3 CLI treated `correlation_id` as always-present, so inline
  * gates 400'd deterministically and dropped the user's answer.
  */
+/**
+ * One field of a `type='form'` chat prompt. Mirrors the shape the
+ * backend already emits for connector-config / report-parameters
+ * gates: text / select, optionally required, with a suggested default.
+ */
+export interface SSEChatPromptField {
+  name: string;
+  label: string;
+  type: 'text' | 'select';
+  required?: boolean;
+  default?: string;
+  placeholder?: string;
+  options?: SSEChatPromptOption[];
+}
+
 export interface SSEChatPrompt {
   prompt_id: string;
   type: 'choice' | 'confirm' | 'form';
@@ -166,7 +181,7 @@ export interface SSEChatPrompt {
   config?: {
     options?: SSEChatPromptOption[];
     layout?: 'horizontal' | 'vertical';
-    fields?: Array<Record<string, unknown>>;
+    fields?: SSEChatPromptField[];
     /**
      * Confirm gates put the body message here (backend
      * `hitl-gates.ts:197-235`). Fall back to top-level `message` when
@@ -174,6 +189,21 @@ export interface SSEChatPrompt {
      */
     message?: string;
   };
+  /**
+   * Server-suggested safe default for unattended runs (`pick-first`).
+   * The backend already emits this on every gate — **`options[0]` is
+   * the UNSAFE choice on confirm-before-action gates** (default is
+   * `skip`, not `approve`). The CLI must honor `default_choice.value`,
+   * not hard-code the first option.
+   */
+  default_choice?: {
+    value: string;
+    reason?: string;
+  };
+  /** Time-to-live for the pause, in milliseconds. */
+  ttl_ms?: number;
+  /** Whether the user can dismiss the gate without answering. */
+  dismissible?: boolean;
   /**
    * Only set on agent-step gates (intent-disambiguate). Inline chat gates
    * (scope, source, confirm-exhaustive, S4, S5, clarification) emit no

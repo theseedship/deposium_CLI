@@ -67,6 +67,7 @@ export type {
   SSEDone,
   SSEError,
   SSEChatPromptOption,
+  SSEChatPromptField,
   SSEChatPrompt,
   ChatPromptContext,
   ChatStreamOptions,

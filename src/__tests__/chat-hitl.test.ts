@@ -163,13 +163,42 @@ describe('handleChatPrompt', () => {
     expect(decision).toEqual({ value: 'rag' });
   });
 
-  test('pick-first mode — returns "approve" for confirm type', async () => {
+  // v1.5.0: `pick-first` on confirm gates now returns the server's safe
+  // default (`skip`) rather than the hardcoded `approve`. Reason: on
+  // confirm-before-action gates the server declares `default_choice='skip'`,
+  // and `approve` is the UNSAFE branch — auto-executing the side-effecting
+  // step the server intended to withhold on unattended runs.
+  test('pick-first mode — returns safe default "skip" for confirm gate without default_choice', async () => {
     const { handleChatPrompt } = await import('../chat');
     const decision = await handleChatPrompt(makeConfirmPrompt(), 'pick-first');
-    expect(decision).toEqual({ value: 'approve' });
+    expect(decision).toEqual({ value: 'skip' });
   });
 
-  test('pick-first mode — throws for form type (forms are Phase W.2)', async () => {
+  test('pick-first mode — honors server-supplied default_choice over options[0]', async () => {
+    const { handleChatPrompt } = await import('../chat');
+    // Server declares `skip` as safe default on a choice gate whose
+    // options[0] would be `rag` (the UNSAFE hardcoded pre-v1.5 pick).
+    const prompt = makeChoicePrompt({
+      default_choice: { value: 'skip', reason: 'unattended run' },
+    });
+    const decision = await handleChatPrompt(prompt, 'pick-first');
+    expect(decision).toEqual({ value: 'skip' });
+  });
+
+  test('pick-first mode — form gate with default_choice resolves from it', async () => {
+    const { handleChatPrompt } = await import('../chat');
+    // Form gate with no default_choice would throw; with default_choice
+    // it resolves cleanly (server's escape hatch for unattended runs).
+    const prompt = makeChoicePrompt({
+      type: 'form',
+      config: { fields: [] },
+      default_choice: { value: 'cancel' },
+    });
+    const decision = await handleChatPrompt(prompt, 'pick-first');
+    expect(decision).toEqual({ value: 'cancel' });
+  });
+
+  test('pick-first mode — form gate without default_choice throws', async () => {
     const { handleChatPrompt } = await import('../chat');
     const prompt = makeChoicePrompt({ type: 'form', config: { fields: [] } });
 
@@ -195,6 +224,45 @@ describe('handleChatPrompt', () => {
 
     expect(prompter).toHaveBeenCalledWith(prompt);
     expect(decision).toEqual({ value: 'web_search' });
+  });
+
+  // v1.5.0: `type='form'` gates (connector-config, report-parameters)
+  // used to throw "not yet supported" from the inquirer prompt. They now
+  // render per-field using the same pattern as `validate-hitl-form.ts`
+  // and return `{ values: {…} }`.
+  test('prompt mode — form gate delegates per-field via injected prompter', async () => {
+    const { handleChatPrompt } = await import('../chat');
+    const formPrompt: SSEChatPrompt = {
+      prompt_id: 'form-1',
+      type: 'form',
+      title: 'Configure GitHub connector',
+      config: {
+        fields: [
+          { name: 'repo', label: 'Repository', type: 'text', required: true },
+          {
+            name: 'branch',
+            label: 'Branch',
+            type: 'select',
+            default: 'main',
+            options: [
+              { value: 'main', label: 'main' },
+              { value: 'dev', label: 'dev' },
+            ],
+          },
+        ],
+      },
+    };
+
+    const prompter = vi
+      .fn<(p: SSEChatPrompt) => Promise<AgentResumePayload>>()
+      .mockResolvedValue({ values: { repo: 'foo/bar', branch: 'main' } });
+
+    const decision = await handleChatPrompt(formPrompt, 'prompt', prompter);
+
+    // The injected prompter override is honored (test seam), so we
+    // don't have to mock inquirer.prompt for the per-field flow.
+    expect(prompter).toHaveBeenCalledWith(formPrompt);
+    expect(decision).toEqual({ values: { repo: 'foo/bar', branch: 'main' } });
   });
 });
 
@@ -493,10 +561,13 @@ describe('runChatTurn', () => {
 
     expect(response).toBe('final');
     expect(client.resumeAgent).toHaveBeenCalledTimes(2);
-    // first resume: choice → 'rag', second resume: confirm → 'approve'
+    // first resume: choice → 'rag' (options[0], no default_choice),
+    // second resume: confirm → 'skip' (safe default for confirm gates
+    // without server-supplied default_choice — see v1.5.0 pick-first
+    // safety fix).
     const resumeCalls = client.calls.filter((c) => c.method === 'resumeAgent');
     expect(resumeCalls[0].args[2]).toEqual({ value: 'rag' });
-    expect(resumeCalls[1].args[2]).toEqual({ value: 'approve' });
+    expect(resumeCalls[1].args[2]).toEqual({ value: 'skip' });
   });
 
   test('citations are collected and printed', async () => {
