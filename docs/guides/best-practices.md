@@ -234,10 +234,10 @@ deposium search "query"
 
 ```bash
 # HTTPS is enforced for non-localhost URLs
-DEPOSIUM_URL=https://mcp.deposium.vip  # Good
+DEPOSIUM_URL=https://app.deposium.ai  # Good
 
 # HTTP to non-localhost is rejected by default
-# DEPOSIUM_URL=http://mcp.deposium.vip  # Throws error
+# DEPOSIUM_URL=http://app.deposium.ai  # Throws error
 
 # Override for staging/self-signed certs (with warning)
 deposium --insecure health
@@ -319,7 +319,7 @@ npm run format
 
 ```dockerfile
 ENV DEPOSIUM_API_KEY=""
-ENV DEPOSIUM_URL="https://mcp.deposium.vip"
+ENV DEPOSIUM_URL="https://app.deposium.ai"
 ENV LOG_LEVEL="info"
 
 RUN npm install -g @deposium/cli

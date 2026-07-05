@@ -19,7 +19,7 @@ Settings are loaded in this order (later sources override earlier):
 | ------------------- | ------------------------------------- | ----------------------- | --------------------------- |
 | `DEPOSIUM_API_KEY`  | API authentication key (user-key)     | -                       | `dep_live_...`              |
 | `DEPOSIUM_URL`      | Deposium server URL                   | `http://localhost:3003` | `https://api.mycompany.com` |
-| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.vip` |
+| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.ai`  |
 | `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 | `true`                      |
 | `DEPOSIUM_TENANT`   | Default tenant ID                     | -                       | `tenant-123`                |
 | `DEPOSIUM_SPACE`    | Default space ID                      | -                       | `space-456`                 |
@@ -43,7 +43,7 @@ automatically on first run (backup saved as `.plaintext.bak`).
 ```bash
 # Set values via CLI (stored encrypted). Keys are kebab-case.
 deposium config set api-key dep_live_...
-deposium config set deposium-url https://mcp.deposium.vip
+deposium config set deposium-url https://app.deposium.ai
 deposium config set default-tenant my-tenant
 ```
 
@@ -125,7 +125,7 @@ file entirely — useful for ephemeral runners.
 
 ```text
 🔐 Authentication Status
-Deposium URL: https://mcp.deposium.vip
+Deposium URL: https://app.deposium.ai
 Authentication: ✅ Logged in
 API Key: dep_live_...
 Source: DEPOSIUM_API_KEY env var (overrides stored credentials)
@@ -225,8 +225,8 @@ DEPOSIUM_API_KEY=dev-key
 
 ```bash
 # .env.production
-DEPOSIUM_URL=https://mcp.deposium.vip
-DEPOSIUM_EDGE_URL=https://edge.deposium.vip
+DEPOSIUM_URL=https://app.deposium.ai
+DEPOSIUM_EDGE_URL=https://edge.deposium.ai
 DEPOSIUM_API_KEY=prod-key
 ```
 
@@ -235,7 +235,7 @@ DEPOSIUM_API_KEY=prod-key
 ```bash
 # GitHub Actions / GitLab CI
 DEPOSIUM_API_KEY=${{ secrets.DEPOSIUM_API_KEY }}
-DEPOSIUM_URL=https://mcp.deposium.vip
+DEPOSIUM_URL=https://app.deposium.ai
 
 # Pass --silent on each command to keep CI logs clean.
 ```
