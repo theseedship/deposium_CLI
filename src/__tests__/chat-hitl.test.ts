@@ -474,6 +474,54 @@ describe('runChatTurn', () => {
     expect(response).toBe('The population is 67M.');
   });
 
+  // Regression guard for the multi-line clear off-by-one. A draft with
+  // N newlines occupies N+1 terminal rows; the cursor sits on the
+  // bottom row after streaming. The clear MUST erase the bottom row
+  // first (`\r\x1b[K`), THEN walk up N times (`\x1b[F\x1b[K`) back to
+  // row 0. Doing the up-loop first leaves the bottom draft row leaking
+  // below the canonical answer.
+  test('answer_replace — clears the bottom draft row first, then N rows up (no off-by-one)', async () => {
+    const { runChatTurn } = await import('../chat');
+    // 3-row draft: "AI: line0" / "line1" / "line2" → 2 newlines.
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'line0\nline1\nline2' },
+        {
+          kind: 'answer_replace',
+          data: { id: 'a1', final_answer: 'Clean answer.', reason: 'chart-strip' },
+        },
+      ],
+    ]);
+
+    const writes: string[] = [];
+    stdoutSpy.mockImplementation((chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    });
+
+    await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    const out = writes.join('');
+    // After the streamed draft, the clear sequence must be exactly:
+    // bottom-row clear, then one up-and-clear per newline (2 here).
+    const clearSeq = '\r\x1b[K' + '\x1b[F\x1b[K'.repeat(2);
+    expect(out).toContain(clearSeq);
+    // And the bottom-row clear (`\r\x1b[K`) must come BEFORE the first
+    // up-move (`\x1b[F`) — the exact ordering that fixes the off-by-one.
+    expect(out.indexOf('\r\x1b[K')).toBeLessThan(out.indexOf('\x1b[F'));
+    // Exactly N up-clears for N newlines — no over- or under-count.
+    // (Count via split rather than a regex literal so no control char
+    // is embedded in a pattern — `no-control-regex`.)
+    expect(out.split('\x1b[F').length - 1).toBe(2);
+  });
+
   test('answer_blocked (no fallback) — returned response is empty (draft suppressed)', async () => {
     const { runChatTurn } = await import('../chat');
     const client = makeFakeClient([

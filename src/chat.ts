@@ -188,23 +188,30 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       // chart / mermaid / table draft that spanned multiple lines
       // would leave the earlier lines visible above the canonical
       // answer (which is the whole bug this event is meant to fix).
-      // Count newlines in what we streamed so far and walk up +
-      // clear line-by-line, then also erase the leading "AI: " line
-      // so the reprint is the only visible answer.
+      //
+      // The draft with N newlines occupies N+1 rows: the "AI: " row
+      // (row 0) plus one row per `\n`, with the cursor now sitting on
+      // the bottom row (row N). Clear the CURRENT (bottom) row first,
+      // THEN move up + clear once per newline (`\x1b[F` = cursor up to
+      // line start, `\x1b[K` = erase to end of line), landing back on
+      // row 0. That erases all N+1 rows; the reprint then owns the
+      // screen. (Doing the up-loop first would clear rows N-1..0 and
+      // leave the bottom row N un-erased — an off-by-one that leaked
+      // the last draft line below the canonical answer.)
       //
       // Not perfectly wrap-safe on very narrow TTYs (a single very
-      // long line the terminal soft-wrapped into N screen rows only
-      // counts as one `\n`). That's a graceful degradation — the
-      // canonical answer still renders below; at worst the user sees
-      // a partial artifact of the wrapped draft above it. Prior state
-      // was that the entire draft persisted.
+      // long line the terminal soft-wrapped into multiple screen rows
+      // only counts as one `\n`). That's a graceful degradation — the
+      // canonical answer still renders; at worst the user sees a
+      // partial artifact of the wrapped draft. Prior state was that
+      // the entire draft persisted.
       const linesToClear = (fullResponse.match(/\n/g) ?? []).length;
-      // Move up + clear line, for each streamed newline.
+      // Clear the current (bottom / partial-last) row first.
+      process.stdout.write('\r\x1b[K');
+      // Then walk up + clear one row per streamed newline, back to row 0.
       for (let i = 0; i < linesToClear; i++) {
         process.stdout.write('\x1b[F\x1b[K');
       }
-      // Clear the current (partial-last) line + "AI: " prefix.
-      process.stdout.write('\r\x1b[K');
       fullResponse = data.final_answer;
       process.stdout.write(chalk.green('AI: ') + data.final_answer);
     },
