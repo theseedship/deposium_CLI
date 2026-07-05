@@ -26,6 +26,10 @@ import type {
   SSEDone,
   SSEError,
   SSEChatPrompt,
+  SSEAnswerReplace,
+  SSEAnswerVerified,
+  SSEVerification,
+  SSEAnswerBlocked,
 } from './types';
 
 /**
@@ -211,6 +215,18 @@ export function dispatchSSEEvent(
           'Received chat_prompt event but no onChatPrompt handler was registered — the prompt was dropped. Register an onChatPrompt callback to respond to HITL pauses.'
         );
       }
+      break;
+    case 'answer_replace':
+      options.onAnswerReplace?.(data as unknown as SSEAnswerReplace);
+      break;
+    case 'answer_verified':
+      options.onAnswerVerified?.(data as unknown as SSEAnswerVerified);
+      break;
+    case 'verification':
+      options.onVerification?.(data as unknown as SSEVerification);
+      break;
+    case 'answer_blocked':
+      options.onAnswerBlocked?.(data as unknown as SSEAnswerBlocked);
       break;
   }
 }
