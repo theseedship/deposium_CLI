@@ -8,21 +8,20 @@ Tips and recommendations for using Deposium CLI effectively.
 
 ### Choose the Right Search Mode
 
-| Mode                 | Use When               | Example                          |
-| -------------------- | ---------------------- | -------------------------------- |
-| `--vector` (default) | Semantic similarity    | "documents about climate change" |
-| `--fts`              | Exact keyword matching | "error code 500"                 |
-| `--fuzzy`            | Typo tolerance         | "developement" (typo)            |
-| `--graph`            | Relationship queries   | "connected to X"                 |
+| Mode                 | Use When                 | Example                          |
+| -------------------- | ------------------------ | -------------------------------- |
+| `--vector` (default) | Semantic similarity      | "documents about climate change" |
+| `--fts`              | Keyword relevance (BM25) | "error code 500"                 |
+| `--graph`            | Relationship queries     | "connected to X"                 |
+
+> `--fuzzy` is not yet supported — it prints a warning and falls back to
+> vector search. Use `--vector` (the default) for typo-tolerant matching.
 
 ### Combine Modes for Best Results
 
 ```bash
-# Semantic + full-text for comprehensive search
+# Semantic + full-text (BM25) for comprehensive search
 deposium search "machine learning" --vector --fts
-
-# Fuzzy for user-facing search
-deposium search "$USER_INPUT" --fuzzy --fts
 ```
 
 ### Optimize Result Count

@@ -43,6 +43,8 @@ bun.lockb
 AGENTS.md
 
 # Local audit reports — never push (repo is public, audits document
-# unfixed security/dead-code gaps until they are addressed)
+# unfixed security/dead-code gaps + internal backend file:line refs)
 AUDIT.md
 AUDIT-*.md
+*-audit.md
+docs/*-drift-audit.md

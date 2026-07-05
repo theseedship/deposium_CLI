@@ -8,9 +8,9 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 
 | Metric             | Status              |
 | ------------------ | ------------------- |
-| Latest version     | v1.4.3 (npm)        |
+| Latest version     | v1.5.0 (npm)        |
 | Commands           | 23 operational      |
-| Tests              | 478 (Vitest)        |
+| Tests              | 511 (Vitest)        |
 | Statement coverage | ~55% (full surface) |
 | Security Score     | 10/10 (0 vulns)     |
 | License            | MIT                 |
@@ -18,7 +18,7 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 ### Core Features
 
 - MCP API integration with 200+ server-side tools
-- Semantic, full-text, fuzzy, and graph search
+- Semantic (vector), full-text (BM25), and graph search
 - Interactive chat mode with streaming via Edge Runtime + HITL `--on-ambiguous`
 - Knowledge graph operations
 - Batch document uploads

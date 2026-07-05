@@ -10,7 +10,7 @@ Official command-line interface for [Deposium](https://deposium.ai) — document
 
 Deposium CLI is the terminal interface to the Deposium platform. It exposes:
 
-- 🔍 **Search**: DuckDB VSS, FTS, and fuzzy matching
+- 🔍 **Search**: DuckDB vector (VSS) and full-text (BM25) search
 - 🔗 **Graph**: Network analysis and path finding
 - 📊 **Corpus**: Statistics and quality evaluation
 - 🤖 **Compound AI**: Multi-tool reasoning with Groq
@@ -55,7 +55,7 @@ Detailed documentation is available in the `docs/` directory:
 | **[logs](docs/commands/logs.md)**                   | View and search server logs           |
 | **[mermaid](docs/commands/mermaid.md)**             | Diagram generation and querying       |
 | **[query-history](docs/commands/query-history.md)** | Track and analyze query history       |
-| **[search](docs/commands/search.md)**               | Document search (Vector/FTS/Fuzzy)    |
+| **[search](docs/commands/search.md)**               | Document search (Vector/BM25 FTS)     |
 | **[space](docs/commands/space.md)**                 | Manage workspaces (list/show/create)  |
 | **[tools](docs/commands/tools.md)**                 | List available MCP tools              |
 | **[ui](docs/commands/ui.md)**                       | Launch interactive dashboards         |

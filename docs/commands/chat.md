@@ -1,4 +1,4 @@
-> Revision: 2026-04-06
+> Revision: 2026-07-05
 
 # AI Chat Mode
 
@@ -27,6 +27,7 @@ deposium chat
 Options:
 
 - `--direct` — Bypass Edge Runtime, connect directly to MCP server (dev only)
+- `--on-ambiguous <mode>` — HITL policy when the server pauses for input. One of `prompt` | `fail` | `dump` | `pick-first`. Defaults to `prompt` in a TTY, `fail` otherwise. See [docs/guides/on-ambiguous-flag.md](../guides/on-ambiguous-flag.md) for full semantics (note: `pick-first` now returns the server's safe default and no longer auto-approves confirm gates).
 
 This opens a continuous chat interface where you can:
 
