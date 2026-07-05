@@ -8,9 +8,9 @@ Enterprise-grade CLI for Deposium MCP API. Open-source on npm: [`@deposium/cli`]
 
 | Metric             | Status              |
 | ------------------ | ------------------- |
-| Latest version     | v1.4.3 (npm)        |
+| Latest version     | v1.5.0 (npm)        |
 | Commands           | 23 operational      |
-| Tests              | 478 (Vitest)        |
+| Tests              | 511 (Vitest)        |
 | Statement coverage | ~55% (full surface) |
 | Security Score     | 10/10 (0 vulns)     |
 | License            | MIT                 |

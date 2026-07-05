@@ -36,7 +36,7 @@ deposium corpus evaluate [options]
 
 - `-t, --tenant <id>`: Tenant ID.
 - `-s, --space <id>`: Space ID.
-- `--metric <name>`: Evaluation metric (`relevance`, `coherence`, `diversity`).
+- `--metric <name>`: Evaluation metric (`relevance`, `faithfulness`, `answer_relevancy`, `context_recall`, `context_precision`, `diversity`, `coverage`, `freshness`, `currency`). Default: `relevance`.
 - `-f, --format <type>`: Output format.
 
 ### `improve`
@@ -51,7 +51,8 @@ deposium corpus improve [options]
 
 - `-t, --tenant <id>`: Tenant ID.
 - `-s, --space <id>`: Space ID.
-- `--focus <area>`: Focus area (`coverage`, `quality`, `diversity`).
+- `--type <improvement_type>` (required): Improvement type (`add_missing_topics`, `remove_duplicates`, `enhance_metadata`, `optimize_chunking`, `improve_embeddings`, `update_stale_content`, `diversify_sources`).
+- `--evaluation-results <json>`: Prior `corpus evaluate` output as JSON (chain with `corpus evaluate --format json`).
 - `-f, --format <type>`: Output format.
 
 ### `eval-snapshot` (alias: `realtime-eval`)
@@ -83,7 +84,8 @@ deposium corpus monitor [options]
 
 - `-t, --tenant <id>`: Tenant ID.
 - `-s, --space <id>`: Space ID.
-- `--threshold <number>`: Anomaly threshold (default: `0.8`).
+- `--action <action>`: Monitor action (`start`, `stop`, `status`) (default: `status`).
+- `--threshold <number>`: Alert threshold 0-1, maps to backend `alert_threshold` (default: `0.7`).
 - `-f, --format <type>`: Output format.
 
 ### `freshness`
@@ -113,5 +115,6 @@ deposium corpus drift [options]
 
 - `-t, --tenant <id>`: Tenant ID.
 - `-s, --space <id>`: Space ID.
-- `--time-window <days>`: Time window for comparison (default: `30`).
+- `--time-window <days>`: Baseline is N days before today (default: `30`).
+- `--sensitivity <level>`: Drift sensitivity (`low`, `medium`, `high`) (default: `medium`).
 - `-f, --format <type>`: Output format.

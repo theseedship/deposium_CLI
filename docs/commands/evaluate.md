@@ -24,7 +24,7 @@ deposium evaluate metrics [options]
 
 **Options:**
 
-- `--user-id <id>`: User ID to fetch metrics for.
+- `--user-id <id>`: **Required**. User ID to fetch metrics for.
 - `--include-global`: Include system-wide global metrics.
 - `-f, --format <type>`: Output format.
 
@@ -55,7 +55,7 @@ deposium evaluate feedback [options]
 - `--query-id <id>`: **Required**. The ID of the query being evaluated.
 - `--user-id <id>`: **Required**. The ID of the user submitting feedback.
 - `--score <number>`: **Required**. Quality score (0.0 to 1.0).
-- `--feedback <text>`: Optional text feedback.
+- `--feedback <text>`: **Required**. Text feedback.
 - `-f, --format <type>`: Output format.
 
 ### `code`

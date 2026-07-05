@@ -7,6 +7,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-05
+
+A CLI ↔ backend drift-correction release. A multi-agent audit of the CLI
+against the current MCP backend (find → adversarial-verify → synthesize)
+surfaced tool-contract, SSE, and HITL divergences; every fix below
+consumes an event/field/endpoint the backend already exposes. Four
+previously-broken commands work again, several silent no-op flags now
+function, chat surfaces verification/trust signals, and the docs were
+reconciled against the shipped command surface.
+
+Test suite: 478 → 511.
+
+### Breaking
+
+- **`corpus improve`**: the `--focus <coverage|quality|diversity>` flag is
+  removed (it mapped to nothing server-side). Use the new **required**
+  `--type <improvement_type>` flag instead (enum: `add_missing_topics`,
+  `remove_duplicates`, `enhance_metadata`, `optimize_chunking`,
+  `improve_embeddings`, `update_stale_content`, `diversify_sources`),
+  optionally chained with `--evaluation-results <json>`.
+- **`--on-ambiguous=pick-first`** no longer auto-approves confirm-before-
+  action gates. It now prefers the server's `default_choice.value` and,
+  absent one, returns `skip` for confirm gates (the safe choice) instead
+  of `approve`. Unattended runs no longer execute side-effecting steps the
+  server intended to withhold. Scripts relying on the old auto-approve
+  behavior must switch to `--on-ambiguous=prompt` or a custom handler.
+- **`eval metrics --user-id`** and **`eval feedback --feedback`** are now
+  required (the backend schema requires them; they previously failed
+  silently or were dropped).
+
+### Fixed
+
+- **`evaluate code`** now runs the E2B sandbox (`evaluate_code`) instead of
+  silently invoking a static code-analysis tool over the server's own repo.
+- **`files check <id>`** now returns a real integrity/indexation summary via
+  `GET /api/v1/documents/:id` (`doc_status`, `search_enabled`, `num_pages`,
+  `mime_type`, `size`) instead of calling a code-security scanner that
+  always errored.
+- **`corpus improve`** / **`eval feedback`** / **`eval metrics`** — outbound
+  payloads now match the backend Zod contracts (camelCase where required,
+  required keys present). These commands previously failed validation.
+- **`search --fts`** now routes to the dedicated `search_bm25_ranked` tool
+  (real BM25 full-text search); it was a silent no-op returning default
+  vector results.
+- **`eval dashboard --time-range`**, **`corpus monitor`**,
+  **`corpus evaluate --metric`**, **`corpus drift`** — flags that were
+  silently dropped by the backend schema now send the correct keys/enums
+  (`timeRange`, `action` + `alert_threshold`, `metrics[]`, `baseline_date`
+  + `sensitivity`).
+- **`deposium validate`** no longer 406s before it starts — the SSE POST
+  helper now sends the `Accept: application/json, text/event-stream` header
+  that `/mcp` requires.
+- **Chat inline HITL gates** (scope, source, exhaustive-confirm,
+  clarification) are now resumable: they carry no `correlation_id`, so the
+  CLI resumes them by re-POSTing `/chat-stream` with `chat_prompt_context`
+  instead of hitting `/api/agent-resume` (which 400'd and silently dropped
+  the user's answer).
+- **Chat final answers** are now the cleaned, verified text: the CLI
+  consumes `answer_replace` / `answer_verified` and re-renders, instead of
+  showing and storing the raw pre-verification draft (chart-JSON dumps,
+  un-swapped text).
+- **Declining the exhaustive-analysis confirm gate** now actually runs a
+  quick search (via top-level `analysis_effort: 'quick'`), instead of
+  silently running the multi-minute exhaustive analysis anyway.
+
+### Added
+
+- **Guardian trust signals in chat**: `verification` and `answer_blocked`
+  events are surfaced — blocked answers show their issues + recommendation
+  and are not persisted as the assistant response.
+- **`type='form'` HITL gates** (connector-config, report-parameters) are now
+  rendered per-field in chat instead of throwing "not yet supported".
+- **`corpus monitor --action <start|stop|status>`**,
+  **`corpus drift --sensitivity <low|medium|high>`** flags.
+- **Outbound tool-contract tests** (`src/__tests__/commands/tool-contract.test.ts`)
+  asserting the exact payload keys per tool against the backend schemas, so
+  future backend renames surface as CLI test failures instead of silent
+  user-facing degradation.
+
+### Docs
+
+- Reconciled `docs/commands/{corpus,evaluate,search,files,chat}.md`,
+  `docs/guides/on-ambiguous-flag.md`, and `README.md` with the shipped
+  command surface (removed `--focus`, corrected `--fuzzy`/`--fts`
+  descriptions, added `--type`/`--action`/`--sensitivity`, updated
+  `pick-first` semantics and the `files check` behavior).
+
 ## [1.4.3] - 2026-06-27
 
 Security dep updates + SDK surface alignment. No runtime behavior change

@@ -16,12 +16,12 @@ controls the response policy.
 
 ## Modes
 
-| Mode         | Behaviour                                                                   |
-| ------------ | --------------------------------------------------------------------------- |
-| `prompt`     | Render an `inquirer` picker; block until the user answers (default in TTY). |
-| `fail`       | Exit with error + correlation ID (default outside TTY).                     |
-| `dump`       | Print the `chat_prompt` payload as JSON to stdout and exit `0`.             |
-| `pick-first` | Auto-select `config.options[0].value` (or `approve` for `confirm`).         |
+| Mode         | Behaviour                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `prompt`     | Render an `inquirer` picker; block until the user answers (default in TTY).                                                                                                                |
+| `fail`       | Exit with error + correlation ID (default outside TTY).                                                                                                                                    |
+| `dump`       | Print the `chat_prompt` payload as JSON to stdout and exit `0`.                                                                                                                            |
+| `pick-first` | Prefer the server's `default_choice.value` (the safe declared default); absent one, `options[0]` for `choice` and `skip` for `confirm` — never auto-approves a confirm-before-action gate. |
 
 Phase W.2 will add `resume-file` and `fail-with-token` (stateful modes that
 need on-disk persistence and a `deposium resume <token>` subcommand).
@@ -65,17 +65,23 @@ echo "météo à Paris" | deposium chat --on-ambiguous=dump | jq
 # waiting_for. Useful for verifying MCPs emission shape.
 ```
 
-**Scripted batch with deterministic first-option selection:**
+**Scripted batch with deterministic safe-default selection:**
 
 ```bash
 deposium chat --on-ambiguous=pick-first < queries.txt
-# Agent picks options[0] (currently "rag" for intent_disambiguate).
+# Agent prefers the server's default_choice.value; absent one it picks
+# options[0] for choice gates (currently "rag" for intent_disambiguate)
+# and "skip" for confirm gates (never auto-approves an action).
 # Guarantees forward progress but may misroute — pair with audit logs.
 ```
 
 ## How resume works
 
-On a `chat_prompt`, the CLI POSTs to the MCPs backend:
+The resume path depends on whether the `chat_prompt` carries a
+`correlation_id`:
+
+**Agent-step gates (with `correlation_id`)** — e.g. intent
+disambiguation. The CLI POSTs to `/api/agent-resume`:
 
 ```
 POST /api/agent-resume
@@ -88,10 +94,18 @@ X-API-Key: dep_...
 }
 ```
 
-The response is a fresh SSE stream that continues the paused pipeline.
-That stream may itself emit another `chat_prompt` (e.g. a confirmation
-step after disambiguation) — the CLI loops until the stream closes with
-`done`.
+**Inline chat gates (no `correlation_id`)** — scope, source,
+exhaustive-confirm, clarification. These are resumable only by
+re-POSTing `/chat-stream` with a `chat_prompt_context` field carrying
+the original query, the chosen value, and the prompt type. (Declining
+the exhaustive-analysis gate additionally sends a top-level
+`analysis_effort: "quick"` so the backend runs a quick search instead
+of the full analysis.)
+
+Either way, the response is a fresh SSE stream that continues the paused
+pipeline. That stream may itself emit another `chat_prompt` (e.g. a
+confirmation step after disambiguation) — the CLI loops until the stream
+closes with `done`.
 
 > **Note**: resume currently routes directly to the MCP server. Once the
 > Edge Runtime ships an `/agent-resume` twin, the CLI will route through

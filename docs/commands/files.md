@@ -63,19 +63,20 @@ In addition to the list fields, `show` returns:
 - `file_infos` — connector config (for connector documents)
 - `_access` — `{ type, can_edit, can_delete }` — what your key can do with it
 
-### `check <id>` (alias: `validate`) — _experimental_
+### `check <id>` (alias: `validate`)
 
-Validate file integrity by calling the MCP `check_file` tool. Returns
-checksum, parsing status, and indexation health.
+Print an integrity/indexation summary for a document. Fetches the document
+via `GET /api/v1/documents/:id` (the same endpoint as `show`) and returns
+`id`, `file_name`, `doc_status`, `search_enabled`, `num_pages`, `mime_type`,
+and `size`. Output defaults to `json`.
 
 ```bash
 deposium files check 2459
-deposium files validate 2459 --format json
+deposium files validate 2459 --format table
 ```
 
-**Same caveat as `space create`:** routes through MCP. In some local/dev
-deployments the MCP layer rejects CLI keys with `401 "Invalid API key
-format"` — production typically works.
+Uses the same REST endpoint as `show`, so it works with any valid CLI API
+key — no MCP layer involved.
 
 ### `rm <id>` (alias: `delete`)
 
