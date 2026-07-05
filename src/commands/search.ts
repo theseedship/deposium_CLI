@@ -28,21 +28,44 @@ export const searchCommand = new Command('search')
 
       console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
 
-      const content = await runMcpTool(
-        client,
-        'search_hub',
-        {
-          tenant_id: tenantId,
-          space_id: spaceId,
-          query_text: query,
-          use_vector_rel: options.vector !== undefined ? options.vector : true,
-          use_fts: options.fts ?? false,
-          use_fuzzy: options.fuzzy ?? false,
-          use_graph: options.graph ?? false,
-          top_k: parseIntOrThrow(options.topK, '--top-k'),
-        },
-        { label: 'Search', spinner: !options.silent }
-      );
+      const topK = parseIntOrThrow(options.topK, '--top-k');
+
+      // `search_hub` has no `use_fts` / `use_fuzzy` toggles — Zod silently
+      // dropped them, so `--fts` and `--fuzzy` were no-ops that returned
+      // default vector results. Route `--fts` to the dedicated
+      // `search_bm25_ranked` tool. `--fuzzy` currently has no backend
+      // equivalent — surface that instead of silently degrading.
+      if (options.fuzzy) {
+        console.warn(
+          chalk.yellow('⚠️  --fuzzy has no backend equivalent yet; falling back to vector search.')
+        );
+      }
+
+      const content = options.fts
+        ? await runMcpTool(
+            client,
+            'search_bm25_ranked',
+            {
+              tenant_id: tenantId,
+              space_id: spaceId,
+              query,
+              top_k: topK,
+            },
+            { label: 'BM25 search', spinner: !options.silent }
+          )
+        : await runMcpTool(
+            client,
+            'search_hub',
+            {
+              tenant_id: tenantId,
+              space_id: spaceId,
+              query_text: query,
+              use_vector_rel: options.vector !== undefined ? options.vector : true,
+              use_graph: options.graph ?? false,
+              top_k: topK,
+            },
+            { label: 'Search', spinner: !options.silent }
+          );
 
       formatOutput(content, options.format);
     })

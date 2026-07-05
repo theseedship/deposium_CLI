@@ -17,7 +17,7 @@ export const evaluateCommand = new Command('evaluate')
 evaluateCommand
   .command('metrics')
   .description('Get evaluation metrics for user query history')
-  .option('--user-id <id>', 'User ID for metrics')
+  .requiredOption('--user-id <id>', 'User ID for metrics (required by backend schema)')
   .option('--include-global', 'Include system-wide metrics')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
@@ -31,8 +31,10 @@ evaluateCommand
         client,
         'eval_metrics',
         {
-          user_id: options.userId,
-          include_global: options.includeGlobal ?? false,
+          // Backend `evalMetricsSchema` requires camelCase — `user_id`
+          // was silently stripped, causing `userId: Required` 400s.
+          userId: options.userId,
+          includeGlobal: options.includeGlobal ?? false,
         },
         { label: 'Metrics', spinner: !options.silent }
       );
@@ -59,8 +61,11 @@ evaluateCommand
         client,
         'eval_dashboard',
         {
-          user_id: options.userId,
-          time_range: options.timeRange,
+          // Backend `evalDashboardSchema` uses camelCase — snake_case
+          // keys were dropped, so `--time-range 7d` always returned
+          // the default 24h period and `--user-id` was ignored.
+          userId: options.userId,
+          timeRange: options.timeRange,
         },
         { label: 'Dashboard generation', spinner: !options.silent }
       );
@@ -76,7 +81,7 @@ evaluateCommand
   .requiredOption('--query-id <id>', 'Query ID')
   .requiredOption('--user-id <id>', 'User ID')
   .requiredOption('--score <number>', 'Quality score 0-1')
-  .option('--feedback <text>', 'Feedback text')
+  .requiredOption('--feedback <text>', 'Feedback text (required by backend schema)')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
@@ -89,12 +94,13 @@ evaluateCommand
         client,
         'eval_feedback',
         {
-          // snake_case to match the rest of the API surface
-          // (tenant_id, space_id, query_text, …). The previous
-          // camelCase payload was inconsistent and likely silently
-          // ignored server-side.
-          query_id: options.queryId,
-          user_id: options.userId,
+          // Backend `evalFeedbackSchema` requires camelCase queryId/userId
+          // (unlike the rest of the API surface, which is snake_case).
+          // A prior comment here rationalized snake_case as consistency,
+          // but the Zod schema silently stripped both and 400'd on
+          // `queryId: Required`. No feedback was ever recorded.
+          queryId: options.queryId,
+          userId: options.userId,
           score: parseFloatOrThrow(options.score, '--score'),
           feedback: options.feedback,
         },
@@ -122,7 +128,11 @@ evaluateCommand
 
       const content = await runMcpTool(
         client,
-        'analyze_code',
+        // `analyze_code` (Greptile) runs static analysis on a Git repo
+        // — it never executed the user's code. The correct tool is
+        // `evaluate_code` (E2B sandbox), whose schema exactly matches
+        // the `{ code, language, timeout }` shape below.
+        'evaluate_code',
         {
           code,
           language: options.language,

@@ -43,7 +43,14 @@ export const corpusCommand = new Command('corpus')
       .description('Evaluate corpus quality with LLM-as-judge')
       .option('-t, --tenant <id>', 'Tenant ID')
       .option('-s, --space <id>', 'Space ID')
-      .option('--metric <name>', 'Evaluation metric (relevance|coherence|diversity)')
+      .option(
+        '--metric <name>',
+        // Backend `corpusEvaluateSchema.metrics` enum. `coherence`
+        // was advertised here but is not a valid backend metric —
+        // dropped. Sent as a one-element array so the schema is satisfied
+        // whether the user passes one metric or omits the flag.
+        'Evaluation metric (relevance|faithfulness|answer_relevancy|context_recall|context_precision|diversity|coverage|freshness|currency)'
+      )
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
@@ -58,7 +65,8 @@ export const corpusCommand = new Command('corpus')
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              metric: options.metric ?? 'relevance',
+              // Schema expects `metrics: string[]`, not singular `metric`.
+              metrics: [options.metric ?? 'relevance'],
             },
             { label: 'Evaluation' }
           );
@@ -72,7 +80,17 @@ export const corpusCommand = new Command('corpus')
       .description('Get improvement suggestions for corpus')
       .option('-t, --tenant <id>', 'Tenant ID')
       .option('-s, --space <id>', 'Space ID')
-      .option('--focus <area>', 'Focus area (coverage|quality|diversity)')
+      .requiredOption(
+        '--type <improvement_type>',
+        // Backend `corpusImproveSchema.improvement_type` enum. The old
+        // `--focus` flag mapped to nothing — every invocation 400'd on
+        // `improvement_type: Required`.
+        'Improvement type (add_missing_topics|remove_duplicates|enhance_metadata|optimize_chunking|improve_embeddings|update_stale_content|diversify_sources)'
+      )
+      .option(
+        '--evaluation-results <json>',
+        'Prior corpus_evaluate output (JSON). Backend schema marks this required — chain with `corpus evaluate --format json`.'
+      )
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
@@ -81,13 +99,18 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
 
+          const evaluationResults = options.evaluationResults
+            ? safeParseJSON<unknown>(options.evaluationResults, '--evaluation-results')
+            : {};
+
           const content = await runMcpTool(
             client,
             'corpus_improve',
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              focus: options.focus,
+              improvement_type: options.type,
+              evaluation_results: evaluationResults,
             },
             { label: 'Improvement analysis' }
           );
@@ -135,7 +158,20 @@ export const corpusCommand = new Command('corpus')
       .description('Monitor corpus quality with anomaly detection')
       .option('-t, --tenant <id>', 'Tenant ID')
       .option('-s, --space <id>', 'Space ID')
-      .option('--threshold <number>', 'Anomaly threshold', '0.8')
+      .option(
+        '--action <action>',
+        // Backend `corpusMonitorSchema.action` is required. Default to
+        // `status` — the safe read-only query. `start`/`stop` mutate
+        // the monitor and should be explicit.
+        'Monitor action (start|stop|status)',
+        'status'
+      )
+      .option(
+        '--threshold <number>',
+        // Backend key is `alert_threshold`, not `threshold`.
+        'Alert threshold 0-1',
+        '0.7'
+      )
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
@@ -150,7 +186,8 @@ export const corpusCommand = new Command('corpus')
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              threshold: parseFloatOrThrow(options.threshold, '--threshold'),
+              action: options.action,
+              alert_threshold: parseFloatOrThrow(options.threshold, '--threshold'),
             },
             { label: 'Monitoring' }
           );
@@ -197,7 +234,15 @@ export const corpusCommand = new Command('corpus')
       .description('Detect concept drift over time')
       .option('-t, --tenant <id>', 'Tenant ID')
       .option('-s, --space <id>', 'Space ID')
-      .option('--time-window <days>', 'Time window for comparison', '30')
+      .option(
+        '--time-window <days>',
+        // Backend schema has no `time_window_days` — it takes an
+        // absolute `baseline_date` (ISO string). Convert the flag by
+        // subtracting N days from `now` on the client.
+        'Baseline is N days before today',
+        '30'
+      )
+      .option('--sensitivity <level>', 'Drift sensitivity (low|medium|high)', 'medium')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
@@ -206,13 +251,21 @@ export const corpusCommand = new Command('corpus')
 
           console.log(chalk.bold('\n📉 Detecting concept drift...\n'));
 
+          // Compute `baseline_date` from `--time-window <days>`. Backend
+          // reads ISO strings; use YYYY-MM-DD for stability across TZs.
+          const days = parseIntOrThrow(options.timeWindow, '--time-window');
+          const baselineDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10);
+
           const content = await runMcpTool(
             client,
             'corpus_drift',
             {
               tenant_id: tenantId,
               space_id: spaceId,
-              time_window_days: parseIntOrThrow(options.timeWindow, '--time-window'),
+              baseline_date: baselineDate,
+              sensitivity: options.sensitivity,
             },
             { label: 'Drift detection' }
           );

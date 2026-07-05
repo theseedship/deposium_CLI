@@ -80,23 +80,24 @@ describe('search command', () => {
 
     await searchCommand.parseAsync(['node', 'test', 'test query', '--silent']);
 
+    // `search_hub` payload: no `use_fts`/`use_fuzzy` — those keys were
+    // silently dropped by the backend Zod schema. Route them to
+    // `search_bm25_ranked` (--fts) or warn (--fuzzy).
     expect(mockCallTool).toHaveBeenCalledWith(
       'search_hub',
-      expect.objectContaining({
+      {
         tenant_id: 'test-tenant',
         space_id: 'test-space',
         query_text: 'test query',
         use_vector_rel: true,
-        use_fts: false,
-        use_fuzzy: false,
         use_graph: false,
         top_k: 10,
-      }),
+      },
       expect.any(Object)
     );
   });
 
-  it('should pass FTS option when specified', async () => {
+  it('routes --fts to search_bm25_ranked with the exact schema payload', async () => {
     mockCallTool.mockResolvedValue({
       content: [],
       isError: false,
@@ -105,12 +106,30 @@ describe('search command', () => {
     await searchCommand.parseAsync(['node', 'test', 'test query', '--fts', '--silent']);
 
     expect(mockCallTool).toHaveBeenCalledWith(
-      'search_hub',
-      expect.objectContaining({
-        use_fts: true,
-      }),
+      'search_bm25_ranked',
+      {
+        tenant_id: 'test-tenant',
+        space_id: 'test-space',
+        query: 'test query',
+        top_k: 10,
+      },
       expect.any(Object)
     );
+  });
+
+  it('warns and falls back to vector search when --fuzzy is passed', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockCallTool.mockResolvedValue({ content: [], isError: false });
+
+    await searchCommand.parseAsync(['node', 'test', 'test query', '--fuzzy', '--silent']);
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('--fuzzy has no backend'));
+    expect(mockCallTool).toHaveBeenCalledWith(
+      'search_hub',
+      expect.objectContaining({ query_text: 'test query' }),
+      expect.any(Object)
+    );
+    warnSpy.mockRestore();
   });
 
   it('should pass custom top-k value', async () => {
