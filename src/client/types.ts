@@ -303,6 +303,18 @@ export interface ChatStreamOptions {
    * Only set on resume calls; leave undefined on the initial turn.
    */
   chatPromptContext?: ChatPromptContext;
+  /**
+   * Top-level analysis-effort toggle sent as `analysis_effort` in the
+   * `/chat-stream` body. `'quick'` clamps the pipeline to a focused/fast
+   * scope server-side; `'complete'` requests the full exhaustive path.
+   *
+   * The only current use is to honor a DECLINE of the inline
+   * exhaustive-confirm gate: that gate carries no `correlation_id` and
+   * its `'cancel'` answer is not consumed on the backend's inline resume
+   * path, so the "run a quick search instead" intent has to be signaled
+   * through this sibling field. Undefined on every other call.
+   */
+  analysisEffort?: 'quick' | 'complete';
   onToken: (token: string) => void;
   onMetadata?: (data: SSEMetadata) => void;
   onCitation?: (data: SSECitation) => void;

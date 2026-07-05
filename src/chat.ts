@@ -298,6 +298,9 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
         directMcp: args.directMcp,
         ...streamOpts,
         chatPromptContext: context,
+        // Honor a decline of the inline exhaustive-confirm gate — see
+        // resolveAnalysisEffort. undefined for every other inline gate.
+        analysisEffort: resolveAnalysisEffort(prompt, decision),
       });
     }
   }
@@ -317,6 +320,34 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   // persisting an unverified draft. `startChat` treats empty as "no
   // answer" and calls `removeLastMessage` implicitly via the try/catch.
   return suppressResponse ? '' : fullResponse;
+}
+
+/**
+ * Resolve the top-level `analysis_effort` to send when resuming an inline
+ * HITL gate.
+ *
+ * The inline exhaustive-confirm gate (`waiting_for === 'exhaustive_confirm'`)
+ * asks whether to run the multi-minute exhaustive analysis or a quick
+ * search. Its `'cancel'` answer is NOT consumed on the backend's inline
+ * resume path, so a decline that only rode in `chat_prompt_context` was
+ * silently ignored and the exhaustive analysis ran anyway. The backend
+ * DOES honor a top-level `analysis_effort` (`'quick'` → focused scope),
+ * so map the decision to it: accept → `'complete'`, decline → `'quick'`.
+ *
+ * Returns `undefined` for every other gate — no effort override, so the
+ * backend keeps its server-derived scope. Also returns `undefined` if the
+ * backend has not yet been deployed with the `exhaustive_confirm`
+ * `waiting_for` tag, so the CLI degrades to prior behavior rather than
+ * regressing.
+ *
+ * Exported for unit testing.
+ */
+export function resolveAnalysisEffort(
+  prompt: SSEChatPrompt,
+  decision: AgentResumePayload
+): 'quick' | 'complete' | undefined {
+  if (prompt.waiting_for !== 'exhaustive_confirm') return undefined;
+  return decision.value === 'approve' ? 'complete' : 'quick';
 }
 
 /**
