@@ -77,3 +77,22 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Best-effort: tell the docs site (deposium_docs) to rebuild now, so the
+      # published CLI reference (docs/ is synced from this repo at build time)
+      # goes live immediately instead of waiting for its nightly cron.
+      # deposium_docs already listens for the `cli-released` repository_dispatch
+      # and keeps the nightly cron as a fallback, so a missing/expired token
+      # never blocks a release (continue-on-error).
+      #
+      # SECRET REQUIRED: DOCS_DISPATCH_TOKEN — a PAT that can dispatch to
+      # theseedship/deposium_docs (classic PAT with `repo` scope, or a
+      # fine-grained PAT scoped to deposium_docs with Contents: Read and write).
+      - name: Notify docs site to rebuild
+        if: github.event_name == 'push'
+        continue-on-error: true
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repository: theseedship/deposium_docs
+          event-type: cli-released
