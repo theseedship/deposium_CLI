@@ -156,6 +156,11 @@ export interface RunChatTurnArgs {
 export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const citations: SSECitation[] = [];
   let fullResponse = '';
+  // Suppressed = true when the backend blocked the answer via Guardian
+  // (`answer_blocked` or `verification.action === 'blocked'`). Callers
+  // must NOT persist the streamed draft to chat history in that case;
+  // return an empty string so the outer loop drops the assistant slot.
+  let suppressResponse = false;
   // Queue rather than single-slot so multiple chat_prompts in one
   // stream are drained in order instead of silently overwritten.
   const pendingPrompts: SSEChatPrompt[] = [];
@@ -170,6 +175,56 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     onCitation: (c) => citations.push(c),
     onChatPrompt: (prompt) => {
       pendingPrompts.push(prompt);
+    },
+    // The cleaned final answer arrived (chart-JSON stripped, mermaid
+    // normalized, tables repaired, Guardian/evidence swaps applied).
+    // Replace both the on-screen draft AND the stored response with
+    // `final_answer` verbatim — same field `persist-run.ts` treats as
+    // authoritative. This is what stops chart-JSON dumps and un-swapped
+    // Guardian text from being displayed and fed back next turn.
+    onAnswerReplace: (data) => {
+      fullResponse = data.final_answer;
+      // Clear the streamed draft on screen with a fresh render. The
+      // ANSI erase sequence (`\r\x1b[2K`) rewinds to line start then
+      // clears the line; then re-print the canonical answer.
+      process.stdout.write('\r\x1b[2K');
+      process.stdout.write(chalk.green('AI: ') + data.final_answer);
+    },
+    onVerification: (v) => {
+      if (v.action === 'blocked') {
+        suppressResponse = true;
+      }
+      if (v.issues && v.issues.length > 0) {
+        // Print issues below the answer so users see the trust signal.
+        // `verification` with `human_review` keeps the answer but flags
+        // what the verifier caught — the CLI should not silently drop
+        // that signal (v1.4.3 did).
+        const label = v.action === 'blocked' ? '🚫 Blocked' : '⚠️  Verification issues';
+        console.log(chalk.yellow(`\n${label}:`));
+        for (const iss of v.issues) {
+          const sev = iss.severity ? chalk.gray(`[${iss.severity}] `) : '';
+          const msg = iss.message ?? JSON.stringify(iss);
+          console.log(`  ${sev}${msg}`);
+        }
+        if (v.recommendation) {
+          console.log(chalk.gray(`  → ${v.recommendation}`));
+        }
+      }
+    },
+    onAnswerBlocked: (data) => {
+      suppressResponse = true;
+      console.log(chalk.red(`\n🚫 Answer blocked: ${data.reason}`));
+      if (data.fallback_answer) {
+        console.log(chalk.gray('Fallback:'));
+        console.log(data.fallback_answer);
+        // The fallback IS a safe answer the server explicitly offered
+        // — persist it in place of the blocked draft.
+        fullResponse = data.fallback_answer;
+        suppressResponse = false;
+      } else {
+        // No fallback — the turn produced nothing usable.
+        fullResponse = '';
+      }
     },
     onError: (err) => {
       console.error(chalk.red('\n❌ ' + (err.message ?? err.error ?? 'Stream error')));
@@ -232,7 +287,11 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     }
   }
 
-  return fullResponse;
+  // If Guardian blocked without offering a fallback, return empty so
+  // the caller drops the assistant slot from history rather than
+  // persisting an unverified draft. `startChat` treats empty as "no
+  // answer" and calls `removeLastMessage` implicitly via the try/catch.
+  return suppressResponse ? '' : fullResponse;
 }
 
 /**

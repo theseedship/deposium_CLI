@@ -130,6 +130,63 @@ export interface SSEError {
 }
 
 /**
+ * `answer_replace` SSE event — the fully-cleaned final answer arrived.
+ *
+ * Emitted by `progressive-stream.ts` whenever the streamed draft
+ * differed from the cleaned/verified answer (chart-JSON stripped,
+ * mermaid normalized, tables repaired, Guardian/evidence swaps).
+ * The client MUST replace the streamed draft with `final_answer`
+ * verbatim — do NOT re-implement client-side cleaning. `persist-run.ts`
+ * treats this field as the authoritative answer for history/storage.
+ */
+export interface SSEAnswerReplace {
+  id: string;
+  final_answer: string;
+  reason: string;
+  checks?: Record<string, unknown>;
+  final_hash?: string;
+}
+
+/**
+ * `answer_verified` SSE event — verification passed on the current
+ * `final_answer` (no replacement needed). The client's stored answer
+ * is trusted; no re-render is required.
+ */
+export interface SSEAnswerVerified {
+  id: string;
+  checks?: Record<string, unknown>;
+  final_hash?: string;
+}
+
+/**
+ * `verification` SSE event — verifier verdict on the current answer.
+ *
+ * - `action: 'passed'` — answer is trusted; keep it as-is.
+ * - `action: 'human_review'` — issues found; surface them, keep answer.
+ * - `action: 'blocked'` — Guardian blocked the answer for failing
+ *   hallucination/unsupported-claim/safety checks; suppress the draft
+ *   and surface the issues + recommendation instead.
+ */
+export interface SSEVerification {
+  validated: boolean;
+  passed: boolean;
+  action: 'passed' | 'human_review' | 'blocked';
+  issues?: Array<{ severity?: string; message?: string; [k: string]: unknown }>;
+  recommendation?: string;
+}
+
+/**
+ * `answer_blocked` SSE event — the pipeline's terminal block signal.
+ * Emitted with `reason` (why) and optionally a `fallback_answer`
+ * (safe alternative to render in place of the blocked draft).
+ */
+export interface SSEAnswerBlocked {
+  id: string;
+  reason: string;
+  fallback_answer?: string;
+}
+
+/**
  * One option for `type='choice'` chat prompts.
  * `value` is what gets sent back to the server in the resume payload.
  */
@@ -253,6 +310,26 @@ export interface ChatStreamOptions {
   onDone?: (data: SSEDone) => void;
   onError?: (data: SSEError) => void;
   onChatPrompt?: (data: SSEChatPrompt) => void;
+  /**
+   * The cleaned final answer arrived — callers MUST replace their
+   * streamed draft with `data.final_answer` verbatim. Same field
+   * `persist-run.ts` treats as authoritative for stored history.
+   */
+  onAnswerReplace?: (data: SSEAnswerReplace) => void;
+  /** Verifier stamped the current answer as trusted. Usually a no-op. */
+  onAnswerVerified?: (data: SSEAnswerVerified) => void;
+  /**
+   * Verifier verdict — inspect `action` to decide whether to display
+   * `issues` alongside the answer (`human_review`) or suppress the
+   * draft entirely (`blocked`).
+   */
+  onVerification?: (data: SSEVerification) => void;
+  /**
+   * Guardian / policy blocked the answer. Callers MUST NOT persist
+   * the streamed draft as the assistant response; render the reason +
+   * `fallback_answer` (when present) instead.
+   */
+  onAnswerBlocked?: (data: SSEAnswerBlocked) => void;
 }
 
 /**

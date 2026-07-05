@@ -425,6 +425,10 @@ describe('runChatTurn', () => {
         else if (ev.kind === 'citation') opts.onCitation?.(ev.data);
         else if (ev.kind === 'chat_prompt') opts.onChatPrompt?.(ev.data);
         else if (ev.kind === 'error') opts.onError?.(ev.data);
+        else if (ev.kind === 'answer_replace') opts.onAnswerReplace?.(ev.data);
+        else if (ev.kind === 'answer_verified') opts.onAnswerVerified?.(ev.data);
+        else if (ev.kind === 'verification') opts.onVerification?.(ev.data);
+        else if (ev.kind === 'answer_blocked') opts.onAnswerBlocked?.(ev.data);
       }
     }
 
@@ -440,6 +444,116 @@ describe('runChatTurn', () => {
       }),
     };
   }
+
+  // v1.5.0 — SSE catch-up. The v1.4.3 CLI dropped these events
+  // entirely, so `fullResponse` was the raw pre-verification draft
+  // (chart-JSON dumps, un-swapped Guardian text) and got persisted
+  // to chat history + fed back next turn, compounding divergence.
+  test('answer_replace — returned response is the cleaned final_answer, not the streamed draft', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: '```chart\n{"raw":"draft"}\n```' },
+        {
+          kind: 'answer_replace',
+          data: { id: 'a1', final_answer: 'The population is 67M.', reason: 'guardian-swap' },
+        },
+      ],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    // fullResponse is the canonical answer — NOT the pre-verification draft.
+    expect(response).toBe('The population is 67M.');
+  });
+
+  test('answer_blocked (no fallback) — returned response is empty (draft suppressed)', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'Unverified hallucination.' },
+        { kind: 'answer_blocked', data: { id: 'a1', reason: 'guardian:unsupported_claim' } },
+      ],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    // Blocked with no fallback → empty response so the caller drops
+    // the assistant slot from history rather than persisting an
+    // unverified draft.
+    expect(response).toBe('');
+  });
+
+  test('answer_blocked with fallback — returns the safe fallback_answer', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'Bad draft.' },
+        {
+          kind: 'answer_blocked',
+          data: { id: 'a1', reason: 'guardian', fallback_answer: 'I cannot confirm this.' },
+        },
+      ],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    // Fallback is a safe answer the server explicitly offered → persist it.
+    expect(response).toBe('I cannot confirm this.');
+  });
+
+  test('verification with action=human_review keeps the answer + surfaces issues', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'Answer with caveats.' },
+        {
+          kind: 'verification',
+          data: {
+            validated: true,
+            passed: false,
+            action: 'human_review',
+            issues: [{ severity: 'warning', message: 'partial citation' }],
+            recommendation: 'Ask for more sources.',
+          },
+        },
+      ],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+
+    // human_review keeps the answer as-is — the caveats are surfaced
+    // alongside but the answer is still returned + persistable.
+    expect(response).toBe('Answer with caveats.');
+  });
 
   test('single turn (no chat_prompt) — calls chatStream once, returns full response', async () => {
     const { runChatTurn } = await import('../chat');
