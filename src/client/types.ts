@@ -143,9 +143,20 @@ export interface SSEChatPromptOption {
  * HITL chat_prompt event — emitted when the pipeline pauses for user input
  * (intent disambiguation, step confirmation, scratchpad form, ...).
  *
- * The CLI responds by POSTing to `/api/agent-resume` with
- * `{ correlation_id, response: { value } }` (or `{ values }` for forms),
- * which opens a fresh SSE stream that continues the pipeline.
+ * Resume path depends on whether `correlation_id` is present:
+ *
+ * - **`correlation_id` present** — the pause originated from an agent step
+ *   (e.g. intent disambiguation). Resume by POSTing
+ *   `/api/agent-resume { correlation_id, response: { value } }`; the server
+ *   opens a fresh SSE stream that continues the pipeline.
+ * - **`correlation_id` absent** — an inline `/chat-stream` gate (scope,
+ *   source, exhaustive-confirm, clarification, S4, S5). Resume by
+ *   re-POSTing `/chat-stream` with `chat_prompt_context: { original_query,
+ *   selected_value, prompt_type }` — the backend parses that on the
+ *   next call and continues the paused pipeline.
+ *
+ * The v1.4.3 CLI treated `correlation_id` as always-present, so inline
+ * gates 400'd deterministically and dropped the user's answer.
  */
 export interface SSEChatPrompt {
   prompt_id: string;
@@ -156,10 +167,34 @@ export interface SSEChatPrompt {
     options?: SSEChatPromptOption[];
     layout?: 'horizontal' | 'vertical';
     fields?: Array<Record<string, unknown>>;
+    /**
+     * Confirm gates put the body message here (backend
+     * `hitl-gates.ts:197-235`). Fall back to top-level `message` when
+     * absent — some gate types write only one or the other.
+     */
+    message?: string;
   };
-  correlation_id: string;
+  /**
+   * Only set on agent-step gates (intent-disambiguate). Inline chat gates
+   * (scope, source, confirm-exhaustive, S4, S5, clarification) emit no
+   * `correlation_id` — the CLI must resume those via `chat_prompt_context`
+   * on `/chat-stream` instead.
+   */
+  correlation_id?: string;
   waiting_for?: string;
   step_id?: string;
+}
+
+/**
+ * Payload sent to `/chat-stream` when resuming an inline HITL gate
+ * that carried no `correlation_id`. Backend parses at
+ * `chat-stream.ts:644/738/681-696`. `selected_value` is a string for
+ * choice/confirm gates and a `{field: value}` object for form gates.
+ */
+export interface ChatPromptContext {
+  original_query: string;
+  selected_value: string | Record<string, string>;
+  prompt_type: 'choice' | 'confirm' | 'form';
 }
 
 /**
@@ -174,6 +209,13 @@ export interface ChatStreamOptions {
   documentsOnly?: boolean;
   language?: 'fr' | 'en';
   confidenceThreshold?: number;
+  /**
+   * When set, threaded into the `/chat-stream` POST body as
+   * `chat_prompt_context` — the backend uses it to continue a paused
+   * inline HITL gate on the next call (see `ChatPromptContext`).
+   * Only set on resume calls; leave undefined on the initial turn.
+   */
+  chatPromptContext?: ChatPromptContext;
   onToken: (token: string) => void;
   onMetadata?: (data: SSEMetadata) => void;
   onCitation?: (data: SSECitation) => void;

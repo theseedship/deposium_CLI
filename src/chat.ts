@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
 import type {
   AgentResumePayload,
+  ChatPromptContext,
   ChatStreamOptions,
   SSECitation,
   SSEChatPrompt,
@@ -183,9 +184,19 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   });
 
   // Resume loop — server may emit multiple chat_prompts in sequence
-  // (e.g. disambiguate → confirm step action → done). The resume URL
-  // matches the stream URL: in non-`--direct` mode this is Edge
-  // Runtime so the gateway's auth + rate-limiting apply on resume too.
+  // (e.g. disambiguate → confirm step action → done). Branch on whether
+  // the gate carries a `correlation_id`:
+  //
+  //   present → agent-step gate (intent-disambiguate). Resume via
+  //             POST /api/agent-resume { correlation_id, response }.
+  //   absent  → inline chat gate (scope, source, exhaustive-confirm,
+  //             clarification, S4, S5). Resume by re-POSTing the SAME
+  //             message to /chat-stream with `chatPromptContext`, which
+  //             the backend parses to continue the paused pipeline.
+  //
+  // The resume URL matches the stream URL: in non-`--direct` mode this
+  // is Edge Runtime so the gateway's auth + rate-limiting apply on
+  // resume too.
   while (pendingPrompts.length > 0) {
     const prompt = pendingPrompts.shift() as SSEChatPrompt;
 
@@ -195,7 +206,20 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
     process.stdout.write(chalk.green('AI: '));
 
-    await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
+    if (prompt.correlation_id) {
+      await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
+    } else {
+      const context: ChatPromptContext = {
+        original_query: args.message,
+        selected_value: decision.value ?? decision.values ?? '',
+        prompt_type: prompt.type,
+      };
+      await args.client.chatStream(args.streamUrl, args.message, {
+        directMcp: args.directMcp,
+        ...streamOpts,
+        chatPromptContext: context,
+      });
+    }
   }
 
   process.stdout.write('\n');
@@ -225,10 +249,13 @@ export async function handleChatPrompt(
       prompt.type === 'choice'
         ? (prompt.config?.options ?? []).map((o) => o.value).join('|')
         : prompt.type;
+    // Inline gates carry no `correlation_id`; report `inline-gate`
+    // instead of `undefined` so downstream logs stay searchable.
+    const trace = prompt.correlation_id ?? `inline-gate (${prompt.prompt_id})`;
     throw new Error(
       `Agent paused: waiting_for=${prompt.waiting_for ?? prompt.type} [${hint}]\n` +
         `--on-ambiguous=fail — exiting without a decision.\n` +
-        `Correlation ID: ${prompt.correlation_id}`
+        `Trace: ${trace}`
     );
   }
 
@@ -257,9 +284,9 @@ function autoPickFirst(prompt: SSEChatPrompt): AgentResumePayload {
   if (prompt.type === 'choice') {
     const first = prompt.config?.options?.[0];
     if (!first) {
+      const trace = prompt.correlation_id ?? `inline-gate (${prompt.prompt_id})`;
       throw new Error(
-        `--on-ambiguous=pick-first: chat_prompt type=choice has no options. ` +
-          `Correlation ID: ${prompt.correlation_id}`
+        `--on-ambiguous=pick-first: chat_prompt type=choice has no options. ` + `Trace: ${trace}`
       );
     }
     return { value: first.value };
@@ -294,11 +321,15 @@ async function inquirerPrompt(prompt: SSEChatPrompt): Promise<AgentResumePayload
   }
 
   if (prompt.type === 'confirm') {
+    // Confirm gates put their body in `config.message` (backend
+    // `hitl-gates.ts:197-235`); fall back to the top-level `message`
+    // for gates that don't write to `config`.
+    const body = prompt.config?.message ?? prompt.message ?? prompt.title ?? 'Continue?';
     const { ok } = await inquirer.prompt([
       {
         type: 'confirm',
         name: 'ok',
-        message: prompt.message ?? prompt.title ?? 'Continue?',
+        message: body,
         default: true,
       },
     ]);
