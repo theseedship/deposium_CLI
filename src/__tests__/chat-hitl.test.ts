@@ -101,6 +101,51 @@ describe('resolveOnAmbiguousMode', () => {
 });
 
 // ============================================================================
+// resolveAnalysisEffort — inline exhaustive-confirm decline signal
+// ============================================================================
+
+describe('resolveAnalysisEffort', () => {
+  test('exhaustive_confirm gate + approve → complete', async () => {
+    const { resolveAnalysisEffort } = await import('../chat');
+    const gate = makeConfirmPrompt({ waiting_for: 'exhaustive_confirm' });
+    expect(resolveAnalysisEffort(gate, { value: 'approve' })).toBe('complete');
+  });
+
+  test('exhaustive_confirm gate + decline (cancel) → quick', async () => {
+    const { resolveAnalysisEffort } = await import('../chat');
+    const gate = makeConfirmPrompt({ waiting_for: 'exhaustive_confirm' });
+    expect(resolveAnalysisEffort(gate, { value: 'cancel' })).toBe('quick');
+  });
+
+  test('exhaustive_confirm gate + any non-approve value → quick', async () => {
+    const { resolveAnalysisEffort } = await import('../chat');
+    const gate = makeConfirmPrompt({ waiting_for: 'exhaustive_confirm' });
+    expect(resolveAnalysisEffort(gate, { value: 'skip' })).toBe('quick');
+    expect(resolveAnalysisEffort(gate, { value: 'abort' })).toBe('quick');
+  });
+
+  test('any other gate → undefined (no effort override)', async () => {
+    const { resolveAnalysisEffort } = await import('../chat');
+    expect(
+      resolveAnalysisEffort(makeChoicePrompt({ waiting_for: 'scope' }), { value: 'rag' })
+    ).toBeUndefined();
+    expect(
+      resolveAnalysisEffort(makeConfirmPrompt({ waiting_for: 'confirm_action' }), {
+        value: 'approve',
+      })
+    ).toBeUndefined();
+  });
+
+  test('missing waiting_for (backend not yet deployed) → undefined (graceful degrade)', async () => {
+    const { resolveAnalysisEffort } = await import('../chat');
+    // Same confirm gate but WITHOUT the exhaustive_confirm tag: the CLI
+    // must not force an effort override, preserving prior behavior until
+    // the backend ships the signal.
+    expect(resolveAnalysisEffort(makeConfirmPrompt(), { value: 'cancel' })).toBeUndefined();
+  });
+});
+
+// ============================================================================
 // handleChatPrompt — mode dispatcher
 // ============================================================================
 
@@ -696,12 +741,81 @@ describe('runChatTurn', () => {
     expect(client.chatStream).toHaveBeenCalledTimes(2);
     const resumeCall = client.calls.filter((c) => c.method === 'chatStream')[1];
     expect(resumeCall.args[1]).toBe('Search for X');
-    const resumeOpts = resumeCall.args[2] as { chatPromptContext?: unknown };
+    const resumeOpts = resumeCall.args[2] as {
+      chatPromptContext?: unknown;
+      analysisEffort?: unknown;
+    };
     expect(resumeOpts.chatPromptContext).toEqual({
       original_query: 'Search for X',
       selected_value: 'rag',
       prompt_type: 'choice',
     });
+    // A non-exhaustive inline gate carries no effort override — the
+    // backend keeps its server-derived scope.
+    expect(resumeOpts.analysisEffort).toBeUndefined();
+  });
+
+  // v1.5.0 — the inline exhaustive-confirm gate's decline was silently
+  // dropped: the backend inline resume path does not consume the gate's
+  // 'cancel' answer, so declining still ran the multi-minute exhaustive
+  // analysis. Fixed by mapping accept/decline to the top-level
+  // analysis_effort field the backend DOES honor.
+  test('exhaustive-confirm decline → resume sends analysisEffort=quick', async () => {
+    const { runChatTurn } = await import('../chat');
+    // A confirm gate tagged exhaustive_confirm, declined via pick-first
+    // (default_choice.value='cancel' → not 'approve' → decline).
+    const gate = makeConfirmPrompt({
+      correlation_id: undefined,
+      waiting_for: 'exhaustive_confirm',
+      default_choice: { value: 'cancel' },
+    });
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'Analyse exhaustive ? ' },
+        { kind: 'chat_prompt', data: gate },
+      ],
+      [{ kind: 'token', data: 'Quick result.' }],
+    ]);
+
+    await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'cherche X',
+      conversationHistory: [],
+      onAmbiguous: 'pick-first',
+    });
+
+    const resumeCall = client.calls.filter((c) => c.method === 'chatStream')[1];
+    const opts = resumeCall.args[2] as { analysisEffort?: unknown };
+    expect(opts.analysisEffort).toBe('quick');
+  });
+
+  test('exhaustive-confirm accept → resume sends analysisEffort=complete', async () => {
+    const { runChatTurn } = await import('../chat');
+    const gate = makeConfirmPrompt({
+      correlation_id: undefined,
+      waiting_for: 'exhaustive_confirm',
+    });
+    const client = makeFakeClient([
+      [{ kind: 'chat_prompt', data: gate }],
+      [{ kind: 'token', data: 'Exhaustive result.' }],
+    ]);
+
+    // Inject an approve decision via a prompter (accept branch).
+    await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'cherche X',
+      conversationHistory: [],
+      onAmbiguous: 'prompt',
+      prompter: async () => ({ value: 'approve' }),
+    });
+
+    const resumeCall = client.calls.filter((c) => c.method === 'chatStream')[1];
+    const opts = resumeCall.args[2] as { analysisEffort?: unknown };
+    expect(opts.analysisEffort).toBe('complete');
   });
 
   test('chained chat_prompts (disambiguate → confirm → done) → resumes twice', async () => {

@@ -595,6 +595,13 @@ export class MCPClient {
       // a paused gate that carried no `correlation_id`. Backend parses
       // this at `chat-stream.ts:644/738/681-696`.
       chat_prompt_context: options.chatPromptContext,
+      // Top-level effort toggle. MUST be a sibling of chat_prompt_context,
+      // NOT nested inside it — the backend's `chat_prompt_context` Zod
+      // object has no passthrough, so any extra nested key is stripped.
+      // `'quick'` clamps the pipeline to a focused/fast scope
+      // (chat-stream.ts:1714-1720). Used to honor a decline of the
+      // inline exhaustive-confirm gate; undefined on all other calls.
+      analysis_effort: options.analysisEffort,
     });
 
     const response = await postSSE(url, body, this.sseContext(), 'Chat stream');
