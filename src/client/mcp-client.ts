@@ -17,7 +17,7 @@
  * ```typescript
  * import { MCPClient } from './client/mcp-client';
  *
- * const client = new MCPClient('https://mcp.deposium.ai', 'your-api-key');
+ * const client = new MCPClient('https://mcp.deposium.vip', 'your-api-key');
  *
  * // Call a tool
  * const result = await client.callTool('search_hub', {
@@ -154,7 +154,7 @@ import type {
  *
  * @example
  * ```typescript
- * const client = new MCPClient('https://mcp.deposium.ai', 'your-api-key');
+ * const client = new MCPClient('https://mcp.deposium.vip', 'your-api-key');
  *
  * // Search documents
  * const results = await client.callTool('search_hub', {
@@ -186,7 +186,7 @@ export class MCPClient {
   /**
    * Create a new MCP client instance
    *
-   * @param baseUrl - Base URL of the Deposium API (e.g., 'https://mcp.deposium.ai')
+   * @param baseUrl - Base URL of the Deposium API (e.g., 'https://mcp.deposium.vip')
    * @param apiKey - API key for authentication
    * @param options - Additional client configuration options
    */

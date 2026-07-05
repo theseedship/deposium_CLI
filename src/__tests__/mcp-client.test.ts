@@ -592,6 +592,35 @@ describe('MCPClient', () => {
     });
 
     /**
+     * The postStream path (native fetch) must send
+     * `Accept: application/json, text/event-stream` — `/mcp` hard-requires
+     * both content types via its `acceptHeaderGuard` and 406s any bare
+     * fetch call (which defaults to the wildcard). Regression guard for the
+     * `deposium validate` 406 that shipped in v1.4.3.
+     */
+    test('postStream path includes Accept: application/json, text/event-stream', async () => {
+      mockFetchSSE(makeSSE([{ event: 'done', data: { total_duration_ms: 0, tools_called: [] } }]));
+
+      const mockAxios = {
+        post: vi.fn(() => Promise.resolve({ data: {} })),
+        get: vi.fn(() => Promise.resolve({ data: {} })),
+        defaults: { headers: { common: {} } },
+      };
+      vi.spyOn(axios, 'create').mockReturnValue(
+        mockAxios as unknown as ReturnType<typeof axios.create>
+      );
+
+      const client = new MCPClient('http://localhost:3000', 'k');
+      await client.chatStream('http://localhost:9000', 'hi', { onToken: () => {} });
+
+      const fetchCall = fetchSpy!.mock.calls[0];
+      const reqInit = fetchCall[1] as RequestInit;
+      expect((reqInit.headers as Record<string, string>)['Accept']).toBe(
+        'application/json, text/event-stream'
+      );
+    });
+
+    /**
      * The postStream path (native fetch) must also carry
      * `X-Client-Type: cli`. This is a second injection site distinct
      * from the axios constructor.
