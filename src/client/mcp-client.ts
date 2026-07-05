@@ -68,6 +68,7 @@ export type {
   SSEError,
   SSEChatPromptOption,
   SSEChatPrompt,
+  ChatPromptContext,
   ChatStreamOptions,
   AgentResumePayload,
   MCPSpace,
@@ -585,6 +586,10 @@ export class MCPClient {
       documents_only: options.documentsOnly,
       language: options.language ?? 'fr',
       confidence_threshold: options.confidenceThreshold,
+      // Inline HITL resume — only present when re-calling to continue
+      // a paused gate that carried no `correlation_id`. Backend parses
+      // this at `chat-stream.ts:644/738/681-696`.
+      chat_prompt_context: options.chatPromptContext,
     });
 
     const response = await postSSE(url, body, this.sseContext(), 'Chat stream');

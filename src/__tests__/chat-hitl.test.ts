@@ -430,6 +430,50 @@ describe('runChatTurn', () => {
     expect(resumeCall.args[2]).toEqual({ value: 'rag' });
   });
 
+  // v1.5.0 — inline `/chat-stream` gates (scope, source, exhaustive-
+  // confirm, S4, S5, clarification) carry no `correlation_id`. The
+  // v1.4.3 CLI POST'd `/api/agent-resume { correlation_id: undefined }`
+  // → hard 400 → the user's decision was silently discarded. The fix
+  // branches on presence: absent → re-POST /chat-stream with
+  // `chatPromptContext { original_query, selected_value, prompt_type }`.
+  test('inline gate (no correlation_id) → re-POSTs /chat-stream with chatPromptContext', async () => {
+    const { runChatTurn } = await import('../chat');
+    const inlinePrompt = makeChoicePrompt({
+      correlation_id: undefined,
+      waiting_for: 'scope',
+    });
+    const client = makeFakeClient([
+      [
+        { kind: 'token', data: 'Which scope? ' },
+        { kind: 'chat_prompt', data: inlinePrompt },
+      ],
+      [{ kind: 'token', data: 'Done.' }],
+    ]);
+
+    const response = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Search for X',
+      conversationHistory: [],
+      onAmbiguous: 'pick-first',
+    });
+
+    expect(response).toBe('Which scope? Done.');
+    // Resume must go through chatStream (NOT resumeAgent), with the
+    // original message and a fully-populated chatPromptContext.
+    expect(client.resumeAgent).not.toHaveBeenCalled();
+    expect(client.chatStream).toHaveBeenCalledTimes(2);
+    const resumeCall = client.calls.filter((c) => c.method === 'chatStream')[1];
+    expect(resumeCall.args[1]).toBe('Search for X');
+    const resumeOpts = resumeCall.args[2] as { chatPromptContext?: unknown };
+    expect(resumeOpts.chatPromptContext).toEqual({
+      original_query: 'Search for X',
+      selected_value: 'rag',
+      prompt_type: 'choice',
+    });
+  });
+
   test('chained chat_prompts (disambiguate → confirm → done) → resumes twice', async () => {
     const { runChatTurn } = await import('../chat');
     const client = makeFakeClient([
