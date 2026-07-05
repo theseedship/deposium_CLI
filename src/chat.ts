@@ -183,11 +183,29 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     // authoritative. This is what stops chart-JSON dumps and un-swapped
     // Guardian text from being displayed and fed back next turn.
     onAnswerReplace: (data) => {
+      // Erase the MULTI-line streamed draft on screen before reprinting.
+      // A `\r\x1b[K` alone only clears the current terminal line, so a
+      // chart / mermaid / table draft that spanned multiple lines
+      // would leave the earlier lines visible above the canonical
+      // answer (which is the whole bug this event is meant to fix).
+      // Count newlines in what we streamed so far and walk up +
+      // clear line-by-line, then also erase the leading "AI: " line
+      // so the reprint is the only visible answer.
+      //
+      // Not perfectly wrap-safe on very narrow TTYs (a single very
+      // long line the terminal soft-wrapped into N screen rows only
+      // counts as one `\n`). That's a graceful degradation — the
+      // canonical answer still renders below; at worst the user sees
+      // a partial artifact of the wrapped draft above it. Prior state
+      // was that the entire draft persisted.
+      const linesToClear = (fullResponse.match(/\n/g) ?? []).length;
+      // Move up + clear line, for each streamed newline.
+      for (let i = 0; i < linesToClear; i++) {
+        process.stdout.write('\x1b[F\x1b[K');
+      }
+      // Clear the current (partial-last) line + "AI: " prefix.
+      process.stdout.write('\r\x1b[K');
       fullResponse = data.final_answer;
-      // Clear the streamed draft on screen with a fresh render. The
-      // ANSI erase sequence (`\r\x1b[2K`) rewinds to line start then
-      // clears the line; then re-print the canonical answer.
-      process.stdout.write('\r\x1b[2K');
       process.stdout.write(chalk.green('AI: ') + data.final_answer);
     },
     onVerification: (v) => {
