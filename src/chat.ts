@@ -356,9 +356,14 @@ async function inquirerPrompt(prompt: SSEChatPrompt): Promise<AgentResumePayload
         default: prompt.default_choice?.value ? prompt.default_choice.value === 'approve' : true,
       },
     ]);
-    // Map the decline branch to the server's declared safe default
-    // when present (skip/cancel), instead of a hardcoded 'abort'.
-    const declineValue = prompt.default_choice?.value ?? 'abort';
+    // Preserve explicit interactive decline: when the user picks `No`,
+    // they never want us to send `approve`. Use the server-declared
+    // safe default only when it's ITSELF a non-approving value
+    // (skip / cancel / abort); otherwise fall back to `abort`. A
+    // `default_choice.value === 'approve'` server hint applies to
+    // Enter-to-accept, not to an explicit rejection.
+    const serverDefault = prompt.default_choice?.value;
+    const declineValue = serverDefault && serverDefault !== 'approve' ? serverDefault : 'abort';
     return { value: ok ? 'approve' : declineValue };
   }
 
