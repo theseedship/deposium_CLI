@@ -55,6 +55,11 @@ export async function postSSE(
 ): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    // `/mcp` hard-requires both content types via its acceptHeaderGuard —
+    // a bare fetch call defaults to `*/*` which the server 406s
+    // (`accept_invalid`). Mirror the exact value the axios client sets
+    // in the MCPClient constructor so both transports behave the same.
+    Accept: 'application/json, text/event-stream',
     'User-Agent': ctx.userAgent,
     // Same caller tag as the constructor's axios default headers.
     // Mirrored explicitly here because this path uses native fetch
