@@ -25,7 +25,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 
 ### Prerequisites
 
-- **Node.js**: >= 22.x
+- **Node.js**: `^22.13.0` or `>=23.5.0`; Node 24 is the recommended development runtime
 - **npm**: Latest version
 - **Git**: For version control
 
@@ -283,7 +283,7 @@ Every PR triggers automated checks on GitHub Actions:
 - ✅ Prettier check
 - ✅ TypeScript type checking
 - ✅ Tests execution
-- 🔄 Runs on Node 22.x
+- 🔄 Runs on Node 22.x and Node 24.x
 
 ### Build Job
 
