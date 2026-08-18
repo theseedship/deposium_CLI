@@ -25,7 +25,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 
 ### Prerequisites
 
-- **Node.js**: `^22.13.0` or `>=23.5.0`; Node 24 is the recommended development runtime
+- **Node.js**: `^22.13.0` or `>=23.5.0`; this matches Inquirer 13's runtime floor, and Node 24 is recommended for development
 - **npm**: Latest version
 - **Git**: For version control
 
@@ -283,7 +283,7 @@ Every PR triggers automated checks on GitHub Actions:
 - ✅ Prettier check
 - ✅ TypeScript type checking
 - ✅ Tests execution
-- 🔄 Runs on Node 22.x and Node 24.x
+- 🔄 Quality and build checks run on Node 22.13.0 and Node 24.x; security and publishing use Node 24.x
 
 ### Build Job
 
