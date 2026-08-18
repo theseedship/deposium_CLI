@@ -25,7 +25,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 
 ### Prerequisites
 
-- **Node.js**: `^22.13.0` or `>=23.5.0`; this matches Inquirer 13's runtime floor, and Node 24 is recommended for development
+- **Node.js**: `^22.13.0` or `>=24`; the Node 22 floor follows Inquirer 13, Node 23 is not supported, and Node 24 is recommended for development
 - **npm**: Latest version
 - **Git**: For version control
 
