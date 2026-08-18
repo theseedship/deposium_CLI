@@ -59,39 +59,39 @@
     "access": "public"
   },
   "dependencies": {
-    "axios": "^1.13.2",
+    "axios": "^1.19.0",
     "boxen": "^8.0.1",
     "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "conf": "^15.1.0",
-    "dotenv": "^17.2.4",
-    "glob": "^13.0.2",
+    "dotenv": "^17.4.2",
+    "glob": "^13.0.6",
     "gradient-string": "^3.0.0",
-    "inquirer": "^13.2.2",
+    "inquirer": "^13.4.3",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",
     "mime-types": "^3.0.2",
-    "ora": "^9.3.0"
+    "ora": "^9.4.1"
   },
   "devDependencies": {
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^22.19.11",
-    "@typescript-eslint/eslint-plugin": "^8.55.0",
-    "@typescript-eslint/parser": "^8.55.0",
-    "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.39.2",
+    "@types/node": "^22.20.1",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-prettier": "^5.5.6",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.8.1",
-    "tsx": "^4.21.0",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.10"
   },
   "engines": {
-    "node": ">=22",
+    "node": "^22.13.0 || >=23.5.0",
     "bun": ">=1.0.0"
   },
   "overrides": {
