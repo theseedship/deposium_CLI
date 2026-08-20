@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-08-20
+
+### Fixed
+
+- MCP requests now use a UUID v4 that remains stable across transport retries.
+  This lets the MCP 2026 catalog observer pair legacy and modern observations
+  without counting one user operation multiple times.
+
+### Changed
+
+- Refreshed direct and development dependency baselines.
+- CI now validates Node.js 22.13 and 24; npm releases build on Node.js 24.
+- Successful npm releases notify the documentation site to rebuild on a
+  best-effort basis.
+
 ## [1.5.0] - 2026-07-05
 
 A CLI ↔ backend drift-correction release. A multi-agent audit of the CLI
