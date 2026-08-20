@@ -8,6 +8,7 @@
  */
 
 import type { AxiosError } from 'axios';
+import { randomUUID } from 'node:crypto';
 import type { MCPToolResult } from './types';
 import { buildAuthError } from './auth-error';
 
@@ -45,9 +46,7 @@ export function parseSSEEvent(part: string): { eventType: string; dataStr: strin
  * Generate a unique request ID for tracing
  */
 export function generateRequestId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `cli-${timestamp}-${random}`;
+  return randomUUID();
 }
 
 /**

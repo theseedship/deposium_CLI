@@ -388,7 +388,9 @@ describe('MCPClient', () => {
       const result = await client.callTool('test', {});
 
       expect(result.content.requestId).toBeDefined();
-      expect(result.content.requestId).toMatch(/^cli-[a-z0-9]+-[a-z0-9]+$/);
+      expect(result.content.requestId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+      );
     });
   });
 
@@ -414,6 +416,50 @@ describe('MCPClient', () => {
       const tools = await client.listTools();
 
       expect(tools).toEqual(mockTools);
+    });
+
+    test('reuses one UUID request ID across retries', async () => {
+      const requestIds: string[] = [];
+      let attempt = 0;
+      const mockAxios = {
+        post: vi.fn(
+          (_path: string, _body: unknown, options?: { headers?: Record<string, string> }) => {
+            requestIds.push(options?.headers?.['X-Request-ID'] ?? '');
+            attempt += 1;
+            if (attempt === 1) {
+              const error = new AxiosError('Service Unavailable');
+              error.response = {
+                status: 503,
+                statusText: 'Service Unavailable',
+                data: {},
+                headers: {},
+                config: { headers: new AxiosHeaders() },
+              };
+              return Promise.reject(error);
+            }
+            return Promise.resolve({
+              data: { result: { tools: [{ name: 'tool1' }] }, isError: false },
+            });
+          }
+        ),
+        get: vi.fn(() => Promise.resolve({ data: {} })),
+        defaults: { headers: { common: {} } },
+      };
+      vi.spyOn(axios, 'create').mockReturnValue(
+        mockAxios as unknown as ReturnType<typeof axios.create>
+      );
+      const client = new MCPClient('http://localhost:3000', 'api-key', {
+        maxRetries: 1,
+        retryBaseDelay: 1,
+      });
+
+      await expect(client.listTools()).resolves.toEqual([{ name: 'tool1' }]);
+
+      expect(requestIds).toHaveLength(2);
+      expect(new Set(requestIds).size).toBe(1);
+      expect(requestIds[0]).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+      );
     });
 
     test('should return empty array on error', async () => {
