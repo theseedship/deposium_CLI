@@ -395,6 +395,10 @@ describe('MCPClient', () => {
   });
 
   describe('listTools', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     test('should return tools array on success', async () => {
       const mockTools = [{ name: 'tool1' }, { name: 'tool2' }];
 
