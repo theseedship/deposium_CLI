@@ -1,0 +1,127 @@
+{
+  "scenario": "02-correction",
+  "ledger": "scenarios/02-correction.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:regex": {
+      "sequence_no": 2,
+      "checksum": "ca90be0e0651fbe7804303736fd4fdecca2f0c3e84dd021a72954f80cf743298"
+    }
+  },
+  "chain": {
+    "streams": 1,
+    "envelopes": 2,
+    "ok": true,
+    "findings": []
+  },
+  "cases": [
+    {
+      "name": "valid at 1987, ledger as it stands",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1987"
+      },
+      "reasoning": "Without as_of every supersession counts: A1 is superseded, A2 stands.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987",
+            "reason": "superseded"
+          }
+        ],
+        "undecided": [],
+        "hash": "f1e6b3887ddc6ca0989055704302711516d19e888c7bbf1a2d240b163ae54e84"
+      }
+    },
+    {
+      "name": "as of T0: before the correction",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "A2 (T1) is not held yet, so A1 is not superseded yet.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "51ef0ca4195ad8980a501d56615f05dae6b8d3e80218f1eae78afcc4a1fc635c"
+      }
+    },
+    {
+      "name": "as of T1: the instant of the correction",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-11T11:18:58Z"
+      },
+      "reasoning": "A2 held at T1 (inclusive) supersedes A1 from T1.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987",
+            "reason": "superseded"
+          }
+        ],
+        "undecided": [],
+        "hash": "f1e6b3887ddc6ca0989055704302711516d19e888c7bbf1a2d240b163ae54e84"
+      }
+    },
+    {
+      "name": "both axes: valid 1988, as of T2",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1988",
+        "as_of": "2026-08-12T11:18:58Z"
+      },
+      "reasoning": "Withdrawal is decided before validity: A1 reads superseded, not no_longer_valid; A2 is past its exclusive end.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987",
+            "reason": "no_longer_valid"
+          }
+        ],
+        "undecided": [],
+        "hash": "91983335165f1896d1ec8e20467d495ffa8f793936390d553ce24d1b8fe097ae"
+      }
+    },
+    {
+      "name": "both axes: valid 1987, as of midnight before T1",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1987",
+        "as_of": "2026-08-11T00:00:00Z"
+      },
+      "reasoning": "Between T0 and T1 the ledger still holds A1 alone.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "51ef0ca4195ad8980a501d56615f05dae6b8d3e80218f1eae78afcc4a1fc635c"
+      }
+    }
+  ]
+}

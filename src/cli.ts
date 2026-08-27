@@ -25,7 +25,8 @@ import { spaceCommand } from './commands/space';
 import { filesCommand } from './commands/files';
 import { apiKeysCommand } from './commands/api-keys';
 import { validateCommand } from './commands/validate';
-import { getConfig, getBaseUrl } from './utils/config';
+import { temporalAssertionCommand } from './commands/temporal-assertion';
+import { runPreflight } from './utils/cli-preflight';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
 
@@ -94,31 +95,11 @@ program
   .version(pkg.version)
   .option('--insecure', 'Allow insecure HTTP connections to non-localhost servers')
   .hook('preAction', async () => {
-    // Propagate --insecure flag to env var so enforceUrlSecurity() can read it
-    const globalOpts = program.opts();
-    if (globalOpts.insecure) {
-      process.env.DEPOSIUM_INSECURE = 'true';
-    }
-
-    // Check if Deposium server URL is configured
-    const config = getConfig();
-    const insecure = globalOpts.insecure ?? process.env.DEPOSIUM_INSECURE === 'true';
-    const baseUrl = getBaseUrl(config, { insecure });
-    // Skip config check for commands that don't use API, or if using default localhost
-    const noApiCommands = ['config', 'auth'];
-    const currentCommand = program.args[0];
-    if (
-      currentCommand &&
-      !noApiCommands.includes(currentCommand) &&
-      !config.deposiumUrl &&
-      !config.mcpUrl
-    ) {
-      console.log(chalk.yellow('⚠️  Deposium server URL not configured.'));
-      console.log(chalk.gray(`Using default: ${chalk.cyan(baseUrl)}`));
-      console.log(
-        chalk.gray('To change, run: ') + chalk.cyan('deposium config set deposium-url <url>')
-      );
-    }
+    // The command name is settled FIRST: `runPreflight` reads nothing at all for a command
+    // that does not use the API, so the offline verifier never resolves a base URL (and
+    // never trips over an http:// non-localhost one configured without --insecure).
+    const globalOpts = program.opts<{ insecure?: boolean }>();
+    runPreflight(program.args[0], { insecure: globalOpts.insecure });
   });
 
 // Commands
@@ -145,6 +126,7 @@ program.addCommand(spaceCommand);
 program.addCommand(filesCommand);
 program.addCommand(apiKeysCommand);
 program.addCommand(validateCommand);
+program.addCommand(temporalAssertionCommand);
 
 // Interactive mode
 program

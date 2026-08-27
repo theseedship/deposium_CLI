@@ -1,0 +1,145 @@
+{
+  "scenario": "04-retroactive",
+  "ledger": "scenarios/04-retroactive.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:entity_year_cooccurrence": {
+      "sequence_no": 1,
+      "checksum": "372927ec0ba8d113a44e0102be6ddd0d080eddbd63e915951b32b9098bfb880b"
+    }
+  },
+  "chain": {
+    "streams": 1,
+    "envelopes": 1,
+    "ok": true,
+    "findings": []
+  },
+  "cases": [
+    {
+      "name": "R1: valid at 1999, present",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1999"
+      },
+      "reasoning": "from 1987 <= 1999, open end: the fact was true in 1999.",
+      "expected": {
+        "in_scope": [
+          "ent|agent|ecorys|1987"
+        ],
+        "excluded": [],
+        "undecided": [],
+        "hash": "d4f6b1c0d2f971881ffcf53cf4e8f1c1a6cd4f56bda1d3de0bc448092eda0ca4"
+      }
+    },
+    {
+      "name": "R1: as of 2000, absent",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2000"
+      },
+      "reasoning": "recorded_at is 2026 (invariant 9): in 2000 the ledger knew nothing.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|agent|ecorys|1987",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "986e1a1a8031241f9aabbac4c2846be9c9faebe121760da761046d49fff70b23"
+      }
+    },
+    {
+      "name": "both axes: valid 1999, as of 2000",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1999",
+        "as_of": "2000"
+      },
+      "reasoning": "True in 1999, but not recorded by 2000: absent.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|agent|ecorys|1987",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "986e1a1a8031241f9aabbac4c2846be9c9faebe121760da761046d49fff70b23"
+      }
+    },
+    {
+      "name": "both axes: valid 1999, as of T0",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1999",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "Once recorded, what was true in 1999 is visible.",
+      "expected": {
+        "in_scope": [
+          "ent|agent|ecorys|1987"
+        ],
+        "excluded": [],
+        "undecided": [],
+        "hash": "d4f6b1c0d2f971881ffcf53cf4e8f1c1a6cd4f56bda1d3de0bc448092eda0ca4"
+      }
+    },
+    {
+      "name": "valid at 1986: before the start",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1986"
+      },
+      "reasoning": "1986 < from 1987.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|agent|ecorys|1987",
+            "reason": "not_yet_valid"
+          }
+        ],
+        "undecided": [],
+        "hash": "61a9cb7148b094158167c2861e6b716d94012fe8bb8762bdf555a3aba4b787d9"
+      }
+    },
+    {
+      "name": "valid at 2030: the open end asserts continuity",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "2030"
+      },
+      "reasoning": "'open' ASSERTS the fact is still true (invariant 10).",
+      "expected": {
+        "in_scope": [
+          "ent|agent|ecorys|1987"
+        ],
+        "excluded": [],
+        "undecided": [],
+        "hash": "d4f6b1c0d2f971881ffcf53cf4e8f1c1a6cd4f56bda1d3de0bc448092eda0ca4"
+      }
+    },
+    {
+      "name": "both axes: valid 1987, as of 1987",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1987",
+        "as_of": "1987"
+      },
+      "reasoning": "The year it became true, the ledger did not exist.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|agent|ecorys|1987",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "986e1a1a8031241f9aabbac4c2846be9c9faebe121760da761046d49fff70b23"
+      }
+    }
+  ]
+}

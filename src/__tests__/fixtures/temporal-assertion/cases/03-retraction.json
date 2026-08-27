@@ -1,0 +1,133 @@
+{
+  "scenario": "03-retraction",
+  "ledger": "scenarios/03-retraction.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:entity_year_cooccurrence": {
+      "sequence_no": 2,
+      "checksum": "27e61a0f04b168338b0d8711f068d972c00a809649a06c3f644cc28b61580aaa"
+    }
+  },
+  "chain": {
+    "streams": 1,
+    "envelopes": 2,
+    "ok": true,
+    "findings": []
+  },
+  "cases": [
+    {
+      "name": "valid at 1987, ledger as it stands",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1987"
+      },
+      "reasoning": "The retraction counts; a retraction is never a fact in scope.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|system|msfd|1987",
+            "reason": "retracted"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|retract",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "1761dc6db592e43807a65d502568cba42ba1581be4ca94394ac4aeb26e916d0e"
+      }
+    },
+    {
+      "name": "as of T1: before the retraction",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-11T11:18:58Z"
+      },
+      "reasoning": "R (T2) is not held; A stands. R is still listed, as a retraction.",
+      "expected": {
+        "in_scope": [
+          "ent|system|msfd|1987"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "ent|system|msfd|1987|retract",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "5436d6daac405f1aa3a74eb5e4fab444be343c08426be231882dcddba2e49f23"
+      }
+    },
+    {
+      "name": "as of T2: the instant of the retraction",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-12T11:18:58Z"
+      },
+      "reasoning": "R held at T2 (inclusive) withdraws A.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|system|msfd|1987",
+            "reason": "retracted"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|retract",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "1761dc6db592e43807a65d502568cba42ba1581be4ca94394ac4aeb26e916d0e"
+      }
+    },
+    {
+      "name": "both axes: valid 1990, as of T2",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1990",
+        "as_of": "2026-08-12T11:18:58Z"
+      },
+      "reasoning": "Withdrawal before validity: A reads retracted, not no_longer_valid.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|system|msfd|1987",
+            "reason": "retracted"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|retract",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "1761dc6db592e43807a65d502568cba42ba1581be4ca94394ac4aeb26e916d0e"
+      }
+    },
+    {
+      "name": "both axes: valid 1990, as of T1",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1990",
+        "as_of": "2026-08-11T11:18:58Z"
+      },
+      "reasoning": "Not retracted yet, so the valid axis decides: 1990 >= exclusive end 1988.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|system|msfd|1987",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|retract",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "42fd26d51d43e4a38ec17c87e92dd26b89b16e97cde1b0601715f7d0304c0cfb"
+      }
+    }
+  ]
+}

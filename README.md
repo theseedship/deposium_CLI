@@ -35,32 +35,33 @@ Detailed documentation is available in the `docs/` directory:
 
 ### Command Reference
 
-| Command                                             | Description                           |
-| :-------------------------------------------------- | :------------------------------------ |
-| **[api-keys](docs/commands/api-keys.md)**           | Manage server-side API keys           |
-| **[auth](docs/commands/auth.md)**                   | Authenticate the CLI (local store)    |
-| **[benchmark](docs/commands/benchmark.md)**         | Run LLM benchmarks (OpenBench)        |
-| **[chat](docs/commands/chat.md)**                   | Interactive AI chat mode              |
-| **[compound](docs/commands/compound.md)**           | Multi-tool logic and reasoning        |
-| **[config](docs/commands/config.md)**               | CLI configuration management          |
-| **[corpus](docs/commands/corpus.md)**               | Corpus stats and evaluation           |
-| **[dspy](docs/commands/dspy.md)**                   | Intelligent query routing (DSPy)      |
-| **[duckdb](docs/commands/duckdb.md)**               | Database connection and federation    |
-| **[evaluate](docs/commands/evaluate.md)**           | Metrics, dashboards, and feedback     |
-| **[files](docs/commands/files.md)**                 | Manage documents (list/show/check/rm) |
-| **[graph](docs/commands/graph.md)**                 | Graph analysis and traversal          |
-| **[health](docs/commands/health.md)**               | System health and connectivity        |
-| **[intelligence](docs/commands/intelligence.md)**   | AI query analysis and hints           |
-| **[leanrag](docs/commands/leanrag.md)**             | Optimized retrieval (LeanRAG)         |
-| **[logs](docs/commands/logs.md)**                   | View and search server logs           |
-| **[mermaid](docs/commands/mermaid.md)**             | Diagram generation and querying       |
-| **[query-history](docs/commands/query-history.md)** | Track and analyze query history       |
-| **[search](docs/commands/search.md)**               | Document search (Vector/BM25 FTS)     |
-| **[space](docs/commands/space.md)**                 | Manage workspaces (list/show/create)  |
-| **[tools](docs/commands/tools.md)**                 | List available MCP tools              |
-| **[ui](docs/commands/ui.md)**                       | Launch interactive dashboards         |
-| **[upload-batch](docs/commands/upload-batch.md)**   | Batch file upload utility             |
-| **[validate](docs/commands/validate.md)**           | Validate dossier (N1+N2+HITL)         |
+| Command                                                       | Description                           |
+| :------------------------------------------------------------ | :------------------------------------ |
+| **[api-keys](docs/commands/api-keys.md)**                     | Manage server-side API keys           |
+| **[auth](docs/commands/auth.md)**                             | Authenticate the CLI (local store)    |
+| **[benchmark](docs/commands/benchmark.md)**                   | Run LLM benchmarks (OpenBench)        |
+| **[chat](docs/commands/chat.md)**                             | Interactive AI chat mode              |
+| **[compound](docs/commands/compound.md)**                     | Multi-tool logic and reasoning        |
+| **[config](docs/commands/config.md)**                         | CLI configuration management          |
+| **[corpus](docs/commands/corpus.md)**                         | Corpus stats and evaluation           |
+| **[dspy](docs/commands/dspy.md)**                             | Intelligent query routing (DSPy)      |
+| **[duckdb](docs/commands/duckdb.md)**                         | Database connection and federation    |
+| **[evaluate](docs/commands/evaluate.md)**                     | Metrics, dashboards, and feedback     |
+| **[files](docs/commands/files.md)**                           | Manage documents (list/show/check/rm) |
+| **[graph](docs/commands/graph.md)**                           | Graph analysis and traversal          |
+| **[health](docs/commands/health.md)**                         | System health and connectivity        |
+| **[intelligence](docs/commands/intelligence.md)**             | AI query analysis and hints           |
+| **[leanrag](docs/commands/leanrag.md)**                       | Optimized retrieval (LeanRAG)         |
+| **[logs](docs/commands/logs.md)**                             | View and search server logs           |
+| **[mermaid](docs/commands/mermaid.md)**                       | Diagram generation and querying       |
+| **[query-history](docs/commands/query-history.md)**           | Track and analyze query history       |
+| **[search](docs/commands/search.md)**                         | Document search (Vector/BM25 FTS)     |
+| **[space](docs/commands/space.md)**                           | Manage workspaces (list/show/create)  |
+| **[temporal-assertion](docs/commands/temporal-assertion.md)** | Oracle: temporal-assertion fixtures   |
+| **[tools](docs/commands/tools.md)**                           | List available MCP tools              |
+| **[ui](docs/commands/ui.md)**                                 | Launch interactive dashboards         |
+| **[upload-batch](docs/commands/upload-batch.md)**             | Batch file upload utility             |
+| **[validate](docs/commands/validate.md)**                     | Validate dossier (N1+N2+HITL)         |
 
 ## 📦 Quick Install
 
