@@ -2,7 +2,7 @@
 
 # Command Reference
 
-This directory contains detailed documentation for all 23 Deposium CLI commands.
+This directory contains detailed documentation for all 25 Deposium CLI commands.
 
 ## Core Commands
 
@@ -39,6 +39,8 @@ This directory contains detailed documentation for all 23 Deposium CLI commands.
 
 - **[validate](validate.md)**: Validate a dossier end-to-end
   (N1 per-thematic + N2 cross-document + HITL form prompts).
+- **[temporal-assertion](temporal-assertion.md)**: Offline oracle for `temporal-assertion/v1`
+  fixtures (checksums, chain verdicts, AT / AS OF snapshots). No configuration, no server.
 
 ## Evaluation & Metrics
 

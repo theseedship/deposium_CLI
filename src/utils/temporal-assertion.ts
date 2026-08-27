@@ -975,8 +975,14 @@ function auditStream(
 
 /**
  * The sealed lines of one stream, in `sequence_no` order. Returns its findings and the last
- * line ACCEPTED as the chain's end — a duplicate never becomes it, and neither does a line
- * the encoder refused, though such a line still hands its DECLARED checksum on.
+ * line ACCEPTED as the chain's end.
+ *
+ * A duplicate never becomes that end: it is reported and skipped, and the chain goes on from
+ * the first line to carry its `sequence_no`. An `unhashable` line DOES become it, on its
+ * DECLARED checksum, exactly as the canonical `verifyChain` does: the ledger still holds
+ * that line, so its successor's `previous_checksum` must still name it and the committed
+ * head must still compare against it. Refusing to hash a line says what the verifier can
+ * recompute, never what the ledger contains.
  */
 function walkSequence(
   streamId: string,

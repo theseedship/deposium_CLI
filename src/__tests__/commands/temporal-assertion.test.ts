@@ -687,6 +687,19 @@ describe('verifyLedgerChain', () => {
     expect(report!.findings.some((f) => f.verdict === 'previous_checksum_mismatch')).toBe(false);
     // The untouched ledger is clean: the two findings come from the two mutations alone.
     expect(verifyLedgerChain(vendoredLedger('02-correction')).findings).toEqual([]);
+
+    // An unhashable line does not blind the verifier to what follows it: the chain head
+    // advanced on its DECLARED checksum, so a clean successor and the committed head both
+    // still resolve. Only the refusal is reported.
+    const spec = vendoredCaseFiles().find((s) => s.scenario === '02-correction')!;
+    const partly = vendoredLedger('02-correction').map((e) => ({
+      ...e,
+      statement: { ...e.statement! },
+    }));
+    partly[0].statement.object = new Date(0);
+    const anchored = verifyLedgerChain(partly, { heads: spec.heads });
+    expect(anchored.findings.map((f) => f.verdict)).toEqual(['unhashable']);
+    expect(anchored.findings[0].sequence_no).toBe(1);
   });
 
   test('a whole stream removed under a committed head is stream_absent', () => {
