@@ -1,6 +1,44 @@
 {
   "scenario": "07-kind-variations",
   "ledger": "scenarios/07-kind-variations.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:bounded-bounded": {
+      "sequence_no": 3,
+      "checksum": "db86c39150ba918772aa745251cc8397aa8200226579c378cb6b36a1995fdd93"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:bounded-open": {
+      "sequence_no": 3,
+      "checksum": "26f88bdff0057f2f038054a82339e12fd74648a91ad078873fc032434d139585"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:bounded-unknown": {
+      "sequence_no": 3,
+      "checksum": "791008ffc201240e7bbdd151009c0c78fc0e967259dc7ebf2168c92571a83b80"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:open-bounded": {
+      "sequence_no": 3,
+      "checksum": "69df248d77a1926f391fc075faae31c34be986b205f5a47a020a2a1e5132d722"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:open-open": {
+      "sequence_no": 3,
+      "checksum": "a9eb3d549941bf60ac3f58117756cb28accc4a67f40aee3fa7beef551ff6686b"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:open-unknown": {
+      "sequence_no": 3,
+      "checksum": "097bf7863dcb0df3fa85df84927f822d4ccf5815d6f5136fb47db30e1b82f8e0"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:unknown-bounded": {
+      "sequence_no": 3,
+      "checksum": "0eb524bee77e08225ef9bbf23c21795b23c31a7be278f64a4aca3a01a8b2b0da"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:unknown-open": {
+      "sequence_no": 3,
+      "checksum": "d59f9624cd3c999d773e15c882a7bfeb7612f4f76418fa6ba733e6eb62d052ab"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/variation:unknown-unknown": {
+      "sequence_no": 3,
+      "checksum": "3f984d20fd0cfc156beccb35e9b72cc7e5dc52605145394657205f9ab841fb27"
+    }
+  },
   "chain": {
     "streams": 9,
     "envelopes": 27,
@@ -16,7 +54,10 @@
       },
       "reasoning": "Ledger as it stands: seq 1 superseded, seq 3 is a retraction, seq 2 judged by its bound kinds at 1985.",
       "expected": {
-        "in_scope": ["ent|agent|germany|1987|open-bounded|2", "ent|agent|greece|1987|open-open|2"],
+        "in_scope": [
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
         "excluded": [
           {
             "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
@@ -1359,7 +1400,10 @@
       },
       "reasoning": "Transaction axis picks the standing line (seq 2), then its bound kinds decide at 1985.",
       "expected": {
-        "in_scope": ["ent|agent|germany|1987|open-bounded|2", "ent|agent|greece|1987|open-open|2"],
+        "in_scope": [
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
         "excluded": [
           {
             "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",

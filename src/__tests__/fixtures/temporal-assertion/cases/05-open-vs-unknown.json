@@ -1,6 +1,12 @@
 {
   "scenario": "05-open-vs-unknown",
   "ledger": "scenarios/05-open-vs-unknown.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:entity_year_cooccurrence": {
+      "sequence_no": 2,
+      "checksum": "a3adcbea71de3c644bb0ab5b57ccf6c0111174d5a5c732802e3d75311595b9c1"
+    }
+  },
   "chain": {
     "streams": 1,
     "envelopes": 2,
@@ -16,7 +22,9 @@
       },
       "reasoning": "'open' covers 1999; 'unknown' cannot say whether the fact had ended: undecided.",
       "expected": {
-        "in_scope": ["ent|location|netherlands|1987|open"],
+        "in_scope": [
+          "ent|location|netherlands|1987|open"
+        ],
         "excluded": [],
         "undecided": [
           {
@@ -35,7 +43,9 @@
       },
       "reasoning": "An unknown end may fall inside 1987 itself: still undecided; the open one is in.",
       "expected": {
-        "in_scope": ["ent|location|netherlands|1987|open"],
+        "in_scope": [
+          "ent|location|netherlands|1987|open"
+        ],
         "excluded": [],
         "undecided": [
           {
@@ -77,7 +87,10 @@
       },
       "reasoning": "Both lines are held; no validity question was asked.",
       "expected": {
-        "in_scope": ["ent|location|netherlands|1987|open", "ent|location|netherlands|1987|unknown"],
+        "in_scope": [
+          "ent|location|netherlands|1987|open",
+          "ent|location|netherlands|1987|unknown"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "afec47f696e7f4c8cc24b3d5f40624a03df5e3a757ecdd7352b93ace6d0a7890"
@@ -92,7 +105,9 @@
       },
       "reasoning": "Held, then the end kinds separate them again.",
       "expected": {
-        "in_scope": ["ent|location|netherlands|1987|open"],
+        "in_scope": [
+          "ent|location|netherlands|1987|open"
+        ],
         "excluded": [],
         "undecided": [
           {

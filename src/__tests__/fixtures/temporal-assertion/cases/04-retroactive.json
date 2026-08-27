@@ -1,6 +1,12 @@
 {
   "scenario": "04-retroactive",
   "ledger": "scenarios/04-retroactive.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:entity_year_cooccurrence": {
+      "sequence_no": 1,
+      "checksum": "372927ec0ba8d113a44e0102be6ddd0d080eddbd63e915951b32b9098bfb880b"
+    }
+  },
   "chain": {
     "streams": 1,
     "envelopes": 1,
@@ -16,7 +22,9 @@
       },
       "reasoning": "from 1987 <= 1999, open end: the fact was true in 1999.",
       "expected": {
-        "in_scope": ["ent|agent|ecorys|1987"],
+        "in_scope": [
+          "ent|agent|ecorys|1987"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "d4f6b1c0d2f971881ffcf53cf4e8f1c1a6cd4f56bda1d3de0bc448092eda0ca4"
@@ -70,7 +78,9 @@
       },
       "reasoning": "Once recorded, what was true in 1999 is visible.",
       "expected": {
-        "in_scope": ["ent|agent|ecorys|1987"],
+        "in_scope": [
+          "ent|agent|ecorys|1987"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "d4f6b1c0d2f971881ffcf53cf4e8f1c1a6cd4f56bda1d3de0bc448092eda0ca4"
@@ -103,7 +113,9 @@
       },
       "reasoning": "'open' ASSERTS the fact is still true (invariant 10).",
       "expected": {
-        "in_scope": ["ent|agent|ecorys|1987"],
+        "in_scope": [
+          "ent|agent|ecorys|1987"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "d4f6b1c0d2f971881ffcf53cf4e8f1c1a6cd4f56bda1d3de0bc448092eda0ca4"

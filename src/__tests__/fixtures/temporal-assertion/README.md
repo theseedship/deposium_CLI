@@ -66,8 +66,10 @@ withdrawn; the snapshot never consults it.
 
 ## Cases
 
-`cases/<scenario>.json` holds, per scenario, the expected `verifyChain` report of the
-untouched ledger and a list of typed queries `{ time_axis, valid_at?, as_of? }` with the
+`cases/<scenario>.json` holds, per scenario, the committed `heads` (last `sequence_no` and
+checksum of every stream, kept here OUTSIDE the ledger: a stream cut after its last line is
+a valid shorter stream, and only a head held elsewhere shows the cut), the expected
+`verifyChain` report of the untouched ledger against those heads, and a list of typed queries `{ time_axis, valid_at?, as_of? }` with the
 expected `in_scope`, `excluded`, `undecided` and `hash`, plus the reasoning. For the six
 core scenarios and for the per-kind verdicts of scenario 07, `in_scope` / `excluded` /
 `undecided` are written by hand in `generate.ts` from invariants 9-11; the generator
@@ -89,9 +91,18 @@ dropped), so that the number `1987` and the text `"1987"` never collide — join
 the ASCII unit separator `\x1f`. The raw strings are why the separator is load-bearing
 (`('ab','c')` ≠ `('a','bc')`, R4), and why `validateEnvelope` refuses any control
 character in a string field that is hashed raw: with one inside, `('ab\x1fc','x')` and
-`('ab','c\x1fx')` would collide. `previous_checksum` is the predecessor's DECLARED
+`('ab','c\x1fx')` would collide. A raw string must also be well-formed Unicode (an unpaired
+surrogate is replaced by U+FFFD on the way to UTF-8, and two envelopes would share a
+checksum), a non-string value must be JSON-safe (finite, plain, acyclic: `NaN` and
+`Infinity` both serialise as `null`), every instant is a calendar instant at millisecond
+precision, and the shape is closed: a member the contract does not name is refused, because
+the checksum would not cover it. `previous_checksum` is the predecessor's DECLARED
 checksum: an edited predecessor is reported once, on its own line (`checksum_mismatch`);
-a removed one shows on the successor (`sequence_gap` + `previous_checksum_mismatch`). The
+a removed one shows on the successor (`sequence_gap` + `previous_checksum_mismatch`); a
+removed tail shows only against the committed `heads` (`stream_head_mismatch`). A withdrawal
+must name an assertion that is on the ledger (`unresolved_target`) and in its own stream
+(`cross_stream_target`, invariant 4); the snapshot ignores a cross-stream withdrawal, and at
+equal `recorded_at` a retraction closes before a supersession. The
 snapshot hash is SHA-256 over `in_scope`, then `excluded` as `id=reason`, then `undecided`
 as `id=reason`, each list joined by `\x1f`, the three joined by `\x1e`, ids sorted.
 

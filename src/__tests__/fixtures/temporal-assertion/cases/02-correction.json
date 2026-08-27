@@ -1,6 +1,12 @@
 {
   "scenario": "02-correction",
   "ledger": "scenarios/02-correction.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:regex": {
+      "sequence_no": 2,
+      "checksum": "ca90be0e0651fbe7804303736fd4fdecca2f0c3e84dd021a72954f80cf743298"
+    }
+  },
   "chain": {
     "streams": 1,
     "envelopes": 2,
@@ -16,7 +22,9 @@
       },
       "reasoning": "Without as_of every supersession counts: A1 is superseded, A2 stands.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987"
+        ],
         "excluded": [
           {
             "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987",
@@ -35,7 +43,9 @@
       },
       "reasoning": "A2 (T1) is not held yet, so A1 is not superseded yet.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987"
+        ],
         "excluded": [
           {
             "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987",
@@ -54,7 +64,9 @@
       },
       "reasoning": "A2 held at T1 (inclusive) supersedes A1 from T1.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987"
+        ],
         "excluded": [
           {
             "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987",
@@ -98,7 +110,9 @@
       },
       "reasoning": "Between T0 and T1 the ledger still holds A1 alone.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987"
+        ],
         "excluded": [
           {
             "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987",

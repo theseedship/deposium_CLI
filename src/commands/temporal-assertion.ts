@@ -2,14 +2,16 @@
  * `deposium temporal-assertion verify --fixtures <dir>` — the LOT 10 oracle.
  *
  * Recomputes, with the CLI's own implementation (`utils/temporal-assertion`), the
- * checksum of every envelope, the chain verdicts per `claim_stream_id` and the snapshot
- * of every query found in a fixtures directory, then compares them with what the fixtures
- * expect. Self-contained: no network, no MCP client, no configuration read.
+ * checksum of every envelope, the chain verdicts per `claim_stream_id` — against the
+ * committed `heads` when the case file carries them — and the snapshot of every query
+ * found in a fixtures directory, then compares them with what the fixtures expect.
+ * Self-contained: no network, no MCP client, no configuration read.
  *
  * Canonical fixture layout (what MCPs `tests/fixtures/temporal-assertion` writes; the
  * CLI vendors a byte-for-byte copy under `src/__tests__/fixtures/temporal-assertion`):
  *   <dir>/scenarios/<name>.jsonl   one `temporal-assertion/v1` envelope per line
  *   <dir>/cases/<name>.json        { scenario: "<name>",
+ *                                    heads: { "<stream>": { sequence_no, checksum } },
  *                                    chain: { findings: [...], envelopes?, streams? },
  *                                    cases: [{ name, query, expected: { in_scope,
  *                                              excluded, undecided, hash } }] }
@@ -17,11 +19,16 @@
  * non-canonical name that was accepted is listed under "assumptions" in the output.
  *
  * Output: one `PASS <scenario>/<query id>` or `FAIL … (diff)` line per query, one
- * `CHAIN PASS|FAIL <scenario>` line per case file, a summary. Exit 1 on any FAIL.
+ * `CHAIN PASS|FAIL <scenario>` line per audited ledger, a summary. Exit 1 on any FAIL.
  *
  * HOUSE RULE — negative control: with an empty or absent fixtures directory the command
  * prints an explicit empty state with `0 PASS` and exits 1. A bench that runs against
  * nothing is not green.
+ *
+ * HOUSE RULE — nothing is silently unchecked. EVERY scenario's chain is audited, whether
+ * a case file refers to it or not, and a scenario no case file refers to is a FAIL: a
+ * ledger nobody states an expectation about is a hole in the bench, not a pass. The run
+ * is green only when `fail === 0`, `pass > 0` AND no scenario is left unchecked.
  *
  * @module commands/temporal-assertion
  */
@@ -34,6 +41,7 @@ import {
   computeSnapshot,
   verifyLedgerChain,
   type ChainFinding,
+  type ChainReport,
   type ReasonedId,
   type Snapshot,
 } from '../utils/temporal-assertion';
@@ -60,6 +68,7 @@ export interface QueryResult {
 
 export interface ChainResult {
   scenario: string;
+  /** `(none)` when the ledger is audited without any case file referring to it. */
   caseFile: string;
   status: 'PASS' | 'FAIL';
   envelopes: number;
@@ -74,7 +83,7 @@ export interface VerifyReport {
   caseFiles: string[];
   queries: QueryResult[];
   chains: ChainResult[];
-  /** Scenarios no case file refers to: loaded, never checked. */
+  /** Scenarios no case file refers to: audited anyway, and a FAIL. */
   unchecked: string[];
   assumptions: string[];
   totals: { pass: number; fail: number };
@@ -84,6 +93,10 @@ export interface VerifyReport {
 
 function unset(value: unknown): boolean {
   return value === undefined || value === null;
+}
+
+function reasonOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 // ============================================================================
@@ -206,29 +219,41 @@ function checkQueries(scenario: LoadedScenario, caseFile: CaseFile): QueryResult
       try {
         diff = compareSnapshot(computeSnapshot(scenario.envelopes, q.query), q.expected);
       } catch (error) {
-        diff = [`snapshot error: ${error instanceof Error ? error.message : String(error)}`];
+        diff = [`snapshot error: ${reasonOf(error)}`];
       }
     }
     return { scenario: scenario.name, id: q.id, status: diff.length === 0 ? 'PASS' : 'FAIL', diff };
   });
 }
 
-function checkChain(scenario: LoadedScenario, caseFile: CaseFile, notes: string[]): ChainResult {
-  const base = {
-    scenario: scenario.name,
-    caseFile: caseFile.name,
-    envelopes: 0,
-    streams: 0,
-    findings: 0,
-  };
+/** The chain report, or the reason the ledger could not produce one. */
+function auditLedger(
+  scenario: LoadedScenario,
+  heads: CaseFile['heads']
+): { report: ChainReport } | { failures: string[] } {
   if (scenario.errors.length > 0) {
-    return {
-      ...base,
-      status: 'FAIL',
-      diff: scenario.errors.map((e) => `scenario not loadable: ${e}`),
-    };
+    return { failures: scenario.errors.map((e) => `scenario not loadable: ${e}`) };
   }
-  const report = verifyLedgerChain(scenario.envelopes);
+  try {
+    return { report: verifyLedgerChain(scenario.envelopes, { heads: heads ?? undefined }) };
+  } catch (error) {
+    // `checksumOf` refuses a string it cannot hash raw: a ledger the oracle declines to
+    // vouch for is a FAIL, never a silent pass.
+    return { failures: [`chain not computable: ${reasonOf(error)}`] };
+  }
+}
+
+function chainBase(scenario: string, caseFile: string): Omit<ChainResult, 'status' | 'diff'> {
+  return { scenario, caseFile, envelopes: 0, streams: 0, findings: 0 };
+}
+
+function checkChain(scenario: LoadedScenario, caseFile: CaseFile, notes: string[]): ChainResult {
+  const base = chainBase(scenario.name, caseFile.name);
+  const audit = auditLedger(scenario, caseFile.heads);
+  if ('failures' in audit) {
+    return { ...base, status: 'FAIL', diff: audit.failures };
+  }
+  const { report } = audit;
   let expected = caseFile.chain;
   if (expected === null) {
     notes.push(
@@ -253,6 +278,32 @@ function checkChain(scenario: LoadedScenario, caseFile: CaseFile, notes: string[
   };
 }
 
+/**
+ * A ledger no case file refers to. Its chain is audited all the same — a tampered orphan
+ * must surface its finding rather than sit unread — and the result is a FAIL, because a
+ * scenario nobody states an expectation about is a hole in the bench.
+ */
+function auditOrphan(scenario: LoadedScenario): ChainResult {
+  const base = chainBase(scenario.name, '(none)');
+  const headline = 'no case file: no expectation is stated for this scenario';
+  const audit = auditLedger(scenario, null);
+  if ('failures' in audit) {
+    return { ...base, status: 'FAIL', diff: [headline, ...audit.failures] };
+  }
+  const { report } = audit;
+  return {
+    ...base,
+    envelopes: report.envelopes,
+    streams: report.streams,
+    findings: report.findings.length,
+    status: 'FAIL',
+    diff: [
+      headline,
+      ...report.findings.map((f) => `unexpected: ${describeFinding(f)} — ${f.detail}`),
+    ],
+  };
+}
+
 function missingScenario(caseFile: CaseFile): LoadedScenario {
   return {
     name: caseFile.scenario,
@@ -270,7 +321,7 @@ export function runVerify(fixturesDir: string): VerifyReport {
   const caseFilesPaths = listFiles(join(dir, 'cases'), '.json');
   const scenarios = new Map<string, LoadedScenario>();
   for (const file of scenarioFiles) {
-    const loaded = loadScenario(file, assumptions);
+    const loaded = loadScenario(file);
     scenarios.set(loaded.name, loaded);
   }
   const caseFiles = caseFilesPaths.map((file) => loadCaseFile(file, assumptions));
@@ -293,6 +344,9 @@ export function runVerify(fixturesDir: string): VerifyReport {
     chains.push(checkChain(scenario, caseFile, assumptions));
   }
   const unchecked = [...scenarios.keys()].filter((name) => !referenced.has(name));
+  for (const name of unchecked) {
+    chains.push(auditOrphan(scenarios.get(name) as LoadedScenario));
+  }
   const results: Array<{ status: 'PASS' | 'FAIL' }> = [...queries, ...chains];
   const pass = results.filter((r) => r.status === 'PASS').length;
   const fail = results.length - pass;
@@ -307,7 +361,7 @@ export function runVerify(fixturesDir: string): VerifyReport {
     assumptions: [...new Set(assumptions)],
     totals: { pass, fail },
     empty,
-    ok: !empty && fail === 0 && pass > 0,
+    ok: !empty && fail === 0 && pass > 0 && unchecked.length === 0,
   };
 }
 
@@ -353,7 +407,7 @@ export function renderReport(report: VerifyReport): string[] {
     lines.push(paint[c.status](`CHAIN ${c.status} ${c.scenario} [${stats}]${suffix}`));
   }
   for (const name of report.unchecked) {
-    lines.push(chalk.yellow(`UNCHECKED ${name}: no case file refers to this scenario`));
+    lines.push(paint.FAIL(`UNCHECKED ${name}: no case file refers to this scenario`));
   }
   if (report.assumptions.length > 0) {
     lines.push(chalk.gray('assumptions:'));
@@ -402,13 +456,15 @@ Fixture layout (canonical, as written by MCPs tests/fixtures/temporal-assertion)
   <dir>/scenarios/<name>.jsonl   one temporal-assertion/v1 envelope per line
   <dir>/cases/<name>.json        {
     "scenario": "<name>",
+    "heads": { "<claim_stream_id>": { "sequence_no": n, "checksum": "<hex>" } },
     "chain": { "findings": [{ claim_stream_id, sequence_no, assertion_id, verdict }],
                "envelopes": n, "streams": n },
     "cases": [{ "name", "query": { time_axis, valid_at?, as_of? },
                 "expected": { in_scope, excluded, undecided, hash } }]
   }
-Output: PASS|FAIL <scenario>/<case name> per case, CHAIN PASS|FAIL per scenario, a summary.
-Exit 1 on any FAIL, and on an empty or absent <dir> (0 PASS is never green).
+Output: PASS|FAIL <scenario>/<case name> per case, CHAIN PASS|FAIL per audited ledger, a summary.
+Exit 1 on any FAIL, on a scenario no case file refers to, and on an empty or absent <dir>
+(0 PASS is never green).
 `
   )
   .action(

@@ -1,6 +1,16 @@
 {
   "scenario": "06-two-authorities",
   "ledger": "scenarios/06-two-authorities.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:entity_year_cooccurrence": {
+      "sequence_no": 1,
+      "checksum": "e3cddbfdb3a9a3d69a25c33fff3fb28a0be545688a0c2f98aa071e08a22a4ad9"
+    },
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:uploaded_files_graph_relations": {
+      "sequence_no": 1,
+      "checksum": "25da9fab32fbffe180cb63ffcd16f0fc71dfc1026a3df5792706472827e1f894"
+    }
+  },
   "chain": {
     "streams": 2,
     "envelopes": 2,
@@ -16,7 +26,9 @@
       },
       "reasoning": "A covers 1987; B starts in 1991. Nothing is resolved, each is judged alone.",
       "expected": {
-        "in_scope": ["ent|agent|greece|1987"],
+        "in_scope": [
+          "ent|agent|greece|1987"
+        ],
         "excluded": [
           {
             "assertion_id": "ent|agent|greece|1991",
@@ -35,7 +47,9 @@
       },
       "reasoning": "A ended (exclusive 1988); B covers 1991.",
       "expected": {
-        "in_scope": ["ent|agent|greece|1991"],
+        "in_scope": [
+          "ent|agent|greece|1991"
+        ],
         "excluded": [
           {
             "assertion_id": "ent|agent|greece|1987",
@@ -77,7 +91,10 @@
       },
       "reasoning": "Invariant 4: two streams that disagree are two authorities, not a conflict.",
       "expected": {
-        "in_scope": ["ent|agent|greece|1987", "ent|agent|greece|1991"],
+        "in_scope": [
+          "ent|agent|greece|1987",
+          "ent|agent|greece|1991"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "ebd98ace89e52d1fe8450d4a1009820d811f9063e32d1dd926fa1d3b5dfc34b0"

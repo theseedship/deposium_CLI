@@ -1,6 +1,12 @@
 {
   "scenario": "03-retraction",
   "ledger": "scenarios/03-retraction.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:entity_year_cooccurrence": {
+      "sequence_no": 2,
+      "checksum": "27e61a0f04b168338b0d8711f068d972c00a809649a06c3f644cc28b61580aaa"
+    }
+  },
   "chain": {
     "streams": 1,
     "envelopes": 2,
@@ -39,7 +45,9 @@
       },
       "reasoning": "R (T2) is not held; A stands. R is still listed, as a retraction.",
       "expected": {
-        "in_scope": ["ent|system|msfd|1987"],
+        "in_scope": [
+          "ent|system|msfd|1987"
+        ],
         "excluded": [
           {
             "assertion_id": "ent|system|msfd|1987|retract",

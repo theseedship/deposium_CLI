@@ -10,6 +10,8 @@
  *     retraction) are reasoned through query by query, two of their hashes pinned the
  *     same way;
  *   - the negative control: an empty or absent fixtures dir prints `0 PASS` and exits 1.
+ *
+ * Each test name says which mutation of the oracle it turns red.
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -33,8 +35,22 @@ vi.mock('chalk', () => ({
     red: (s: string) => s,
     gray: (s: string) => s,
     yellow: (s: string) => s,
+    cyan: (s: string) => s,
   },
 }));
+
+/**
+ * `utils/config` is kept real (the rest of the CLI loads it at import time) except for the
+ * two functions the preflight calls: the point of those tests is WHETHER they are called.
+ */
+const configMock = vi.hoisted(() => ({
+  getConfig: vi.fn(() => ({}) as Record<string, unknown>),
+  getBaseUrl: vi.fn(() => 'https://api.example.com'),
+}));
+vi.mock('../../utils/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/config')>();
+  return { ...actual, getConfig: configMock.getConfig, getBaseUrl: configMock.getBaseUrl };
+});
 
 import {
   canonicalJson,
@@ -43,9 +59,13 @@ import {
   computeSnapshot,
   encodeField,
   instantOf,
+  isWellFormedText,
   snapshotPreimage,
+  validateEnvelope,
   verifyLedgerChain,
   type Envelope,
+  type SnapshotQuery,
+  type StreamHead,
   type ValidTime,
 } from '../../utils/temporal-assertion';
 import {
@@ -53,6 +73,7 @@ import {
   runVerify,
   temporalAssertionCommand,
 } from '../../commands/temporal-assertion';
+import { runPreflight, usesApi } from '../../utils/cli-preflight';
 
 // ============================================================================
 // Fixtures
@@ -126,12 +147,17 @@ const UNKNOWN_VALIDITY: ValidTime = {
   precision: 'unknown',
 };
 
+/**
+ * A contract-VALID envelope. Every default is one the closed shape accepts, so a ledger
+ * built from this helper is one the oracle agrees to read (and to hash).
+ */
 function envelope(overrides: Partial<Envelope> & Pick<Envelope, 'assertion_id'>): Envelope {
   return {
     schema_version: 'temporal-assertion/v1',
     claim_stream_id: 's1',
     operation: 'assert',
     scope: { tenant_id: 't', space_id: 'sp' },
+    statement: { subject: 'acme', predicate: 'ceo', object: 'jane' },
     valid_time: {
       from: '2010',
       from_kind: 'bounded',
@@ -166,6 +192,24 @@ function seal(list: readonly Envelope[]): Envelope[] {
   });
 }
 
+/** The committed heads of a sealed ledger: last sequence_no and DECLARED checksum per stream. */
+function headsOf(list: readonly Envelope[]): Record<string, StreamHead> {
+  const heads: Record<string, StreamHead> = {};
+  for (const e of list) {
+    if (e.integrity === undefined) {
+      continue;
+    }
+    const current = heads[e.claim_stream_id];
+    if (current === undefined || e.integrity.sequence_no > current.sequence_no) {
+      heads[e.claim_stream_id] = {
+        sequence_no: e.integrity.sequence_no,
+        checksum: e.integrity.checksum,
+      };
+    }
+  }
+  return heads;
+}
+
 /**
  * The 3-envelope ledger, one stream:
  *   A1 — a RETROACTIVE fact: true for the calendar years 2010-2011 (`to: "2012"` is the
@@ -195,16 +239,30 @@ const LEDGER: Envelope[] = seal([
     assertion_id: 'R1',
     operation: 'retract',
     target_assertion_id: 'A2',
+    statement: undefined,
     valid_time: UNKNOWN_VALIDITY,
     recorded_at: '2026-03-20T00:00:00Z',
   }),
 ]);
 
+/**
+ * Three plain assertions in one stream, nothing withdrawn: removing a line here leaves no
+ * dangling target, so `sequence_gap` can be read on its own.
+ */
+const PLAIN: Envelope[] = seal([
+  envelope({ assertion_id: 'P1', claim_stream_id: 's3' }),
+  envelope({ assertion_id: 'P2', claim_stream_id: 's3', recorded_at: '2026-03-02T00:00:00Z' }),
+  envelope({ assertion_id: 'P3', claim_stream_id: 's3', recorded_at: '2026-03-03T00:00:00Z' }),
+]);
+
 const pairs = (list: ReadonlyArray<{ assertion_id: string; reason: string }>): string[] =>
   list.map((x) => `${x.assertion_id}=${x.reason}`);
 
+const verdictsOf = (findings: ReadonlyArray<{ sequence_no: number | null; verdict: string }>) =>
+  findings.map((f) => [f.sequence_no, f.verdict]);
+
 // ============================================================================
-// Instants — invariant 11
+// Instants — invariant 11, and a calendar that is never repaired
 // ============================================================================
 
 describe('instantOf', () => {
@@ -219,11 +277,40 @@ describe('instantOf', () => {
   test('an offset moves the bound onto the UTC timeline', () => {
     expect(instantOf('2026-01-01T00:00:00+02:00')).toBe(UTC('2025-12-31T22:00:00Z'));
     expect(instantOf('2026-01-01T00:00:00-05:30')).toBe(UTC('2026-01-01T05:30:00Z'));
+    expect(instantOf('2026-08-10T11:18:58.129+02:00')).toBe(UTC('2026-08-10T09:18:58.129Z'));
   });
 
-  test('refuses what is not an ISO 8601 bound', () => {
+  test('a real leap day is a real instant (mutation: leap rule dropped → red)', () => {
+    expect(instantOf('2024-02-29')).toBe(UTC('2024-02-29T00:00:00Z'));
+    expect(instantOf('2000-02-29')).toBe(UTC('2000-02-29T00:00:00Z'));
+  });
+
+  test('a date that does not exist is REFUSED, never moved to the next month', () => {
+    // Date.parse('2026-02-29') is the first of March: a normalised instant is a moved fact.
+    for (const bound of ['2026-02-29', '2026-04-31', '2026-02-30', '1900-02-29', '1988-13']) {
+      expect(() => instantOf(bound), bound).toThrow(/not a calendar date/);
+    }
+  });
+
+  test('a clock that does not exist is REFUSED (mutation: hour range check removed → red)', () => {
+    for (const bound of ['2026-01-01T24:00:00Z', '2026-01-01T23:60:00Z', '2026-01-01T23:59:60Z']) {
+      expect(() => instantOf(bound), bound).toThrow(/not a calendar clock/);
+    }
+  });
+
+  test('an offset beyond 23:59 is REFUSED', () => {
+    expect(() => instantOf('2026-01-01T00:00:00+24:00')).toThrow(/not a calendar offset/);
+    expect(() => instantOf('2026-01-01T00:00:00+23:60')).toThrow(/not a calendar offset/);
+    expect(() => instantOf('2026-01-01T00:00:00-24:00')).toThrow(/not a calendar offset/);
+  });
+
+  test('more than three fractional digits is not a millisecond instant', () => {
+    expect(instantOf('2026-01-01T00:00:00.123Z')).toBe(UTC('2026-01-01T00:00:00.123Z'));
+    expect(() => instantOf('2026-01-01T00:00:00.1234Z')).toThrow(/not an ISO 8601 bound/);
+  });
+
+  test('refuses what is not an ISO 8601 bound at all', () => {
     expect(() => instantOf('yesterday')).toThrow(/not an ISO 8601 bound/);
-    expect(() => instantOf('2026-02-30')).toThrow(/not a calendar date/);
     expect(() => instantOf('')).toThrow();
   });
 });
@@ -297,14 +384,176 @@ describe('checksum encoding', () => {
   });
 });
 
+describe('the strings the checksum may read RAW', () => {
+  test('a lone surrogate is ill-formed, a pair is not (mutation: lone surrogates accepted → red)', () => {
+    expect(isWellFormedText('\ud800')).toBe(false);
+    expect(isWellFormedText('\udc00')).toBe(false);
+    expect(isWellFormedText('a\ud800b')).toBe(false);
+    expect(isWellFormedText('🚀')).toBe(true);
+    expect(isWellFormedText('🚀 rocket')).toBe(true);
+  });
+
+  test('the encoder REFUSES to hash raw a lone surrogate or a control character', () => {
+    expect(() => encodeField('\ud800')).toThrow(/refusing to hash raw/);
+    expect(() => encodeField('ab\x1fc')).toThrow(/refusing to hash raw/);
+    expect(() => encodeField('tab\there')).toThrow(/refusing to hash raw/);
+    // A paired surrogate is ordinary text: an emoji hashes like any other string.
+    expect(encodeField('🚀 acme')).toBe('🚀 acme');
+  });
+
+  test('an envelope carrying a lone surrogate is a violation, not a checksum', () => {
+    const broken = envelope({
+      assertion_id: 'S1',
+      statement: { subject: 'acme', predicate: 'name', object: 'jane\ud800' },
+    });
+    expect(validateEnvelope(broken)).toEqual([
+      expect.objectContaining({ path: 'statement.object' }),
+    ]);
+    const control = envelope({
+      assertion_id: 'S2',
+      statement: { subject: 'acme', predicate: 'name', object: 'jane 🚀' },
+    });
+    expect(validateEnvelope(control)).toEqual([]);
+    expect(checksumOf(control)).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
+
+describe('canonicalJson refuses what JSON cannot carry faithfully', () => {
+  test('it THROWS instead of returning a marker (mutation: `?? NULL_MARKER` → red)', () => {
+    expect(() => canonicalJson(undefined)).toThrow(/undefined/);
+    expect(() => canonicalJson(NaN)).toThrow(/NaN/);
+    expect(() => canonicalJson(Infinity)).toThrow(/Infinity/);
+    expect(() => canonicalJson(-Infinity)).toThrow(/Infinity/);
+    expect(() => canonicalJson(1n)).toThrow(/bigint/);
+    expect(() => canonicalJson(new Date(0))).toThrow(/Date/);
+    expect(() => canonicalJson(new Map())).toThrow(/Map/);
+    expect(() => canonicalJson(new Set())).toThrow(/Set/);
+    expect(() => canonicalJson(() => 1)).toThrow(/function/);
+    expect(() => canonicalJson([undefined])).toThrow(/undefined inside a list/);
+    expect(() => canonicalJson([1, [2, NaN]])).toThrow(/NaN/);
+  });
+
+  test('a cycle is refused at any depth', () => {
+    const cyclic: Record<string, unknown> = { a: 1 };
+    cyclic.self = cyclic;
+    expect(() => canonicalJson(cyclic)).toThrow(/cycle/);
+    const list: unknown[] = [1];
+    list.push(list);
+    expect(() => canonicalJson(list)).toThrow(/cycle/);
+  });
+
+  test('an undefined MEMBER of an object is absent, exactly as JSON drops it', () => {
+    expect(canonicalJson({ b: undefined, a: 1 })).toBe('{"a":1}');
+    expect(canonicalJson({ nested: { gone: undefined, kept: null } })).toBe(
+      '{"nested":{"kept":null}}'
+    );
+  });
+
+  test('a non-finite number inside an envelope is a violation, never a silent null', () => {
+    const broken = envelope({
+      assertion_id: 'N1',
+      statement: { subject: 'acme', predicate: 'headcount', object: Number.NaN },
+    });
+    expect(validateEnvelope(broken)).toEqual([
+      expect.objectContaining({ path: 'statement.object' }),
+    ]);
+  });
+});
+
 // ============================================================================
-// Chain — "edited" is not "removed"
+// Closed shape
+// ============================================================================
+
+describe('validateEnvelope', () => {
+  test('the helper builds a contract-valid envelope: 0 violations (the negative control)', () => {
+    expect(validateEnvelope(envelope({ assertion_id: 'V1' }))).toEqual([]);
+    for (const line of LEDGER) {
+      expect(validateEnvelope(line), line.assertion_id).toEqual([]);
+    }
+  });
+
+  test('a member the contract does not name is refused at every level', () => {
+    const extra = { ...envelope({ assertion_id: 'C1' }), sequence_id: 7 };
+    expect(validateEnvelope(extra)).toEqual([
+      { invariant: 'shape', path: 'sequence_id', message: expect.stringMatching(/not a member/) },
+    ]);
+    const inScope = envelope({ assertion_id: 'C2' });
+    (inScope.scope as Record<string, unknown>).region = 'eu';
+    expect(validateEnvelope(inScope)).toEqual([expect.objectContaining({ path: 'scope.region' })]);
+    const inIntegrity = {
+      ...envelope({ assertion_id: 'C3' }),
+      integrity: {
+        sequence_no: 1,
+        checksum: 'a'.repeat(64),
+        previous_checksum: null,
+        signature: 'x',
+      },
+    };
+    expect(validateEnvelope(inIntegrity)).toEqual([
+      expect.objectContaining({ path: 'integrity.signature' }),
+    ]);
+  });
+
+  test('an assertion states something; a retraction targets and never supersedes', () => {
+    const noStatement = envelope({ assertion_id: 'O1', statement: undefined });
+    expect(validateEnvelope(noStatement)).toEqual([expect.objectContaining({ path: 'statement' })]);
+    const retractAndSupersede = envelope({
+      assertion_id: 'O2',
+      operation: 'retract',
+      target_assertion_id: 'O1',
+      supersedes_assertion_id: 'O1',
+    });
+    expect(validateEnvelope(retractAndSupersede)).toEqual([
+      { invariant: 2, path: 'supersedes_assertion_id', message: expect.any(String) },
+    ]);
+    const selfTarget = envelope({
+      assertion_id: 'O3',
+      operation: 'retract',
+      target_assertion_id: 'O3',
+    });
+    expect(validateEnvelope(selfTarget)).toEqual([
+      expect.objectContaining({ path: 'target_assertion_id' }),
+    ]);
+  });
+
+  test('an instant that is not a calendar instant is a violation, on every time field', () => {
+    expect(
+      validateEnvelope(envelope({ assertion_id: 'I1', recorded_at: '2026-02-29T00:00:00Z' }))
+    ).toEqual([expect.objectContaining({ invariant: 9, path: 'recorded_at' })]);
+    // The real relation row of the fixtures: an instant WITHOUT an offset.
+    expect(
+      validateEnvelope(envelope({ assertion_id: 'I2', recorded_at: '2026-08-10 11:18:58.129510' }))
+    ).toEqual([expect.objectContaining({ invariant: 9, path: 'recorded_at' })]);
+    expect(
+      validateEnvelope(
+        envelope({
+          assertion_id: 'I3',
+          valid_time: {
+            from: '2026-04-31',
+            from_kind: 'bounded',
+            to: null,
+            to_kind: 'open',
+            precision: 'day',
+          },
+        })
+      )
+    ).toEqual([expect.objectContaining({ invariant: 10, path: 'valid_time.from' })]);
+    expect(
+      validateEnvelope(
+        envelope({ assertion_id: 'I4', source_times: { observed_at: '2026-01-01T24:00:00Z' } })
+      )
+    ).toEqual([expect.objectContaining({ path: 'source_times.observed_at' })]);
+  });
+});
+
+// ============================================================================
+// Chain — "edited" is not "removed", and a removed tail needs a head
 // ============================================================================
 
 describe('verifyLedgerChain', () => {
   test('a sealed ledger has no finding', () => {
-    const report = verifyLedgerChain(LEDGER);
-    expect(report).toEqual({ envelopes: 3, streams: 1, findings: [] });
+    expect(verifyLedgerChain(LEDGER)).toEqual({ envelopes: 3, streams: 1, findings: [] });
+    expect(verifyLedgerChain(PLAIN)).toEqual({ envelopes: 3, streams: 1, findings: [] });
   });
 
   test('an edited line is checksum_mismatch on that line ONLY (previous_checksum is compared with the DECLARED one)', () => {
@@ -313,23 +562,29 @@ describe('verifyLedgerChain', () => {
         ? { ...e, statement: { subject: 'acme', predicate: 'ceo', object: 'john doe' } }
         : e
     );
-    const verdicts = verifyLedgerChain(edited).findings.map((f) => [f.sequence_no, f.verdict]);
-    expect(verdicts).toEqual([[2, 'checksum_mismatch']]);
+    expect(verdictsOf(verifyLedgerChain(edited).findings)).toEqual([[2, 'checksum_mismatch']]);
   });
 
   test('a removed line is sequence_gap + previous_checksum_mismatch on its successor', () => {
-    const removed = LEDGER.filter((e) => e.assertion_id !== 'A2');
-    const verdicts = verifyLedgerChain(removed).findings.map((f) => [f.sequence_no, f.verdict]);
-    expect(verdicts).toEqual([
+    const removed = PLAIN.filter((e) => e.assertion_id !== 'P2');
+    expect(verdictsOf(verifyLedgerChain(removed).findings)).toEqual([
       [3, 'sequence_gap'],
       [3, 'previous_checksum_mismatch'],
     ]);
   });
 
-  test('a duplicated sequence_no is reported on the duplicate, the chain goes on from the first', () => {
-    const duplicated = [...LEDGER.slice(0, 2), LEDGER[1], LEDGER[2]];
-    const verdicts = verifyLedgerChain(duplicated).findings.map((f) => [f.sequence_no, f.verdict]);
-    expect(verdicts).toEqual([[2, 'duplicate_sequence_no']]);
+  test('an exact duplicate is a duplicate ONLY; an EDITED duplicate is also checksum_mismatch (mutation: duplicate skipped before recomputation → red)', () => {
+    const exact = [...LEDGER.slice(0, 2), LEDGER[1], LEDGER[2]];
+    expect(verdictsOf(verifyLedgerChain(exact).findings)).toEqual([[2, 'duplicate_sequence_no']]);
+
+    const twin: Envelope = {
+      ...LEDGER[1],
+      assertion_id: 'A2-twin',
+      statement: { subject: 'acme', predicate: 'ceo', object: 'mallory' },
+    };
+    const tampered = [...LEDGER, twin];
+    const onTwin = verifyLedgerChain(tampered).findings.filter((f) => f.assertion_id === 'A2-twin');
+    expect(onTwin.map((f) => f.verdict)).toEqual(['duplicate_sequence_no', 'checksum_mismatch']);
   });
 
   test('an envelope without integrity block is missing_integrity, sequence_no null', () => {
@@ -350,6 +605,75 @@ describe('verifyLedgerChain', () => {
     const report = verifyLedgerChain([...LEDGER, ...other]);
     expect(report.streams).toBe(2);
     expect(report.findings).toEqual([]);
+  });
+
+  test('a withdrawal whose target is not on the ledger is unresolved_target', () => {
+    const orphaned = LEDGER.filter((e) => e.assertion_id !== 'A2');
+    const verdicts = verifyLedgerChain(orphaned).findings.map((f) => f.verdict);
+    expect(verdicts).toContain('unresolved_target');
+    expect(
+      verifyLedgerChain(orphaned).findings.find((f) => f.verdict === 'unresolved_target')
+    ).toMatchObject({ assertion_id: 'R1', claim_stream_id: 's1' });
+  });
+
+  test('a supersession that names another stream is cross_stream_target (mutation: global target map → red)', () => {
+    const twoAuthorities = seal([
+      envelope({ assertion_id: 'W1', claim_stream_id: 'sA' }),
+      envelope({
+        assertion_id: 'W2',
+        claim_stream_id: 'sB',
+        supersedes_assertion_id: 'W1',
+        recorded_at: '2026-03-10T00:00:00Z',
+      }),
+    ]);
+    const report = verifyLedgerChain(twoAuthorities);
+    expect(report.streams).toBe(2);
+    expect(report.findings).toEqual([
+      expect.objectContaining({
+        claim_stream_id: 'sB',
+        assertion_id: 'W2',
+        verdict: 'cross_stream_target',
+      }),
+    ]);
+  });
+
+  test('a removed TAIL is invisible without a head and stream_head_mismatch with one (mutation: heads ignored → red)', () => {
+    const heads = headsOf(PLAIN);
+    expect(verifyLedgerChain(PLAIN, { heads }).findings).toEqual([]);
+
+    const cut = PLAIN.slice(0, 2);
+    // The documented blind spot: a stream cut after line 2 is a valid stream of 2 lines.
+    expect(verifyLedgerChain(cut).findings).toEqual([]);
+    expect(verifyLedgerChain(cut, { heads }).findings).toEqual([
+      expect.objectContaining({
+        claim_stream_id: 's3',
+        sequence_no: 2,
+        assertion_id: null,
+        verdict: 'stream_head_mismatch',
+      }),
+    ]);
+
+    // A head whose checksum names a line that is no longer the one there.
+    const forged = verifyLedgerChain(PLAIN, {
+      heads: { s3: { sequence_no: 3, checksum: 'f'.repeat(64) } },
+    });
+    expect(forged.findings.map((f) => f.verdict)).toEqual(['stream_head_mismatch']);
+    expect(forged.findings[0].detail).toContain('another checksum');
+  });
+
+  test('a whole stream removed under a committed head is stream_absent', () => {
+    const other = seal([envelope({ assertion_id: 'B1', claim_stream_id: 's2' })]);
+    const heads = headsOf([...PLAIN, ...other]);
+    expect(verifyLedgerChain([...PLAIN, ...other], { heads }).findings).toEqual([]);
+    const report = verifyLedgerChain(PLAIN, { heads });
+    expect(report.findings).toEqual([
+      expect.objectContaining({
+        claim_stream_id: 's2',
+        sequence_no: null,
+        assertion_id: null,
+        verdict: 'stream_absent',
+      }),
+    ]);
   });
 });
 
@@ -459,6 +783,7 @@ describe('computeSnapshot on the 3-envelope ledger', () => {
         assertion_id: 'X3',
         operation: 'retract',
         target_assertion_id: 'X1',
+        statement: undefined,
         valid_time: UNKNOWN_VALIDITY,
         recorded_at: '2026-03-20T00:00:00Z',
       }),
@@ -473,6 +798,72 @@ describe('computeSnapshot on the 3-envelope ledger', () => {
     expect(snap.in_scope).toEqual(['X2']);
   });
 
+  test('at EQUAL recorded_at the retraction closes, in any input order (mutation: strict < only → red)', () => {
+    const fact = envelope({ assertion_id: 'T1' });
+    const correction = envelope({
+      assertion_id: 'T2',
+      supersedes_assertion_id: 'T1',
+      recorded_at: '2026-03-10T00:00:00Z',
+    });
+    const retraction = envelope({
+      assertion_id: 'T3',
+      operation: 'retract',
+      target_assertion_id: 'T1',
+      statement: undefined,
+      valid_time: UNKNOWN_VALIDITY,
+      recorded_at: '2026-03-10T00:00:00Z',
+    });
+    const query: SnapshotQuery = { time_axis: 'transaction', as_of: '2026-04-01' };
+    // Three orders; in two of them the supersession is read BEFORE the retraction.
+    const orders = [
+      [fact, correction, retraction],
+      [fact, retraction, correction],
+      [retraction, correction, fact],
+    ];
+    const results = orders.map((order) => computeSnapshot(order, query));
+    for (const result of results) {
+      expect(pairs(result.excluded)).toContain('T1=retracted');
+      expect(result.hash).toBe(results[0].hash);
+    }
+  });
+
+  test('a withdrawal from ANOTHER stream closes nothing (mutation: cross-stream withdrawal closes → red)', () => {
+    const ofA = envelope({ assertion_id: 'W1', claim_stream_id: 'sA' });
+    const fromB = envelope({
+      assertion_id: 'W2',
+      claim_stream_id: 'sB',
+      supersedes_assertion_id: 'W1',
+      recorded_at: '2026-03-10T00:00:00Z',
+    });
+    const query: SnapshotQuery = { time_axis: 'transaction', as_of: '2026-04-01' };
+    const across = computeSnapshot([ofA, fromB], query);
+    expect(across.in_scope).toEqual(['W1', 'W2']);
+    // Byte for byte the snapshot of the same ledger with no supersession at all: the
+    // cross-stream reference is not merely tolerated, it changes nothing.
+    const { supersedes_assertion_id: _dropped, ...plainB } = fromB;
+    expect(across.hash).toBe(computeSnapshot([ofA, plainB], query).hash);
+
+    // The same reference, from W1's OWN stream, does close it.
+    const fromA = { ...fromB, assertion_id: 'W3', claim_stream_id: 'sA' };
+    const within = computeSnapshot([ofA, fromA], query);
+    expect(within.in_scope).toEqual(['W3']);
+    expect(pairs(within.excluded)).toEqual(['W1=superseded']);
+
+    // Same for a retraction across streams.
+    const retractFromB = envelope({
+      assertion_id: 'W4',
+      claim_stream_id: 'sB',
+      operation: 'retract',
+      target_assertion_id: 'W1',
+      statement: undefined,
+      valid_time: UNKNOWN_VALIDITY,
+      recorded_at: '2026-03-10T00:00:00Z',
+    });
+    const retracted = computeSnapshot([ofA, retractFromB], query);
+    expect(retracted.in_scope).toEqual(['W1']);
+    expect(pairs(retracted.excluded)).toEqual(['W4=is_retraction']);
+  });
+
   test('a malformed query is refused, not guessed', () => {
     expect(() => computeSnapshot(LEDGER, { time_axis: 'valid' })).toThrow(
       /valid axis needs a valid_at/
@@ -482,6 +873,9 @@ describe('computeSnapshot on the 3-envelope ledger', () => {
     );
     expect(() => computeSnapshot(LEDGER, { time_axis: 'now' as 'valid' })).toThrow(
       /unknown time_axis "now"/
+    );
+    expect(() => computeSnapshot(LEDGER, { time_axis: 'valid', valid_at: '2026-02-29' })).toThrow(
+      /not a calendar date/
     );
   });
 });
@@ -625,12 +1019,20 @@ describe('runVerify / temporal-assertion verify', () => {
     writeFixtures(
       root,
       { basic: LEDGER },
-      { basic: { scenario: 'basic', cases: [T2_CASE], chain: { findings: [] } } }
+      {
+        basic: {
+          scenario: 'basic',
+          heads: headsOf(LEDGER),
+          cases: [T2_CASE],
+          chain: { findings: [] },
+        },
+      }
     );
     const report = runVerify(root);
     expect(report.queries).toEqual([{ scenario: 'basic', id: 't2', status: 'PASS', diff: [] }]);
     expect(report.chains[0]).toMatchObject({ scenario: 'basic', status: 'PASS', envelopes: 3 });
     expect(report.totals).toEqual({ pass: 2, fail: 0 });
+    expect(report.assumptions).toEqual([]);
     expect(report.ok).toBe(true);
 
     await run(['--fixtures', root]);
@@ -638,6 +1040,32 @@ describe('runVerify / temporal-assertion verify', () => {
     expect(logged.some((l) => l.startsWith('CHAIN PASS basic'))).toBe(true);
     expect(logged.some((l) => /SUMMARY: 2 PASS, 0 FAIL/.test(l))).toBe(true);
     expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  test('a case file without heads verifies the chain anyway, and says so', () => {
+    writeFixtures(
+      root,
+      { basic: LEDGER },
+      { basic: { scenario: 'basic', cases: [T2_CASE], chain: { findings: [] } } }
+    );
+    const report = runVerify(root);
+    expect(report.ok).toBe(true);
+    expect(report.assumptions).toEqual(
+      expect.arrayContaining([expect.stringMatching(/no 'heads' block/)])
+    );
+  });
+
+  test('a committed head that no longer names the last line is a CHAIN FAIL', () => {
+    const cut = LEDGER.slice(0, 2);
+    writeFixtures(
+      root,
+      { cut },
+      { cut: { scenario: 'cut', heads: headsOf(LEDGER), cases: [], chain: { findings: [] } } }
+    );
+    const report = runVerify(root);
+    expect(report.chains[0].status).toBe('FAIL');
+    expect(report.chains[0].diff[0]).toMatch(/stream_head_mismatch/);
+    expect(report.ok).toBe(false);
   });
 
   test('a wrong expected hash is a FAIL line with the diff, exit 1', async () => {
@@ -692,7 +1120,7 @@ describe('runVerify / temporal-assertion verify', () => {
   });
 
   test('sequence_gap: a removed line is reported on its successor, with previous_checksum_mismatch', () => {
-    const removed = LEDGER.filter((e) => e.assertion_id !== 'A2');
+    const removed = PLAIN.filter((e) => e.assertion_id !== 'P2');
     writeFixtures(
       root,
       { gap: removed },
@@ -702,8 +1130,8 @@ describe('runVerify / temporal-assertion verify', () => {
           cases: [],
           chain: {
             findings: [
-              { claim_stream_id: 's1', sequence_no: 3, verdict: 'sequence_gap' },
-              { claim_stream_id: 's1', sequence_no: 3, verdict: 'previous_checksum_mismatch' },
+              { claim_stream_id: 's3', sequence_no: 3, verdict: 'sequence_gap' },
+              { claim_stream_id: 's3', sequence_no: 3, verdict: 'previous_checksum_mismatch' },
             ],
           },
         },
@@ -745,7 +1173,29 @@ describe('runVerify / temporal-assertion verify', () => {
     expect(report.ok).toBe(true);
   });
 
-  test('a case file naming a scenario that does not exist fails, an unreferenced scenario is flagged', () => {
+  test('a case file naming its ledger by path resolves to the scenario basename', () => {
+    writeFixtures(
+      root,
+      { aliased: LEDGER },
+      {
+        aliased: {
+          ledger: 'scenarios/aliased.jsonl',
+          heads: headsOf(LEDGER),
+          cases: [T2_CASE],
+          chain: { findings: [] },
+        },
+      }
+    );
+    const report = runVerify(root);
+    expect(report.queries).toEqual([{ scenario: 'aliased', id: 't2', status: 'PASS', diff: [] }]);
+    expect(report.unchecked).toEqual([]);
+    expect(report.assumptions).toEqual(
+      expect.arrayContaining([expect.stringMatching(/read key 'ledger' as 'scenario'/)])
+    );
+    expect(report.ok).toBe(true);
+  });
+
+  test('a case file naming a scenario that does not exist fails, and the orphan ledger is audited', () => {
     writeFixtures(
       root,
       { orphan: LEDGER },
@@ -761,16 +1211,235 @@ describe('runVerify / temporal-assertion verify', () => {
     );
   });
 
+  test('a scenario no case file refers to is a FAIL even when its chain is clean (mutation: unchecked ignored → red)', () => {
+    writeFixtures(
+      root,
+      { checked: LEDGER, lonely: PLAIN },
+      {
+        checked: {
+          scenario: 'checked',
+          heads: headsOf(LEDGER),
+          cases: [T2_CASE],
+          chain: { findings: [] },
+        },
+      }
+    );
+    const report = runVerify(root);
+    expect(report.unchecked).toEqual(['lonely']);
+    const lonely = report.chains.find((c) => c.scenario === 'lonely');
+    expect(lonely).toMatchObject({ caseFile: '(none)', status: 'FAIL', envelopes: 3, findings: 0 });
+    expect(lonely?.diff[0]).toMatch(/no case file/);
+    // Everything else passed: the run is red for the hole in the bench and nothing else.
+    expect(report.totals).toEqual({ pass: 2, fail: 1 });
+    expect(report.ok).toBe(false);
+  });
+
+  test('the chain of an orphan scenario is audited all the same: a tampered checksum surfaces', () => {
+    const tampered = LEDGER.map((e) =>
+      e.assertion_id === 'A2'
+        ? { ...e, statement: { subject: 'acme', predicate: 'ceo', object: 'mallory' } }
+        : e
+    );
+    writeFixtures(
+      root,
+      { checked: LEDGER, tampered },
+      {
+        checked: {
+          scenario: 'checked',
+          heads: headsOf(LEDGER),
+          cases: [T2_CASE],
+          chain: { findings: [] },
+        },
+      }
+    );
+    const report = runVerify(root);
+    const orphan = report.chains.find((c) => c.scenario === 'tampered');
+    expect(orphan?.status).toBe('FAIL');
+    expect(orphan?.findings).toBe(1);
+    expect(orphan?.diff.join(' | ')).toMatch(/checksum_mismatch/);
+  });
+
+  test('a PRESENT expected field of the wrong type is a recorded problem, not "absent"', () => {
+    writeFixtures(
+      root,
+      { basic: LEDGER },
+      {
+        basic: {
+          scenario: 'basic',
+          heads: headsOf(LEDGER),
+          chain: { findings: [] },
+          cases: [
+            {
+              name: 'malformed',
+              query: T2_CASE.query,
+              expected: {
+                in_scope: 'A1',
+                hash: 1,
+                excluded: T2_CASE.expected.excluded,
+                undecided: [],
+              },
+            },
+          ],
+        },
+      }
+    );
+    const report = runVerify(root);
+    // The two well-formed fields still match, so a loader that dropped the malformed ones
+    // would report a fully green run: the problems are the only thing that fails it.
+    expect(report.queries.find((q) => q.id === 'malformed')).toMatchObject({ status: 'PASS' });
+    const problems = report.queries.filter((q) => q.id === 'basic.json').map((q) => q.diff[0]);
+    expect(problems).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/in_scope: present but not an array/),
+        expect.stringMatching(/hash: present but not a string/),
+      ])
+    );
+    expect(report.ok).toBe(false);
+  });
+
+  test('a malformed query instant is a recorded problem and is never normalised', () => {
+    writeFixtures(
+      root,
+      { basic: LEDGER },
+      {
+        basic: {
+          scenario: 'basic',
+          heads: headsOf(LEDGER),
+          chain: { findings: [] },
+          cases: [
+            {
+              name: 'leap',
+              query: { time_axis: 'valid', valid_at: '2026-02-29' },
+              expected: { in_scope: [], excluded: [], undecided: [] },
+            },
+          ],
+        },
+      }
+    );
+    const report = runVerify(root);
+    const problems = report.queries.filter((q) => q.id === 'basic.json').map((q) => q.diff[0]);
+    expect(problems).toEqual([
+      expect.stringMatching(/valid_at: "2026-02-29" is not a calendar ISO 8601 bound/),
+    ]);
+    // And no snapshot was produced for it: a normalising parser would have answered for
+    // 2026-03-01 instead of refusing.
+    const leap = report.queries.find((q) => q.id === 'leap');
+    expect(leap?.status).toBe('FAIL');
+    expect(leap?.diff[0]).toMatch(/snapshot error: not a calendar date/);
+    expect(report.ok).toBe(false);
+  });
+
+  test('an envelope of another schema_version is a scenario ERROR, never an assumption', () => {
+    const foreign = LEDGER.map((e) => ({ ...e, schema_version: 'temporal-assertion/v2' }));
+    writeFixtures(
+      root,
+      { foreign },
+      { foreign: { scenario: 'foreign', cases: [T2_CASE], chain: { findings: [] } } }
+    );
+    const report = runVerify(root);
+    expect(report.chains[0].status).toBe('FAIL');
+    expect(report.chains[0].diff[0]).toMatch(
+      /schema_version "temporal-assertion\/v2" is not temporal-assertion\/v1/
+    );
+    expect(report.queries[0].status).toBe('FAIL');
+    expect(report.assumptions.some((a) => /schema_version/.test(a))).toBe(false);
+    expect(report.ok).toBe(false);
+  });
+
+  test('an envelope the closed shape refuses is a scenario ERROR: the oracle never hashes it', () => {
+    const broken = LEDGER.map((e) =>
+      e.assertion_id === 'A1' ? { ...e, sequence_id: 7 } : e
+    ) as unknown as Envelope[];
+    writeFixtures(
+      root,
+      { broken },
+      { broken: { scenario: 'broken', cases: [], chain: { findings: [] } } }
+    );
+    const report = runVerify(root);
+    expect(report.chains[0].status).toBe('FAIL');
+    expect(report.chains[0].diff[0]).toMatch(/sequence_id — not a member/);
+    expect(report.ok).toBe(false);
+  });
+
   test('--json prints the report', async () => {
     writeFixtures(
       root,
       { basic: LEDGER },
-      { basic: { scenario: 'basic', cases: [T2_CASE], chain: { findings: [] } } }
+      {
+        basic: {
+          scenario: 'basic',
+          heads: headsOf(LEDGER),
+          cases: [T2_CASE],
+          chain: { findings: [] },
+        },
+      }
     );
     await run(['--fixtures', root, '--json']);
     const parsed = JSON.parse(logged.join('\n'));
     expect(parsed.ok).toBe(true);
     expect(parsed.totals).toEqual({ pass: 2, fail: 0 });
+  });
+});
+
+// ============================================================================
+// The preAction preflight: the offline verifier resolves no base URL
+// ============================================================================
+
+describe('cli preflight', () => {
+  const previousInsecure = process.env.DEPOSIUM_INSECURE;
+
+  beforeEach(() => {
+    configMock.getConfig.mockReset();
+    configMock.getBaseUrl.mockReset();
+    configMock.getConfig.mockImplementation(() => ({ deposiumUrl: 'https://api.example.com' }));
+    configMock.getBaseUrl.mockImplementation(() => 'https://api.example.com');
+    delete process.env.DEPOSIUM_INSECURE;
+  });
+
+  afterEach(() => {
+    if (previousInsecure === undefined) {
+      delete process.env.DEPOSIUM_INSECURE;
+    } else {
+      process.env.DEPOSIUM_INSECURE = previousInsecure;
+    }
+  });
+
+  test('the offline commands are the ones that need no API', () => {
+    expect(usesApi('temporal-assertion')).toBe(false);
+    expect(usesApi('config')).toBe(false);
+    expect(usesApi('auth')).toBe(false);
+    expect(usesApi(undefined)).toBe(false);
+    expect(usesApi('search')).toBe(true);
+  });
+
+  test('temporal-assertion reads NO configuration at all (mutation: getConfig before the list → red)', () => {
+    runPreflight('temporal-assertion', {});
+    expect(configMock.getConfig).not.toHaveBeenCalled();
+    expect(configMock.getBaseUrl).not.toHaveBeenCalled();
+    runPreflight('search', {});
+    expect(configMock.getConfig).toHaveBeenCalledTimes(1);
+    expect(configMock.getBaseUrl).toHaveBeenCalledTimes(1);
+  });
+
+  test('an http non-localhost URL without --insecure stops an API command, never the verifier', () => {
+    configMock.getBaseUrl.mockImplementation(() => {
+      throw new Error('Insecure HTTP connection refused for deposium.example.com');
+    });
+    expect(() => runPreflight('search', {})).toThrow(/Insecure HTTP connection refused/);
+    expect(() => runPreflight('temporal-assertion', {})).not.toThrow();
+    expect(() => runPreflight('config', {})).not.toThrow();
+  });
+
+  test('--insecure reaches the environment before the no-API list is consulted', () => {
+    runPreflight('temporal-assertion', { insecure: true });
+    expect(process.env.DEPOSIUM_INSECURE).toBe('true');
+    expect(configMock.getConfig).not.toHaveBeenCalled();
+  });
+
+  test('an absent --insecure still lets DEPOSIUM_INSECURE decide for an API command', () => {
+    process.env.DEPOSIUM_INSECURE = 'true';
+    runPreflight('search', {});
+    expect(configMock.getBaseUrl).toHaveBeenCalledWith(expect.anything(), { insecure: true });
   });
 });
 
@@ -786,17 +1455,17 @@ const VENDORED_ROOT = join(process.cwd(), 'src', '__tests__', 'fixtures', 'tempo
  * then `find . -type f | sort | xargs sha256sum` from the vendored root.
  */
 const FIXTURE_HASHES = {
-  'README.md': 'bcd8696d936bb9ec61e973ab586a1cf6f1554762034df93c58335f147eef3dbd',
-  'cases/01-simple-dated.json': '557f4b1776eeebe69b92ae447f019d8443ca5f1a9dcc94d3112c478145aadb31',
-  'cases/02-correction.json': '5ce302e5b6c8ad91ca6626bd80ef5d52c2210451b80e4f0ca1a869a7c735dae7',
-  'cases/03-retraction.json': 'e651e766cdcd2a9cec05c4556438bb0edb66e42489f7cc7569497180ee856dd4',
-  'cases/04-retroactive.json': '7f9d5163242d0ee3b40920e00c27c66aa839808d3ab86a72439b47d0a61af9f9',
+  'README.md': 'a4f3f35b2cabb20ac46d1439b50e750c53482d7d83fab9be702a7b9aba22034c',
+  'cases/01-simple-dated.json': '3234b738759cc678113292da4b007a4b257b746b5f1d25026ef4ba9164858d29',
+  'cases/02-correction.json': '4fde569063d97a340aedb96c811bedc397ce99f4416cfc35f1d087ee5715bd81',
+  'cases/03-retraction.json': 'bca49283ed9293afc3d4a5f22d333f6045343941ad3eda3adcae2d65489584d0',
+  'cases/04-retroactive.json': '8aa002a816eeb08076bf6309603964e9cf236f6b4398650479c6f79bc365edf0',
   'cases/05-open-vs-unknown.json':
-    '213982ebace3ececeb89fb428f16fbecd4db5de98bf2beae83232c04935ed494',
+    '92b5ec5dd1bb9e4e19fc5753c658e0ae189265574b86e43a4ef39239b9bdd065',
   'cases/06-two-authorities.json':
-    '96fa7682a081bd01f81c86e114409217e1d09b1fc4d09ad820e00f389090103f',
+    'd10f3ac1fdc61b06eb97dfced4832801359981cdf2e50a08ad6d8fe2e543fa6a',
   'cases/07-kind-variations.json':
-    '9ecd9c323a9ade866ac1c89d12424aa49969d557cc92eb53e16cf99fc982f16f',
+    'ec40b6a724c90c812453cd476b98bfb59fd326bfd30e1c0b2bea132551858af0',
   'scenarios/01-simple-dated.jsonl':
     'b7870c64aacf93aa1a94c6c1f1c500d2bb7ad3d4ed93efdbedc9dec85f748ea3',
   'scenarios/02-correction.jsonl':
@@ -815,11 +1484,42 @@ const FIXTURE_HASHES = {
     '3d70ad8a3a90d74c0becef402405870000ca94cfba56543ed62fd24341b75e5c',
 } as const;
 
+interface VendoredCaseFile {
+  scenario: string;
+  ledger: string;
+  heads: Record<string, StreamHead>;
+  chain: { streams: number; envelopes: number; ok: boolean; findings: unknown[] };
+  cases: Array<{
+    name: string;
+    query: SnapshotQuery;
+    expected: {
+      in_scope: string[];
+      excluded: Array<{ assertion_id: string; reason: string }>;
+      undecided: Array<{ assertion_id: string; reason: string }>;
+      hash: string;
+    };
+  }>;
+}
+
 function listFiles(root: string): string[] {
   return readdirSync(root, { recursive: true })
     .map(String)
     .filter((entry) => statSync(join(root, entry)).isFile())
     .sort();
+}
+
+function vendoredCaseFiles(): VendoredCaseFile[] {
+  return listFiles(join(VENDORED_ROOT, 'cases')).map(
+    (name) =>
+      JSON.parse(readFileSync(join(VENDORED_ROOT, 'cases', name), 'utf8')) as VendoredCaseFile
+  );
+}
+
+function vendoredLedger(scenario: string): Envelope[] {
+  return readFileSync(join(VENDORED_ROOT, 'scenarios', `${scenario}.jsonl`), 'utf8')
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+    .map((line) => JSON.parse(line) as Envelope);
 }
 
 describe('vendored MCPs fixtures (tests/fixtures/temporal-assertion)', () => {
@@ -847,17 +1547,62 @@ describe('vendored MCPs fixtures (tests/fixtures/temporal-assertion)', () => {
     expect(report.ok).toBe(true);
   });
 
+  test('every vendored envelope passes the CLI closed-shape validation', () => {
+    let checked = 0;
+    for (const spec of vendoredCaseFiles()) {
+      for (const line of vendoredLedger(spec.scenario)) {
+        expect(validateEnvelope(line), `${spec.scenario} / ${line.assertion_id}`).toEqual([]);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  test('every vendored ledger verifies against its committed heads (mutation: heads ignored → red on the cut)', () => {
+    for (const spec of vendoredCaseFiles()) {
+      const ledger = vendoredLedger(spec.scenario);
+      const report = verifyLedgerChain(ledger, { heads: spec.heads });
+      expect(report.findings, spec.scenario).toEqual([]);
+      expect(report.envelopes).toBe(spec.chain.envelopes);
+      expect(report.streams).toBe(spec.chain.streams);
+
+      // Cut the tail of the longest stream: a shorter stream is a valid stream WITHOUT a
+      // head, and the cut shows ONLY against the committed one.
+      const stream = Object.keys(spec.heads).sort(
+        (a, b) => spec.heads[b].sequence_no - spec.heads[a].sequence_no
+      )[0];
+      const lastNo = spec.heads[stream].sequence_no;
+      const cut = ledger.filter(
+        (e) => e.claim_stream_id !== stream || (e.integrity?.sequence_no ?? 0) < lastNo
+      );
+      expect(cut.length, spec.scenario).toBe(ledger.length - 1);
+      const blind = verifyLedgerChain(cut).findings.filter(
+        (f) => f.verdict !== 'unresolved_target'
+      );
+      expect(blind, `${spec.scenario} without heads`).toEqual([]);
+      // A one-line stream cut to nothing is `stream_absent`; a longer one keeps its head.
+      expect(
+        verifyLedgerChain(cut, { heads: spec.heads }).findings.map((f) => f.verdict),
+        spec.scenario
+      ).toContain(lastNo === 1 ? 'stream_absent' : 'stream_head_mismatch');
+    }
+  });
+
+  test('a whole vendored stream removed under its committed head is stream_absent', () => {
+    const spec = vendoredCaseFiles().find((s) => Object.keys(s.heads).length > 1);
+    expect(spec).toBeDefined();
+    const streams = Object.keys(spec!.heads);
+    const kept = vendoredLedger(spec!.scenario).filter((e) => e.claim_stream_id !== streams[0]);
+    expect(verifyLedgerChain(kept).findings).toEqual([]);
+    expect(verifyLedgerChain(kept, { heads: spec!.heads }).findings).toEqual([
+      expect.objectContaining({ claim_stream_id: streams[0], verdict: 'stream_absent' }),
+    ]);
+  });
+
   test('cross-implementation agreement: the CLI snapshot hash equals every expected.hash MCPs wrote', () => {
     let compared = 0;
-    for (const caseFile of listFiles(join(VENDORED_ROOT, 'cases'))) {
-      const spec = JSON.parse(readFileSync(join(VENDORED_ROOT, 'cases', caseFile), 'utf8'));
-      const ledger = readFileSync(
-        join(VENDORED_ROOT, 'scenarios', `${spec.scenario}.jsonl`),
-        'utf8'
-      )
-        .split('\n')
-        .filter((line) => line.trim() !== '')
-        .map((line) => JSON.parse(line) as Envelope);
+    for (const spec of vendoredCaseFiles()) {
+      const ledger = vendoredLedger(spec.scenario);
       expect(verifyLedgerChain(ledger).findings, spec.scenario).toEqual([]);
       for (const c of spec.cases) {
         const snap = computeSnapshot(ledger, c.query);

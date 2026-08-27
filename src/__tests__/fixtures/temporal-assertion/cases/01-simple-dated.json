@@ -1,6 +1,12 @@
 {
   "scenario": "01-simple-dated",
   "ledger": "scenarios/01-simple-dated.jsonl",
+  "heads": {
+    "7f6d5c27-afbe-403f-b76f-055eced7e313/582/n8n:temporal_events:regex": {
+      "sequence_no": 1,
+      "checksum": "01db51313c8b994d12f56776ee41bf4515d2809449bca8283bfaeb54887b8f7e"
+    }
+  },
   "chain": {
     "streams": 1,
     "envelopes": 1,
@@ -16,7 +22,9 @@
       },
       "reasoning": "from 1991 <= 1991 < to 1992 (invariant 11: 1991 names 1991-01-01T00:00:00Z).",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
@@ -68,7 +76,9 @@
       },
       "reasoning": "One second before the exclusive end is still inside.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
@@ -82,7 +92,9 @@
       },
       "reasoning": "recorded_at <= as_of is inclusive.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
@@ -135,7 +147,9 @@
       },
       "reasoning": "Held (T0 <= as_of) and inside the validity.",
       "expected": {
-        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"
+        ],
         "excluded": [],
         "undecided": [],
         "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
