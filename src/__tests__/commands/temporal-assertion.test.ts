@@ -661,6 +661,34 @@ describe('verifyLedgerChain', () => {
     expect(forged.findings[0].detail).toContain('another checksum');
   });
 
+  test('an envelope canonical JSON cannot carry is unhashable, and the verifier NEVER throws (mutation: guard removed → red)', () => {
+    // A `Date` and a bigint: two values `validateEnvelope` refuses and `encodeField` cannot
+    // hash. They cannot come from JSONL — they come from a caller who did not validate, and
+    // a verifier that threw on the ledger it verifies would say nothing about the other lines.
+    const ledger = vendoredLedger('02-correction').map((e) => ({
+      ...e,
+      statement: { ...e.statement! },
+    }));
+    ledger[0].statement.object = new Date(0);
+    ledger[1].statement.object = BigInt(1);
+
+    let report: ReturnType<typeof verifyLedgerChain> | undefined;
+    expect(() => {
+      report = verifyLedgerChain(ledger);
+    }).not.toThrow();
+    expect(report!.findings).toHaveLength(2);
+    expect([...new Set(report!.findings.map((f) => f.verdict))]).toEqual(['unhashable']);
+    expect(report!.findings.map((f) => f.sequence_no)).toEqual([1, 2]);
+    expect(report!.findings[0].detail).toMatch(/^the envelope cannot be hashed: .*Date/);
+    expect(report!.findings[1].detail).toMatch(/^the envelope cannot be hashed: .*bigint/);
+    // Nothing was compared, so no checksum_mismatch; and the head still advanced on the
+    // DECLARED checksums, so line 2's previous_checksum still resolves.
+    expect(report!.findings.some((f) => f.verdict === 'checksum_mismatch')).toBe(false);
+    expect(report!.findings.some((f) => f.verdict === 'previous_checksum_mismatch')).toBe(false);
+    // The untouched ledger is clean: the two findings come from the two mutations alone.
+    expect(verifyLedgerChain(vendoredLedger('02-correction')).findings).toEqual([]);
+  });
+
   test('a whole stream removed under a committed head is stream_absent', () => {
     const other = seal([envelope({ assertion_id: 'B1', claim_stream_id: 's2' })]);
     const heads = headsOf([...PLAIN, ...other]);
@@ -1455,7 +1483,7 @@ const VENDORED_ROOT = join(process.cwd(), 'src', '__tests__', 'fixtures', 'tempo
  * then `find . -type f | sort | xargs sha256sum` from the vendored root.
  */
 const FIXTURE_HASHES = {
-  'README.md': 'a4f3f35b2cabb20ac46d1439b50e750c53482d7d83fab9be702a7b9aba22034c',
+  'README.md': '1ce1a330c1c2f32317bb25970fb5274a8dfe84c1504f1c008c61adcb8933309c',
   'cases/01-simple-dated.json': '3234b738759cc678113292da4b007a4b257b746b5f1d25026ef4ba9164858d29',
   'cases/02-correction.json': '4fde569063d97a340aedb96c811bedc397ce99f4416cfc35f1d087ee5715bd81',
   'cases/03-retraction.json': 'bca49283ed9293afc3d4a5f22d333f6045343941ad3eda3adcae2d65489584d0',

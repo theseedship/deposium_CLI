@@ -82,8 +82,9 @@ That is the negative control the brief requires — the bench against nothing is
 
 ## Encoding rules
 
-The checksum of a line is SHA-256 over the fields of `CHECKSUM_FIELD_ORDER` (every field
-except `integrity.checksum`, `evidence_refs` and the derivation included), each encoded by
+The checksum of a line is SHA-256 over the fields of `CHECKSUM_FIELD_ORDER`: every field
+of the envelope except `integrity.checksum` itself, so `evidence_refs` and the derivation
+ARE hashed (34 paths). Each field is encoded by
 `encodeChecksumValue` — a string RAW, `null` and absent as the NUL byte `\x00`, every other
 value (number, boolean, object, array) as the STX byte `\x02` (`CHECKSUM_TYPED`) followed
 by its canonical JSON (keys sorted at every level, no whitespace, `undefined` members

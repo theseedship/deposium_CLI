@@ -237,8 +237,8 @@ function auditLedger(
   try {
     return { report: verifyLedgerChain(scenario.envelopes, { heads: heads ?? undefined }) };
   } catch (error) {
-    // `checksumOf` refuses a string it cannot hash raw: a ledger the oracle declines to
-    // vouch for is a FAIL, never a silent pass.
+    // `verifyLedgerChain` reports an envelope it cannot hash as `unhashable` instead of
+    // throwing, so this is a last resort: whatever reaches it is a FAIL, never a silent pass.
     return { failures: [`chain not computable: ${reasonOf(error)}`] };
   }
 }

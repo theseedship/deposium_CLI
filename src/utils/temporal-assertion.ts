@@ -36,7 +36,9 @@
  *     edited predecessor is reported once, on its own line. A `duplicate_sequence_no`
  *     never advances the chain head and its checksum is STILL recomputed. Every
  *     withdrawal names an assertion that is on the ledger (`unresolved_target`) and in
- *     its own stream (`cross_stream_target`, invariant 4). A removed TAIL is the one
+ *     its own stream (`cross_stream_target`, invariant 4). An envelope the encoder cannot
+ *     hash at all is `unhashable`, never a crash: a verifier that threw on the ledger it
+ *     verifies would tell the reader nothing about the other lines. A removed TAIL is the one
  *     deletion a chain cannot see by itself, so `verifyLedgerChain` accepts the committed
  *     `heads` (last `sequence_no` and DECLARED checksum per stream, held outside the
  *     stream) and reports `stream_head_mismatch` / `stream_absent` against them.
@@ -290,7 +292,9 @@ export function canonicalJson(value: unknown): string {
 }
 
 function describeUncarriable(value: unknown): string {
-  if (typeof value === 'object' && value !== null) {
+  // Null first: a `typeof … === 'object'` narrowing before the null test reads, to a static
+  // analyser, as a comparison between inconvertible types. Same behaviour, plainer to read.
+  if (value !== null && typeof value === 'object') {
     const named = (value as { constructor?: { name?: string } }).constructor;
     return `a ${named?.name ?? 'non-plain object'}`;
   }
@@ -862,6 +866,7 @@ export const CHAIN_VERDICTS = [
   'cross_stream_target',
   'stream_head_mismatch',
   'stream_absent',
+  'unhashable',
 ] as const;
 export type ChainVerdict = (typeof CHAIN_VERDICTS)[number];
 
@@ -896,6 +901,8 @@ type SealedEnvelope = Envelope & { integrity: Integrity };
 /**
  * Every finding on the ledger, stream by stream. An empty list means the chain holds — and,
  * when `heads` are given, that no stream was cut after its last line.
+ *
+ * This function NEVER throws: an envelope it cannot hash is reported as `unhashable`.
  */
 export function verifyLedgerChain(
   envelopes: readonly Envelope[],
@@ -960,14 +967,44 @@ function auditStream(
   }
   sealed.sort((a, b) => a.integrity.sequence_no - b.integrity.sequence_no);
 
-  // `last` is the line accepted as the chain's current end; a duplicate never becomes it.
+  const sequence = walkSequence(streamId, sealed);
+  findings.push(...sequence.findings);
+  const headFinding = compareHead(streamId, sequence.last, head);
+  return headFinding === null ? findings : [...findings, headFinding];
+}
+
+/**
+ * The sealed lines of one stream, in `sequence_no` order. Returns its findings and the last
+ * line ACCEPTED as the chain's end — a duplicate never becomes it, and neither does a line
+ * the encoder refused, though such a line still hands its DECLARED checksum on.
+ */
+function walkSequence(
+  streamId: string,
+  sealed: readonly SealedEnvelope[]
+): { findings: ChainFinding[]; last: SealedEnvelope | null } {
+  const findings: ChainFinding[] = [];
+  const report = (line: SealedEnvelope, verdict: ChainVerdict, detail: string): void => {
+    findings.push({
+      claim_stream_id: streamId,
+      sequence_no: line.integrity.sequence_no,
+      assertion_id: line.assertion_id,
+      verdict,
+      detail,
+    });
+  };
+  const editedDetail = 'the recomputed checksum differs from the declared one: the line was edited';
   let last: SealedEnvelope | null = null;
   for (const line of sealed) {
     const seq = line.integrity.sequence_no;
     // Recomputed BEFORE the duplicate is skipped: an edited twin must still be named edited.
-    const edited = checksumOf(line) !== line.integrity.checksum;
-    const editedDetail =
-      'the recomputed checksum differs from the declared one: the line was edited';
+    // A line the encoder refuses is `unhashable` and nothing else: nothing was compared, so
+    // no `checksum_mismatch`, and the chain head still advances on its DECLARED checksum so
+    // the lines after it stay readable.
+    const attempt = recomputeChecksum(line);
+    if ('refusal' in attempt) {
+      report(line, 'unhashable', attempt.refusal);
+    }
+    const edited = 'checksum' in attempt && attempt.checksum !== line.integrity.checksum;
     if (last !== null && last.integrity.sequence_no === seq) {
       report(line, 'duplicate_sequence_no', `sequence_no ${seq} appears twice`);
       if (edited) {
@@ -996,8 +1033,22 @@ function auditStream(
     }
     last = line;
   }
-  const headFinding = compareHead(streamId, last, head);
-  return headFinding === null ? findings : [...findings, headFinding];
+  return { findings, last };
+}
+
+/**
+ * The recomputed checksum, or the refusal that stands in for it. A verifier NEVER throws on
+ * the ledger it verifies: an envelope canonical JSON cannot carry — a `Date`, a bigint, a
+ * cycle, a lone surrogate in a raw field, all of which `validateEnvelope` refuses but a
+ * caller may not have asked — is a finding, not a crash that hides every other line.
+ */
+function recomputeChecksum(line: SealedEnvelope): { checksum: string } | { refusal: string } {
+  try {
+    return { checksum: checksumOf(line) };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { refusal: `the envelope cannot be hashed: ${reason}` };
+  }
 }
 
 /** Invariants 3 and 4: a withdrawal names a line of the ledger, in its OWN stream. */
