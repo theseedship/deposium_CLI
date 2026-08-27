@@ -1,0 +1,145 @@
+{
+  "scenario": "01-simple-dated",
+  "ledger": "scenarios/01-simple-dated.jsonl",
+  "chain": {
+    "streams": 1,
+    "envelopes": 1,
+    "ok": true,
+    "findings": []
+  },
+  "cases": [
+    {
+      "name": "valid at 1991: inside the year",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1991"
+      },
+      "reasoning": "from 1991 <= 1991 < to 1992 (invariant 11: 1991 names 1991-01-01T00:00:00Z).",
+      "expected": {
+        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "excluded": [],
+        "undecided": [],
+        "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
+      }
+    },
+    {
+      "name": "valid at 1990: before the start",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1990"
+      },
+      "reasoning": "1990 < from 1991.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991",
+            "reason": "not_yet_valid"
+          }
+        ],
+        "undecided": [],
+        "hash": "47d2e2506b2e28ff6a86272c07322651b27e26371ccc4c614f00b6856d8aebf1"
+      }
+    },
+    {
+      "name": "valid at 1992: the exclusive end",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1992"
+      },
+      "reasoning": "to 1992 is EXCLUSIVE (invariant 11): 1992-01-01T00:00:00Z is already out.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991",
+            "reason": "no_longer_valid"
+          }
+        ],
+        "undecided": [],
+        "hash": "7c9348f3d3723ff2a2d12fb775b5a9281773a02583fbb5b64b9e888977436ac3"
+      }
+    },
+    {
+      "name": "valid at the last second of 1991",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1991-12-31T23:59:59Z"
+      },
+      "reasoning": "One second before the exclusive end is still inside.",
+      "expected": {
+        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "excluded": [],
+        "undecided": [],
+        "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
+      }
+    },
+    {
+      "name": "as of T0: recorded_at equal to as_of is held",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "recorded_at <= as_of is inclusive.",
+      "expected": {
+        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "excluded": [],
+        "undecided": [],
+        "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
+      }
+    },
+    {
+      "name": "as of one second before T0",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10T11:18:57Z"
+      },
+      "reasoning": "The ledger did not hold the line yet.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "eff29de954a63d877313857b34004095fd4689b0f36312fb30d5f96b7a228518"
+      }
+    },
+    {
+      "name": "as of the day of T0 at day precision",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10"
+      },
+      "reasoning": "A day bound names its FIRST instant, 00:00:00Z, which is before 11:18:58Z.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "eff29de954a63d877313857b34004095fd4689b0f36312fb30d5f96b7a228518"
+      }
+    },
+    {
+      "name": "both axes: valid 1991, as of 2026-09-01",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1991",
+        "as_of": "2026-09-01"
+      },
+      "reasoning": "Held (T0 <= as_of) and inside the validity.",
+      "expected": {
+        "in_scope": ["auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991"],
+        "excluded": [],
+        "undecided": [],
+        "hash": "1d97959793fe16a2ba8fe5fa4dd92f38b7c8b6a1db41936e5922caa6811da1de"
+      }
+    }
+  ]
+}

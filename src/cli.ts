@@ -25,6 +25,7 @@ import { spaceCommand } from './commands/space';
 import { filesCommand } from './commands/files';
 import { apiKeysCommand } from './commands/api-keys';
 import { validateCommand } from './commands/validate';
+import { temporalAssertionCommand } from './commands/temporal-assertion';
 import { getConfig, getBaseUrl } from './utils/config';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
@@ -105,7 +106,7 @@ program
     const insecure = globalOpts.insecure ?? process.env.DEPOSIUM_INSECURE === 'true';
     const baseUrl = getBaseUrl(config, { insecure });
     // Skip config check for commands that don't use API, or if using default localhost
-    const noApiCommands = ['config', 'auth'];
+    const noApiCommands = ['config', 'auth', 'temporal-assertion'];
     const currentCommand = program.args[0];
     if (
       currentCommand &&
@@ -145,6 +146,7 @@ program.addCommand(spaceCommand);
 program.addCommand(filesCommand);
 program.addCommand(apiKeysCommand);
 program.addCommand(validateCommand);
+program.addCommand(temporalAssertionCommand);
 
 // Interactive mode
 program

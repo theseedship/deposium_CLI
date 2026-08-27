@@ -1,0 +1,131 @@
+{
+  "scenario": "05-open-vs-unknown",
+  "ledger": "scenarios/05-open-vs-unknown.jsonl",
+  "chain": {
+    "streams": 1,
+    "envelopes": 2,
+    "ok": true,
+    "findings": []
+  },
+  "cases": [
+    {
+      "name": "R2: valid at 1999",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1999"
+      },
+      "reasoning": "'open' covers 1999; 'unknown' cannot say whether the fact had ended: undecided.",
+      "expected": {
+        "in_scope": ["ent|location|netherlands|1987|open"],
+        "excluded": [],
+        "undecided": [
+          {
+            "assertion_id": "ent|location|netherlands|1987|unknown",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "92a264a908ac4f2b5b587f180a4c66c36d92981f99d03be65833a8378f0ae342"
+      }
+    },
+    {
+      "name": "valid at 1987: the start year",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1987"
+      },
+      "reasoning": "An unknown end may fall inside 1987 itself: still undecided; the open one is in.",
+      "expected": {
+        "in_scope": ["ent|location|netherlands|1987|open"],
+        "excluded": [],
+        "undecided": [
+          {
+            "assertion_id": "ent|location|netherlands|1987|unknown",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "92a264a908ac4f2b5b587f180a4c66c36d92981f99d03be65833a8378f0ae342"
+      }
+    },
+    {
+      "name": "valid at 1980: before both starts",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1980"
+      },
+      "reasoning": "The bounded start decides before the end kind is looked at.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|location|netherlands|1987|open",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|unknown",
+            "reason": "not_yet_valid"
+          }
+        ],
+        "undecided": [],
+        "hash": "f2ee47c0a2e696f474b2b6f3e5acfa3b94cf5531862994cd43d7f7087d3a6fa3"
+      }
+    },
+    {
+      "name": "as of T0: the transaction axis ignores the end kind",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "Both lines are held; no validity question was asked.",
+      "expected": {
+        "in_scope": ["ent|location|netherlands|1987|open", "ent|location|netherlands|1987|unknown"],
+        "excluded": [],
+        "undecided": [],
+        "hash": "afec47f696e7f4c8cc24b3d5f40624a03df5e3a757ecdd7352b93ace6d0a7890"
+      }
+    },
+    {
+      "name": "both axes: valid 1999, as of T0",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1999",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "Held, then the end kinds separate them again.",
+      "expected": {
+        "in_scope": ["ent|location|netherlands|1987|open"],
+        "excluded": [],
+        "undecided": [
+          {
+            "assertion_id": "ent|location|netherlands|1987|unknown",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "92a264a908ac4f2b5b587f180a4c66c36d92981f99d03be65833a8378f0ae342"
+      }
+    },
+    {
+      "name": "both axes: valid 1999, as of the day of T0 at day precision",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1999",
+        "as_of": "2026-08-10"
+      },
+      "reasoning": "Not held at 00:00:00Z: the end kind is never reached.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "ent|location|netherlands|1987|open",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|unknown",
+            "reason": "not_yet_recorded"
+          }
+        ],
+        "undecided": [],
+        "hash": "10f19bc2edb485bca5543746b0ac0475adeb1a1ac2676f1796a1e7b01a35c569"
+      }
+    }
+  ]
+}

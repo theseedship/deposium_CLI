@@ -61,6 +61,7 @@ Detailed documentation is available in the `docs/` directory:
 | **[ui](docs/commands/ui.md)**                       | Launch interactive dashboards         |
 | **[upload-batch](docs/commands/upload-batch.md)**   | Batch file upload utility             |
 | **[validate](docs/commands/validate.md)**           | Validate dossier (N1+N2+HITL)         |
+| **temporal-assertion**                              | Oracle: temporal-assertion fixtures   |
 
 ## 📦 Quick Install
 

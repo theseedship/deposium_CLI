@@ -1,0 +1,1591 @@
+{
+  "scenario": "07-kind-variations",
+  "ledger": "scenarios/07-kind-variations.jsonl",
+  "chain": {
+    "streams": 9,
+    "envelopes": 27,
+    "ok": true,
+    "findings": []
+  },
+  "cases": [
+    {
+      "name": "valid at 1985: before every bounded start",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1985"
+      },
+      "reasoning": "Ledger as it stands: seq 1 superseded, seq 3 is a retraction, seq 2 judged by its bound kinds at 1985.",
+      "expected": {
+        "in_scope": ["ent|agent|germany|1987|open-bounded|2", "ent|agent|greece|1987|open-open|2"],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "valid_from_unknown"
+          }
+        ],
+        "hash": "45314865737ecbca6254c13ed6c75e693c4a66652e44f9954711088f48fbe09c"
+      }
+    },
+    {
+      "name": "valid at 1987: exactly the start of the 1987 rows (a start is inclusive)",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1987"
+      },
+      "reasoning": "Ledger as it stands: seq 1 superseded, seq 3 is a retraction, seq 2 judged by its bound kinds at 1987.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "valid_from_unknown"
+          }
+        ],
+        "hash": "90b2761700afd0d9eedde1def85f5f909e0ce39b4c673f5d4d6711619924a1e0"
+      }
+    },
+    {
+      "name": "valid at 1987-07-01: inside 1987, before the 1991 row",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1987-07-01"
+      },
+      "reasoning": "Ledger as it stands: seq 1 superseded, seq 3 is a retraction, seq 2 judged by its bound kinds at 1987-07-01.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "valid_from_unknown"
+          }
+        ],
+        "hash": "90b2761700afd0d9eedde1def85f5f909e0ce39b4c673f5d4d6711619924a1e0"
+      }
+    },
+    {
+      "name": "valid at 1988: exactly the exclusive end of the 1987 rows",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1988"
+      },
+      "reasoning": "Ledger as it stands: seq 1 superseded, seq 3 is a retraction, seq 2 judged by its bound kinds at 1988.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "473eff74d046e45e8e0a926c308013309a6d4538a967087040947c95865de43a"
+      }
+    },
+    {
+      "name": "valid at 1995: after every bounded end",
+      "query": {
+        "time_axis": "valid",
+        "valid_at": "1995"
+      },
+      "reasoning": "Ledger as it stands: seq 1 superseded, seq 3 is a retraction, seq 2 judged by its bound kinds at 1995.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "473eff74d046e45e8e0a926c308013309a6d4538a967087040947c95865de43a"
+      }
+    },
+    {
+      "name": "as of one second before T0",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10T11:18:57Z"
+      },
+      "reasoning": "Nothing held; retractions listed as such.",
+      "expected": {
+        "in_scope": [],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "a0b169e33d102461b91299f94d643a84cc51075f811328334134bfeb7c9cee66"
+      }
+    },
+    {
+      "name": "as of T0",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "seq 1 held and standing, seq 2 not yet recorded.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+          "ent|agent|ecorys|1987|bounded-unknown|1",
+          "ent|agent|germany|1987|open-bounded|1",
+          "ent|agent|greece|1987|open-open|1",
+          "ent|location|netherlands|1987|open-unknown|1",
+          "ent|system|msfd|1987|unknown-bounded|1"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "6fffb4bd05dfaa8f07e184b9e316e6f6650d2dd3cd771d646db2069514eb232e"
+      }
+    },
+    {
+      "name": "as of T1",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-11T11:18:58Z"
+      },
+      "reasoning": "seq 2 held and supersedes seq 1; the T2 retraction of seq 1 is later than the supersession, so seq 1 keeps the earliest reason.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+          "ent|agent|ecorys|1987|bounded-unknown|2",
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2",
+          "ent|location|netherlands|1987|open-unknown|2",
+          "ent|system|msfd|1987|unknown-bounded|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "7b2a335482c79f2d2215233418f7642b9d30fdf1aeb28d92761666fb329ceb04"
+      }
+    },
+    {
+      "name": "as of T2",
+      "query": {
+        "time_axis": "transaction",
+        "as_of": "2026-08-12T11:18:58Z"
+      },
+      "reasoning": "seq 2 held and supersedes seq 1; the T2 retraction of seq 1 is later than the supersession, so seq 1 keeps the earliest reason.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+          "ent|agent|ecorys|1987|bounded-unknown|2",
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2",
+          "ent|location|netherlands|1987|open-unknown|2",
+          "ent|system|msfd|1987|unknown-bounded|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [],
+        "hash": "7b2a335482c79f2d2215233418f7642b9d30fdf1aeb28d92761666fb329ceb04"
+      }
+    },
+    {
+      "name": "both axes: valid 1987-07-01, as of T0",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1987-07-01",
+        "as_of": "2026-08-10T11:18:58Z"
+      },
+      "reasoning": "Transaction axis picks the standing line (seq 1), then its bound kinds decide at 1987-07-01.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+          "ent|agent|germany|1987|open-bounded|1",
+          "ent|agent|greece|1987|open-open|1"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "not_yet_recorded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "valid_from_unknown"
+          }
+        ],
+        "hash": "f2d43ac846fa1248ca4424fc3fc49ecd4fd266c25201ce5f19b9dcc7e170a93a"
+      }
+    },
+    {
+      "name": "both axes: valid 1987-07-01, as of T1",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1987-07-01",
+        "as_of": "2026-08-11T11:18:58Z"
+      },
+      "reasoning": "Transaction axis picks the standing line (seq 2), then its bound kinds decide at 1987-07-01.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|germany|1987|open-bounded|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "valid_from_unknown"
+          }
+        ],
+        "hash": "90b2761700afd0d9eedde1def85f5f909e0ce39b4c673f5d4d6711619924a1e0"
+      }
+    },
+    {
+      "name": "both axes: valid 1995, as of T2",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1995",
+        "as_of": "2026-08-12T11:18:58Z"
+      },
+      "reasoning": "Transaction axis picks the standing line (seq 2), then its bound kinds decide at 1995.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "473eff74d046e45e8e0a926c308013309a6d4538a967087040947c95865de43a"
+      }
+    },
+    {
+      "name": "both axes: valid 1985, as of T1",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1985",
+        "as_of": "2026-08-11T11:18:58Z"
+      },
+      "reasoning": "Transaction axis picks the standing line (seq 2), then its bound kinds decide at 1985.",
+      "expected": {
+        "in_scope": ["ent|agent|germany|1987|open-bounded|2", "ent|agent|greece|1987|open-open|2"],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "not_yet_valid"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "valid_from_unknown"
+          }
+        ],
+        "hash": "45314865737ecbca6254c13ed6c75e693c4a66652e44f9954711088f48fbe09c"
+      }
+    },
+    {
+      "name": "both axes: valid 1991, as of T2",
+      "query": {
+        "time_axis": "both",
+        "valid_at": "1991",
+        "as_of": "2026-08-12T11:18:58Z"
+      },
+      "reasoning": "Transaction axis picks the standing line (seq 2), then its bound kinds decide at 1991.",
+      "expected": {
+        "in_scope": [
+          "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|2",
+          "ent|agent|greece|1987|open-open|2"
+        ],
+        "excluded": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|bounded-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_40|1987|bounded-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|agent|germany|1987|open-bounded|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|agent|greece|1987|open-open|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|3",
+            "reason": "is_retraction"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|1",
+            "reason": "superseded"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|2",
+            "reason": "no_longer_valid"
+          },
+          {
+            "assertion_id": "ent|system|msfd|1987|unknown-bounded|3",
+            "reason": "is_retraction"
+          }
+        ],
+        "undecided": [
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_12|1987|unknown-unknown|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "auto|29a612be-2e11-4532-944a-8953e1442099_page_74|1991|unknown-open|2",
+            "reason": "valid_from_unknown"
+          },
+          {
+            "assertion_id": "ent|agent|ecorys|1987|bounded-unknown|2",
+            "reason": "valid_to_unknown"
+          },
+          {
+            "assertion_id": "ent|location|netherlands|1987|open-unknown|2",
+            "reason": "valid_to_unknown"
+          }
+        ],
+        "hash": "473eff74d046e45e8e0a926c308013309a6d4538a967087040947c95865de43a"
+      }
+    }
+  ]
+}
