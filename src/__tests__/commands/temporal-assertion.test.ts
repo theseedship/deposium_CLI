@@ -60,6 +60,7 @@ import {
   encodeField,
   instantOf,
   isWellFormedText,
+  jsonUnsafePath,
   snapshotPreimage,
   validateEnvelope,
   verifyLedgerChain,
@@ -433,6 +434,29 @@ describe('canonicalJson refuses what JSON cannot carry faithfully', () => {
     expect(() => canonicalJson([1, [2, NaN]])).toThrow(/NaN/);
   });
 
+  test('-0 is JSON-UNSAFE: JSON writes it as 0 (mutation: the Object.is check removed → red)', () => {
+    // The defect this guards: JSON.stringify(-0) is "0", so a hashed -0 and a hashed 0
+    // would share a checksum and two different envelopes could not be told apart.
+    expect(JSON.stringify(-0)).toBe('0');
+    expect(() => canonicalJson(-0)).toThrow(/-0/);
+    expect(() => canonicalJson({ a: [1, -0] })).toThrow(/-0/);
+    expect(() => encodeField(-0)).toThrow(/-0/);
+    // Positive control: the plain zero is an ordinary hashed value and stays accepted.
+    expect(canonicalJson(0)).toBe('0');
+    expect(canonicalJson({ a: [1, 0] })).toBe('{"a":[1,0]}');
+    expect(encodeField(0)).toBe('\x020');
+  });
+
+  test('jsonUnsafePath names the member the encoder refused, not just the field', () => {
+    expect(jsonUnsafePath({ a: [1, -0] }, 'statement.object')).toBe('statement.object.a[1]');
+    expect(jsonUnsafePath({ a: { b: Number.NaN } }, 'statement.object')).toBe(
+      'statement.object.a.b'
+    );
+    expect(jsonUnsafePath([1, [2, new Map()]], 'statement.object')).toBe('statement.object[1][1]');
+    expect(jsonUnsafePath(-0, 'statement.object')).toBe('statement.object');
+    expect(jsonUnsafePath({ a: [1, 0] }, 'statement.object')).toBeNull();
+  });
+
   test('a cycle is refused at any depth', () => {
     const cyclic: Record<string, unknown> = { a: 1 };
     cyclic.self = cyclic;
@@ -514,6 +538,65 @@ describe('validateEnvelope', () => {
     expect(validateEnvelope(selfTarget)).toEqual([
       expect.objectContaining({ path: 'target_assertion_id' }),
     ]);
+  });
+
+  test('-0 is refused wherever a number is hashed, and 0 stays accepted', () => {
+    const asObject = envelope({
+      assertion_id: 'Z1',
+      statement: { subject: 'acme', predicate: 'delta', object: -0 },
+    });
+    expect(validateEnvelope(asObject)).toEqual([
+      expect.objectContaining({ path: 'statement.object' }),
+    ]);
+
+    const nested = envelope({
+      assertion_id: 'Z2',
+      statement: { subject: 'acme', predicate: 'delta', object: { a: [1, -0] } },
+    });
+    expect(validateEnvelope(nested)).toEqual([
+      expect.objectContaining({ path: 'statement.object.a[1]' }),
+    ]);
+
+    // -0 sits inside [0, 1], so the range test alone would let it through.
+    const confidence = envelope({
+      assertion_id: 'Z3',
+      valid_time: {
+        from: '2010',
+        from_kind: 'bounded',
+        to: '2012',
+        to_kind: 'bounded',
+        precision: 'year',
+        confidence: -0,
+      },
+    });
+    expect(validateEnvelope(confidence)).toEqual([
+      expect.objectContaining({ invariant: 6, path: 'valid_time.confidence' }),
+    ]);
+
+    const page = envelope({
+      assertion_id: 'Z4',
+      evidence_refs: [{ evidence_id: 'e', source_id: 's', page: -0 }],
+    });
+    expect(validateEnvelope(page)).toEqual([
+      expect.objectContaining({ invariant: 7, path: 'evidence_refs[0].page' }),
+    ]);
+
+    // Positive control: every one of those fields carrying a plain zero validates and hashes.
+    const zero = envelope({
+      assertion_id: 'Z5',
+      statement: { subject: 'acme', predicate: 'delta', object: 0 },
+      valid_time: {
+        from: '2010',
+        from_kind: 'bounded',
+        to: '2012',
+        to_kind: 'bounded',
+        precision: 'year',
+        confidence: 0,
+      },
+      evidence_refs: [{ evidence_id: 'e', source_id: 's', page: 1 }],
+    });
+    expect(validateEnvelope(zero)).toEqual([]);
+    expect(checksumOf(zero)).toMatch(/^[a-f0-9]{64}$/);
   });
 
   test('an instant that is not a calendar instant is a violation, on every time field', () => {

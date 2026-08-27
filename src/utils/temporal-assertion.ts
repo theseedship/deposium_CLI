@@ -23,9 +23,11 @@
  *     (the separator would stop separating) and no lone surrogate (UTF-8 turns one into
  *     U+FFFD, so two envelopes would share a checksum): the encoder REFUSES to hash one,
  *     and `validateEnvelope` reports it long before that. A non-string value must be
- *     JSON-safe — canonical JSON THROWS on `NaN`, `Infinity`, `undefined` in a list, a
- *     `Date`, a `Map`, a bigint or a cycle rather than emitting a lossy `null` or `{}`.
- *     `integrity.checksum` itself is the only field out.
+ *     JSON-safe — canonical JSON THROWS on `NaN`, `Infinity`, `-0`, `undefined` in a list,
+ *     a `Date`, a `Map`, a `Set`, a bigint or a cycle rather than emitting a lossy value:
+ *     `NaN` and `Infinity` would both write as `null`, a `Map` and a `Set` both as `{}`,
+ *     `-0` as the digit `0`, and a `Date` as its own ISO text through `toJSON()`, which no
+ *     reader could tell from that same string. `integrity.checksum` is the only field out.
  *   - CLOSED SHAPE: at every level, a member the contract does not name is a violation.
  *     The checksum reads a fixed field list; a member it does not read would be editable
  *     under a valid checksum.
@@ -283,12 +285,47 @@ export const TYPED_MARKER = '\x02';
  * `undefined` MEMBERS of an object dropped exactly as JSON drops them.
  *
  * THROWS on every value JSON cannot carry faithfully instead of emitting a marker:
- * `NaN` and `Infinity` would both become `null`, a `Date` and a `Map` both `{}`, an
- * `undefined` in a list `null` — a checksum over a lossy serialisation would let two
- * different envelopes share it.
+ * `NaN` and `Infinity` would both become `null`, a `Map` and a `Set` both `{}`, `-0` the
+ * digit `0`, an `undefined` in a list `null`, and a `Date` its own ISO text through
+ * `toJSON()` — indistinguishable from that same string. A checksum over a lossy
+ * serialisation would let two different envelopes share it.
  */
 export function canonicalJson(value: unknown): string {
-  return writeCanonical(value, []);
+  return writeCanonical(value, [], '');
+}
+
+/** What canonical JSON refused, and WHERE inside the value it sat. */
+class UncarriableValue extends TypeError {
+  readonly reason: string;
+  readonly at: string;
+
+  constructor(reason: string, at: string) {
+    super(`canonical JSON cannot carry ${reason}${at === '' ? '' : ` at ${at}`}`);
+    this.name = 'UncarriableValue';
+    this.reason = reason;
+    this.at = at;
+  }
+}
+
+/**
+ * The path of the first value canonical JSON cannot carry, or `null` when there is none.
+ * `prefix` names the value itself, so the caller gets a path it can print as it stands:
+ * `jsonUnsafePath({ a: [1, -0] }, 'statement.object')` is `'statement.object.a[1]'`.
+ */
+export function jsonUnsafePath(value: unknown, prefix = ''): string | null {
+  return jsonUnsafe(value, prefix)?.path ?? null;
+}
+
+function jsonUnsafe(value: unknown, prefix: string): { path: string; reason: string } | null {
+  try {
+    canonicalJson(value);
+    return null;
+  } catch (error) {
+    if (error instanceof UncarriableValue) {
+      return { path: `${prefix}${error.at}`, reason: error.reason };
+    }
+    return { path: prefix, reason: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 function describeUncarriable(value: unknown): string {
@@ -301,54 +338,66 @@ function describeUncarriable(value: unknown): string {
   return `a ${typeof value}`;
 }
 
-function writeCanonical(value: unknown, seen: readonly object[]): string {
+function writeCanonical(value: unknown, seen: readonly object[], at: string): string {
   if (value === null || typeof value === 'boolean') {
     return JSON.stringify(value);
   }
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      throw new TypeError(`canonical JSON cannot carry ${String(value)}`);
-    }
-    return JSON.stringify(value);
+    return writeNumber(value, at);
   }
   if (typeof value === 'string') {
     if (!isWellFormedText(value)) {
-      throw new TypeError('canonical JSON cannot carry a lone surrogate');
+      throw new UncarriableValue('a lone surrogate', at);
     }
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return `[${walk(value, seen).join(',')}]`;
+    return `[${walk(value, seen, at).join(',')}]`;
   }
   if (isPlainObject(value)) {
-    return `{${members(value, seen).join(',')}}`;
+    return `{${members(value, seen, at).join(',')}}`;
   }
-  throw new TypeError(`canonical JSON cannot carry ${describeUncarriable(value)}`);
+  throw new UncarriableValue(describeUncarriable(value), at);
 }
 
-function walk(list: readonly unknown[], seen: readonly object[]): string[] {
+function writeNumber(value: number, at: string): string {
+  if (!Number.isFinite(value)) {
+    throw new UncarriableValue(String(value), at);
+  }
+  // `JSON.stringify(-0)` is `"0"`: the sign is gone, so two envelopes differing only by
+  // `0` against `-0` in a hashed value would share a checksum. The negative zero is
+  // JSON-UNSAFE, exactly like `NaN` — a distinction the encoder cannot carry is refused,
+  // never silently flattened.
+  if (Object.is(value, -0)) {
+    throw new UncarriableValue('-0, which JSON writes as 0 and no reader could tell apart', at);
+  }
+  return JSON.stringify(value);
+}
+
+function walk(list: readonly unknown[], seen: readonly object[], at: string): string[] {
   if (seen.includes(list)) {
-    throw new TypeError('canonical JSON cannot carry a cycle');
+    throw new UncarriableValue('a cycle', at);
   }
   const inner = [...seen, list];
-  return list.map((item) => {
+  return list.map((item, index) => {
+    const itemAt = `${at}[${index}]`;
     if (item === undefined) {
       // A list has no way to say "absent": JSON would write `null` and lose the difference.
-      throw new TypeError('canonical JSON cannot carry undefined inside a list');
+      throw new UncarriableValue('undefined inside a list', itemAt);
     }
-    return writeCanonical(item, inner);
+    return writeCanonical(item, inner, itemAt);
   });
 }
 
-function members(node: Json, seen: readonly object[]): string[] {
+function members(node: Json, seen: readonly object[], at: string): string[] {
   if (seen.includes(node)) {
-    throw new TypeError('canonical JSON cannot carry a cycle');
+    throw new UncarriableValue('a cycle', at);
   }
   const inner = [...seen, node];
   return Object.keys(node)
     .sort()
     .filter((key) => node[key] !== undefined)
-    .map((key) => `${JSON.stringify(key)}:${writeCanonical(node[key], inner)}`);
+    .map((key) => `${JSON.stringify(key)}:${writeCanonical(node[key], inner, `${at}.${key}`)}`);
 }
 
 /**
@@ -549,16 +598,6 @@ class ShapeReport {
   }
 }
 
-/** `null` when the value is JSON-safe; the encoder's own refusal otherwise. */
-function jsonSafetyProblem(value: unknown): string | null {
-  try {
-    canonicalJson(value);
-    return null;
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
-  }
-}
-
 function checkOperation(env: Json, report: ShapeReport): void {
   if (!OPERATIONS.includes(env.operation as string)) {
     report.fail('shape', 'operation', `must be one of ${OPERATIONS.join(', ')}`);
@@ -639,9 +678,11 @@ function checkStatement(statement: unknown, report: ShapeReport): void {
     }
     return;
   }
-  const problem = jsonSafetyProblem(object);
-  if (problem !== null) {
-    report.fail('shape', 'statement.object', `must be a JSON-safe value: ${problem}`);
+  // The violation names the exact member the encoder refused, not just the field: a `-0`
+  // buried in `statement.object.a[1]` is where a reader has to look.
+  const unsafe = jsonUnsafe(object, 'statement.object');
+  if (unsafe !== null) {
+    report.fail('shape', unsafe.path, `must be a JSON-safe value: ${unsafe.reason}`);
   }
 }
 
@@ -690,15 +731,22 @@ function checkValidTime(vt: unknown, report: ShapeReport): void {
   for (const field of ['source_expression', 'resolution_anchor', 'timezone', 'calendar']) {
     report.optionalName(vt, field, 'valid_time');
   }
+  // `-0` sits inside [0, 1] and is hashed as a number: JSON writes it `0`, so it would
+  // collide with a plain zero under a checksum that still verifies. Refused here.
   const confidence = vt.confidence;
   if (
     confidence !== undefined &&
     (typeof confidence !== 'number' ||
       !Number.isFinite(confidence) ||
+      Object.is(confidence, -0) ||
       confidence < 0 ||
       confidence > 1)
   ) {
-    report.fail(6, 'valid_time.confidence', 'must be a finite number in [0, 1]');
+    report.fail(
+      6,
+      'valid_time.confidence',
+      'must be a finite number in [0, 1], and never -0 (JSON writes it as 0)'
+    );
   }
 }
 
