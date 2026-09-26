@@ -305,7 +305,7 @@ Every PR triggers automated checks on GitHub Actions:
 
 ## Release Process
 
-See the [release and staged npm publishing guide](releases.md) for publication checks and required approvals. A merged PR does not update the package already published on npm.
+See the [release and staged npm publishing guide](releases.md) for publication checks and required approvals. Merging a new package version into `main` automatically stages it on npm; maintainer approval with npm 2FA is required to publish it. A merge without a version change does not create a release.
 
 ## 📝 Commit Message Guidelines
 

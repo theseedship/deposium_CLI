@@ -15,7 +15,7 @@ npm install -g @deposium/cli
 deposium --version
 ```
 
-The published `1.5.1` package predates the SaaS URL defaults in current source. With that version, set `DEPOSIUM_URL=https://app.deposium.ai` and `DEPOSIUM_EDGE_URL=https://edge.deposium.ai` explicitly when targeting SaaS.
+Versions through `1.5.1` predate the SaaS URL defaults introduced in `1.5.2`. With those versions, set `DEPOSIUM_URL=https://app.deposium.ai` and `DEPOSIUM_EDGE_URL=https://edge.deposium.ai` explicitly when targeting SaaS.
 
 The repository does not currently publish GitHub release binaries or a `deposium/cli` Docker image. For a standalone executable, [build the Bun binary from source](#method-4-bun-binary-build-from-source).
 

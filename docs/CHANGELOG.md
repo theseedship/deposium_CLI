@@ -7,15 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-09-26
+
 ### Changed
 
 - Unset API and Edge URLs now target Deposium SaaS; local development must set both URLs explicitly.
-- npm releases now stage for maintainer approval rather than publishing immediately; the docs rebuild is no longer triggered before that approval.
+- Merging a new package version into `main` now automatically stages an npm release for maintainer approval. Version tags and manual dispatch remain supported; an existing staged or public version is not staged again. The docs rebuild is no longer triggered before approval.
 
 ### Fixed
 
 - HTTP 403 diagnostics distinguish plan feature locks, Cloudflare browser challenges, and key permission failures across tool calls, chat streams, and REST requests.
 - Updated the Vitest development stack to 4.1.11 to address its moderate path traversal advisory.
+- Synchronized the Bun lockfile with the patched Vitest and transitive dependency versions in the npm lockfile; frozen installs and security audits pass with both package managers.
 
 ## [1.5.1] - 2026-08-20
 

@@ -30,6 +30,7 @@ Detailed documentation is available in the `docs/` directory:
 
 - **[MCP Auth Error Codes](docs/development/error-codes.md)** — `MCPAuthError` class + stable `errorCode` enum
 - **[Contributing](docs/development/contributing.md)**
+- **[Release and npm staging guide](docs/development/releases.md)**
 - **[CHANGELOG](docs/CHANGELOG.md)**
 
 ### Command Reference
@@ -74,7 +75,7 @@ npm install -g @deposium/cli
 deposium --version
 ```
 
-Current source builds default to `https://app.deposium.ai` and `https://edge.deposium.ai`. Set `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` explicitly for local development. The published npm `1.5.1` predates these SaaS defaults; check your installed version before relying on them.
+Version `1.5.2` and later default to `https://app.deposium.ai` and `https://edge.deposium.ai`. Set `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` explicitly for local development. Versions through `1.5.1` require these URLs to be set explicitly when targeting SaaS.
 
 A 403 response distinguishes a plan feature lock, a Cloudflare browser challenge, and an API-key permission failure.
 
@@ -83,6 +84,8 @@ See the [Installation Guide](docs/guides/installation.md) for Bun and local deve
 ## 🤝 Contributing
 
 See [Contributing Guide](docs/development/contributing.md) and [Development Guide](docs/development/ui-system.md) for details on how to get started.
+
+Merging a new package version into `main` automatically stages it on npm after the release checks pass. A maintainer must approve it with npm 2FA before it becomes public; see the [release guide](docs/development/releases.md).
 
 ## 🔒 Security
 
