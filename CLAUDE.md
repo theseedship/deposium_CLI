@@ -108,15 +108,17 @@ export const myCommand = new Command('my-command').action(
 
 ## Environment Variables
 
-| Variable                  | Description                           | Default                 |
-| ------------------------- | ------------------------------------- | ----------------------- |
-| `DEPOSIUM_API_KEY`        | API authentication key                | -                       |
-| `DEPOSIUM_URL`            | Deposium server URL                   | `http://localhost:3003` |
-| `DEPOSIUM_EDGE_URL`       | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` |
-| `DEPOSIUM_MCP_DIRECT_URL` | @deprecated — use DEPOSIUM_EDGE_URL   | `http://localhost:4001` |
-| `DEPOSIUM_INSECURE`       | Allow HTTP to non-localhost (`true`)  | `false`                 |
-| `DEPOSIUM_TENANT`         | Default tenant ID                     | -                       |
-| `DEPOSIUM_SPACE`          | Default space ID                      | -                       |
+| Variable                  | Description                           | Default                    |
+| ------------------------- | ------------------------------------- | -------------------------- |
+| `DEPOSIUM_API_KEY`        | API authentication key                | -                          |
+| `DEPOSIUM_URL`            | Deposium server URL                   | `https://app.deposium.ai`  |
+| `DEPOSIUM_EDGE_URL`       | Edge Runtime gateway URL (chat, auth) | `https://edge.deposium.ai` |
+| `DEPOSIUM_MCP_DIRECT_URL` | @deprecated — use DEPOSIUM_EDGE_URL   | `http://localhost:4001`    |
+| `DEPOSIUM_INSECURE`       | Allow HTTP to non-localhost (`true`)  | `false`                    |
+| `DEPOSIUM_TENANT`         | Default tenant ID                     | -                          |
+| `DEPOSIUM_SPACE`          | Default space ID                      | -                          |
+
+Local development must set `DEPOSIUM_URL=http://localhost:3003` and `DEPOSIUM_EDGE_URL=http://localhost:9000` explicitly; unset URLs target SaaS.
 
 ## Code Style
 

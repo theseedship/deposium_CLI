@@ -14,7 +14,6 @@
  * @module utils/cli-preflight
  */
 
-import chalk from 'chalk';
 import { getConfig, getBaseUrl } from './config';
 
 /** Commands that run without the API: nothing about the server URL is resolved for them. */
@@ -31,7 +30,8 @@ export function usesApi(currentCommand: string | undefined): boolean {
 
 /**
  * Propagates `--insecure` to the environment, then — for API commands only — reads the
- * configuration and warns when no server URL is set.
+ * configuration and validates the effective server URL. An unset URL uses
+ * the public SaaS endpoint, so no configuration warning is needed.
  *
  * @param currentCommand - The sub-command name (`program.args[0]`).
  * @param options - Global options; `insecure` stays `undefined` when the flag is absent so
@@ -50,12 +50,5 @@ export function runPreflight(
   }
   const config = getConfig();
   const insecure = options.insecure ?? process.env.DEPOSIUM_INSECURE === 'true';
-  const baseUrl = getBaseUrl(config, { insecure });
-  if (!config.deposiumUrl && !config.mcpUrl) {
-    console.log(chalk.yellow('⚠️  Deposium server URL not configured.'));
-    console.log(chalk.gray(`Using default: ${chalk.cyan(baseUrl)}`));
-    console.log(
-      chalk.gray('To change, run: ') + chalk.cyan('deposium config set deposium-url <url>')
-    );
-  }
+  getBaseUrl(config, { insecure });
 }

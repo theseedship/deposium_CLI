@@ -15,7 +15,7 @@
  * @module client/sse-stream
  */
 import { buildAuthError } from './auth-error';
-import { connectionRefusedError } from './http-errors';
+import { connectionRefusedError, describeForbiddenResponse } from './http-errors';
 import { parseSSEEvent } from './internals';
 import { hasErrorCauseWithCode } from '../utils/errors';
 import type {
@@ -102,6 +102,27 @@ export async function postSSE(
           `Retry after ${retryAfter} seconds.\n` +
           `Contact your administrator to upgrade your rate-limit tier.`
       );
+    }
+    if (response.status === 403) {
+      const raw = await response.text().catch(() => '');
+      let data: unknown = raw;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        // Cloudflare and other proxies may return HTML instead of JSON.
+      }
+      const endpoint = new URL(url);
+      const { message, code } = describeForbiddenResponse(
+        data,
+        response.headers,
+        endpoint.origin,
+        endpoint.pathname
+      );
+      throw Object.assign(new Error(message), {
+        status: 403,
+        response: { status: 403, data, headers: response.headers },
+        ...(code ? { code } : {}),
+      });
     }
     const text = await response.text().catch(() => '');
     throw new Error(`${label} error (${response.status}): ${text || response.statusText}`);
