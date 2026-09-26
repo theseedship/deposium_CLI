@@ -15,20 +15,20 @@ Settings are loaded in this order (later sources override earlier):
 
 ## Environment Variables
 
-| Variable            | Description                           | Default                 | Example                     |
-| ------------------- | ------------------------------------- | ----------------------- | --------------------------- |
-| `DEPOSIUM_API_KEY`  | API authentication key (user-key)     | -                       | `dep_live_...`              |
-| `DEPOSIUM_URL`      | Deposium server URL                   | `http://localhost:3003` | `https://api.mycompany.com` |
-| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `http://localhost:9000` | `https://edge.deposium.ai`  |
-| `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                 | `true`                      |
-| `DEPOSIUM_TENANT`   | Default tenant ID                     | -                       | `tenant-123`                |
-| `DEPOSIUM_SPACE`    | Default space ID                      | -                       | `space-456`                 |
+| Variable            | Description                           | Default                    | Example                 |
+| ------------------- | ------------------------------------- | -------------------------- | ----------------------- |
+| `DEPOSIUM_API_KEY`  | API authentication key (user-key)     | -                          | `dep_live_...`          |
+| `DEPOSIUM_URL`      | Deposium server URL                   | `https://app.deposium.ai`  | `http://localhost:3003` |
+| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `https://edge.deposium.ai` | `http://localhost:9000` |
+| `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                    | `true`                  |
+| `DEPOSIUM_TENANT`   | Default tenant ID                     | -                          | `tenant-123`            |
+| `DEPOSIUM_SPACE`    | Default space ID                      | -                          | `space-456`             |
 
 Output format and silent mode are per-invocation: pass `--format
 json|table|markdown` and `--silent` on each command (there is no
 global toggle).
 
-> **Note:** `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated. Use `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` instead.
+> **Note:** Unset URLs use the public Deposium SaaS endpoints. For local development, set both `DEPOSIUM_URL=http://localhost:3003` and `DEPOSIUM_EDGE_URL=http://localhost:9000` explicitly. `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated.
 
 ## Configuration File
 

@@ -139,6 +139,56 @@ describe('MCPClient', () => {
       expect(result.isError).toBe(true);
       expect(result.content).toBe('Error message');
     });
+
+    test.each([
+      [
+        { code: 'FEATURE_LOCKED', error: 'Search is locked' },
+        {},
+        /Feature unavailable \(403\).*Search is locked/s,
+        'FEATURE_LOCKED',
+      ],
+      [
+        '<html>challenge</html>',
+        { 'cf-mitigated': 'challenge' },
+        /Cloudflare browser challenge/,
+        undefined,
+      ],
+      [
+        { code: 'scope_missing', message: 'Missing search scope' },
+        {},
+        /Access denied \(403\).*Missing search scope/s,
+        'scope_missing',
+      ],
+    ])(
+      'classifies tool-call 403 while preserving result status and server code',
+      async (data, headers, message, code) => {
+        const error = new AxiosError('Request failed with status code 403');
+        error.response = {
+          status: 403,
+          statusText: 'Forbidden',
+          data,
+          headers: new AxiosHeaders(headers),
+          config: { headers: new AxiosHeaders() },
+        };
+        const post = vi.fn().mockRejectedValue(error);
+        axiosPostSpy.mockReturnValue({
+          post,
+          get: vi.fn(),
+          defaults: { headers: { common: {} } },
+        } as unknown as ReturnType<typeof axios.create>);
+
+        const client = new MCPClient('https://app.deposium.ai', 'api-key');
+        const result = await client.callTool('search_hub', {});
+
+        expect(post).toHaveBeenCalledOnce();
+        expect(result.isError).toBe(true);
+        expect(result.content).toMatchObject({
+          status: 403,
+          message: expect.stringMatching(message),
+        });
+        expect((result.content as { code?: string }).code).toBe(code);
+      }
+    );
   });
 
   describe('retry logic', () => {
@@ -1052,6 +1102,24 @@ describe('MCPClient — wire format guard', () => {
     spy.get.mockResolvedValueOnce({ data: { ok: true, data: { items: [] } } });
     await client.listDocuments();
     expect(spy.get).toHaveBeenCalledWith('/api/v1/documents/', expect.anything());
+  });
+
+  test('REST 403 keeps the Axios response and server code with actionable wording', async () => {
+    const error = new AxiosError('Request failed with status code 403', 'ERR_BAD_REQUEST');
+    error.response = {
+      status: 403,
+      statusText: 'Forbidden',
+      data: { code: 'FEATURE_LOCKED', error: 'Document access is locked' },
+      headers: new AxiosHeaders(),
+      config: { headers: new AxiosHeaders() },
+    };
+    spy.get.mockRejectedValueOnce(error);
+
+    await expect(client.listDocuments()).rejects.toBe(error);
+    expect(error.message).toMatch(/Feature unavailable \(403\).*Document access is locked/s);
+    expect(error.code).toBe('ERR_BAD_REQUEST');
+    expect(error.response?.status).toBe(403);
+    expect((error.response?.data as { code: string }).code).toBe('FEATURE_LOCKED');
   });
 
   test('listDocuments({spaceId, limit, offset}) builds query string in order', async () => {

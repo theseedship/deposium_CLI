@@ -24,10 +24,11 @@ export function connectionRefusedError(baseUrl: string): Error {
   );
 }
 
-function isCloudflareChallenge(error: AxiosError): boolean {
-  const headers = error.response?.headers;
+type ForbiddenHeaders = AxiosHeaders | Headers | Record<string, unknown>;
+
+function isCloudflareChallenge(headers: ForbiddenHeaders | undefined): boolean {
   const mitigation =
-    headers instanceof AxiosHeaders
+    headers instanceof AxiosHeaders || headers instanceof Headers
       ? headers.get('cf-mitigated')
       : Object.entries(headers ?? {}).find(([name]) => name.toLowerCase() === 'cf-mitigated')?.[1];
   return String(mitigation).toLowerCase() === 'challenge';
@@ -47,26 +48,49 @@ function forbiddenDetails(data: unknown): { code?: string; detail?: string } {
   };
 }
 
-function forbiddenError(error: AxiosError, baseUrl: string, path: string): Error {
-  if (isCloudflareChallenge(error)) {
-    return new Error(
-      `Cloudflare browser challenge blocked the CLI request to ${baseUrl}${path} (403).\n` +
-        'Contact Deposium support: CLI requests cannot complete browser challenges.'
-    );
+/** Classify a 403 for Axios tool/REST calls and native-fetch streams alike. */
+export function describeForbiddenResponse(
+  data: unknown,
+  headers: ForbiddenHeaders | undefined,
+  baseUrl: string,
+  path: string
+): { message: string; code?: string } {
+  if (isCloudflareChallenge(headers)) {
+    return {
+      message:
+        `Cloudflare browser challenge blocked the CLI request to ${baseUrl}${path} (403).\n` +
+        'Contact Deposium support: CLI requests cannot complete browser challenges.',
+    };
   }
 
-  const { code, detail } = forbiddenDetails(error.response?.data);
+  const { code, detail } = forbiddenDetails(data);
   if (code === 'FEATURE_LOCKED') {
-    return new Error(
-      `Feature unavailable (403): ${detail ?? 'This feature is not enabled for your account.'}\n` +
-        'Check your Deposium plan and enabled features.'
-    );
+    return {
+      message:
+        `Feature unavailable (403): ${detail ?? 'This feature is not enabled for your account.'}\n` +
+        'Check your Deposium plan and enabled features.',
+      code,
+    };
   }
 
-  return new Error(
-    `Access denied (403) for ${path}${detail ? `: ${detail}` : ''}${code ? ` [${code}]` : ''}.\n` +
-      'Check your API key scopes and account permissions, or contact Deposium support.'
-  );
+  return {
+    message:
+      `Access denied (403) for ${path}${detail ? `: ${detail}` : ''}${code ? ` [${code}]` : ''}.\n` +
+      'Check your API key scopes and account permissions, or contact Deposium support.',
+    code,
+  };
+}
+
+function forbiddenError(error: AxiosError, baseUrl: string, path: string): AxiosError {
+  // Keep the original AxiosError and its response/status/server body intact for
+  // SDK callers that branch on response.status or response.data.code.
+  error.message = describeForbiddenResponse(
+    error.response?.data,
+    error.response?.headers,
+    baseUrl,
+    path
+  ).message;
+  return error;
 }
 
 /**
@@ -77,7 +101,7 @@ function forbiddenError(error: AxiosError, baseUrl: string, path: string): Error
  *
  * Used by self-service HTTP methods. Endpoints with custom 404 wording
  * (e.g. `fetchValidateReport` saying "Report not found for run_id=...")
- * handle the 404 themselves and only delegate the ECONNREFUSED/401 cases.
+ * handle the 404 themselves and delegate ECONNREFUSED/401/403 cases.
  */
 export function throwForKnownAxiosError(error: AxiosError, baseUrl: string, path: string): never {
   if (error.code === 'ECONNREFUSED') {

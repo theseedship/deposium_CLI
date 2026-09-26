@@ -11,6 +11,7 @@ import type { AxiosError } from 'axios';
 import { randomUUID } from 'node:crypto';
 import type { MCPToolResult } from './types';
 import { buildAuthError } from './auth-error';
+import { describeForbiddenResponse } from './http-errors';
 
 /**
  * Parse a single SSE event frame into `{ eventType, dataStr }`.
@@ -175,6 +176,22 @@ export function createAxiosErrorResult(
       result: { content: null, isError: true },
       shouldThrow: true,
       errorToThrow: buildAuthError(error.response?.data),
+    };
+  }
+
+  if (error.response?.status === 403) {
+    const { message, code } = describeForbiddenResponse(
+      error.response.data,
+      error.response.headers,
+      baseUrl,
+      '/api/cli/mcp'
+    );
+    return {
+      result: {
+        content: { message, status: 403, requestId, ...(code ? { code } : {}) },
+        isError: true,
+      },
+      shouldThrow: false,
     };
   }
 

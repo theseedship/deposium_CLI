@@ -715,11 +715,11 @@ export class MCPClient {
    */
   async fetchValidateReport(runId: string): Promise<ValidateReportJson> {
     const requestId = generateRequestId();
+    const path = `/api/v1/reports/${encodeURIComponent(runId)}?format=json`;
     try {
-      const response = await this.client.get<ValidateReportJson>(
-        `/api/v1/reports/${encodeURIComponent(runId)}?format=json`,
-        { headers: { 'X-Request-ID': requestId } }
-      );
+      const response = await this.client.get<ValidateReportJson>(path, {
+        headers: { 'X-Request-ID': requestId },
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -728,6 +728,9 @@ export class MCPClient {
         }
         if (error.response?.status === 401) {
           throw buildAuthError(error.response?.data);
+        }
+        if (error.response?.status === 403) {
+          throwForKnownAxiosError(error, this.baseUrl, path);
         }
         // Custom 404 wording specific to this endpoint — not delegated
         // to throwForKnownAxiosError which uses a generic "Not found".
