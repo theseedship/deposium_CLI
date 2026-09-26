@@ -78,15 +78,20 @@ CLI access is included in the [Pro, Teams, and Enterprise plans](https://deposiu
 
 1. In the [Deposium app's Billing page](https://app.deposium.ai/billing), open **API Keys**, create a personal user API key, and save it when shown.
 2. Run `deposium auth login` and paste that key at the masked prompt.
-3. Check the connection and search a space:
+3. Check the connection:
 
    ```bash
    deposium auth status
-   deposium space list
-   deposium search "quarterly report" --space YOUR_SPACE_ID
    ```
 
-Use a space ID from `deposium space list` in the last command. `auth login` uses a key you already created; it does not create one.
+4. If you do not have a space yet, [create one in the Deposium app](https://app.deposium.ai/datalake?tab=spaces) and upload a document to it. Wait for processing to finish, then list your spaces and search using a phrase from that document:
+
+   ```bash
+   deposium space list
+   deposium search "a phrase from your document" --space YOUR_SPACE_ID
+   ```
+
+Use a space ID from `deposium space list` in the search command. `auth login` uses a key you already created; it does not create one.
 
 For URL questions, older versions, and local development, see the [configuration guide](docs/guides/configuration.md). The [installation guide](docs/guides/installation.md) covers other installation methods.
 
