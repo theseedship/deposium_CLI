@@ -24,6 +24,9 @@ Both a version change on `main` and a version tag stage automatically; neither a
 publishes the package. Before staging, the workflow checks whether the exact version is already
 public or staged and skips duplicate uploads. Authentication or registry errors fail the run.
 
+The release gate has offline regression tests in `src/__tests__/release-gate.test.ts`, included
+in `npm test` on platforms with Bash. They use stub registry responses and never stage a package.
+
 ## Check the npm credential without staging
 
 Configure the repository's `NPM_TOKEN` secret with an npm granular access token authorized for
