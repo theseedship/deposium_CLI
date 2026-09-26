@@ -63,23 +63,37 @@ Detailed documentation is available in the `docs/` directory:
 | **[upload-batch](docs/commands/upload-batch.md)**             | Batch file upload utility             |
 | **[validate](docs/commands/validate.md)**                     | Validate dossier (N1+N2+HITL)         |
 
-## 📦 Quick Install
+## 📦 Get started
 
 Requires Node.js `^22.13.0 || >=24` (Node 23 is unsupported).
 
 ```bash
-# Install globally via npm
 npm install -g @deposium/cli
-
-# Verify installation
 deposium --version
 ```
 
-Version `1.5.2` and later default to `https://app.deposium.ai` and `https://edge.deposium.ai`. Set `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` explicitly for local development. Versions through `1.5.1` require these URLs to be set explicitly when targeting SaaS.
+Use CLI version `1.5.2` or newer for automatic connection to Deposium SaaS. No server URL setup is needed. If your installed version is older, see the [configuration guide](docs/guides/configuration.md#older-cli-versions-and-local-development).
 
-A 403 response distinguishes a plan feature lock, a Cloudflare browser challenge, and an API-key permission failure.
+CLI access is included in the [Pro, Teams, and Enterprise plans](https://deposium.ai/en/pricing).
 
-See the [Installation Guide](docs/guides/installation.md) for Bun and local development installation methods.
+1. In the [Deposium app's Billing page](https://app.deposium.ai/billing), open **API Keys**, create a personal user API key, and save it when shown.
+2. Run `deposium auth login` and paste that key at the masked prompt.
+3. Check the connection:
+
+   ```bash
+   deposium auth status
+   ```
+
+4. If you do not have a space yet, [create one in the Deposium app](https://app.deposium.ai/datalake?tab=spaces) and upload a document to it. Wait for processing to finish, then list your spaces and search using a phrase from that document:
+
+   ```bash
+   deposium space list
+   deposium search "a phrase from your document" --space YOUR_SPACE_ID
+   ```
+
+Use a space ID from `deposium space list` in the search command. `auth login` uses a key you already created; it does not create one.
+
+For URL questions, older versions, and local development, see the [configuration guide](docs/guides/configuration.md). The [installation guide](docs/guides/installation.md) covers other installation methods.
 
 ## 🤝 Contributing
 

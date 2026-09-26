@@ -15,7 +15,21 @@ npm install -g @deposium/cli
 deposium --version
 ```
 
-Versions through `1.5.1` predate the SaaS URL defaults introduced in `1.5.2`. With those versions, set `DEPOSIUM_URL=https://app.deposium.ai` and `DEPOSIUM_EDGE_URL=https://edge.deposium.ai` explicitly when targeting SaaS.
+For Deposium SaaS, use CLI version `1.5.2` or newer. It connects to the app automatically. Create a personal user API key in the [Deposium app's Billing page](https://app.deposium.ai/billing) under **API Keys**, then run:
+
+```bash
+deposium auth login
+deposium auth status
+```
+
+If you do not have a space yet, [create one in the Deposium app](https://app.deposium.ai/datalake?tab=spaces) and upload a document to it. Wait for processing to finish, then run:
+
+```bash
+deposium space list
+deposium search "a phrase from your document" --space YOUR_SPACE_ID
+```
+
+Use a space ID from the list in the search command. See the [auth guide](../commands/auth.md) for key storage and [older versions and local development](configuration.md#older-cli-versions-and-local-development) for URL overrides.
 
 The repository does not currently publish GitHub release binaries or a `deposium/cli` Docker image. For a standalone executable, [build the Bun binary from source](#method-4-bun-binary-build-from-source).
 

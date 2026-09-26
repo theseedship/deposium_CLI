@@ -4,6 +4,12 @@
 
 Complete reference for configuring Deposium CLI.
 
+For Deposium SaaS with CLI `1.5.2` or newer, no URL configuration is needed. Create a personal user API key in the [Deposium app's Billing page](https://app.deposium.ai/billing) under **API Keys**, then run `deposium auth login`.
+
+## Which URL does the CLI use?
+
+The CLI uses the Deposium app API for login, search, and other commands. Chat streaming uses the Edge gateway. Both addresses are built in for SaaS; you do not need to enter either one. An MCP integration URL for another client is a separate endpoint and is not a value for `DEPOSIUM_URL`. See the [auth command](../commands/auth.md) for login and the [chat command](../commands/chat.md) for chat modes.
+
 ## Configuration Priority
 
 Settings are loaded in this order (later sources override earlier):
@@ -15,20 +21,20 @@ Settings are loaded in this order (later sources override earlier):
 
 ## Environment Variables
 
-| Variable            | Description                           | Default                    | Example                 |
-| ------------------- | ------------------------------------- | -------------------------- | ----------------------- |
-| `DEPOSIUM_API_KEY`  | API authentication key (user-key)     | -                          | `dep_live_...`          |
-| `DEPOSIUM_URL`      | Deposium server URL                   | `https://app.deposium.ai`  | `http://localhost:3003` |
-| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat, auth) | `https://edge.deposium.ai` | `http://localhost:9000` |
-| `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)  | `false`                    | `true`                  |
-| `DEPOSIUM_TENANT`   | Default tenant ID                     | -                          | `tenant-123`            |
-| `DEPOSIUM_SPACE`    | Default space ID                      | -                          | `space-456`             |
+| Variable            | Description                               | Default                    | Example                 |
+| ------------------- | ----------------------------------------- | -------------------------- | ----------------------- |
+| `DEPOSIUM_API_KEY`  | API authentication key (user-key)         | -                          | `dep_live_...`          |
+| `DEPOSIUM_URL`      | Deposium server URL                       | `https://app.deposium.ai`  | `http://localhost:3003` |
+| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat streaming) | `https://edge.deposium.ai` | `http://localhost:9000` |
+| `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)      | `false`                    | `true`                  |
+| `DEPOSIUM_TENANT`   | Default tenant ID                         | -                          | `tenant-123`            |
+| `DEPOSIUM_SPACE`    | Default space ID                          | -                          | `space-456`             |
 
 Output format and silent mode are per-invocation: pass `--format
 json|table|markdown` and `--silent` on each command (there is no
 global toggle).
 
-> **Note:** Unset URLs use the public Deposium SaaS endpoints. For local development, set both `DEPOSIUM_URL=http://localhost:3003` and `DEPOSIUM_EDGE_URL=http://localhost:9000` explicitly. `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated.
+> **Note:** Environment variables override stored values. Older stored URL settings can still override the SaaS defaults; run `deposium config get` to see the effective app URL. `DEPOSIUM_MCP_URL` and `DEPOSIUM_MCP_DIRECT_URL` are deprecated.
 
 ## Configuration File
 
@@ -41,9 +47,10 @@ automatically on first run (backup saved as `.plaintext.bak`).
 ### Full Example
 
 ```bash
-# Set values via CLI (stored encrypted). Keys are kebab-case.
-deposium config set api-key dep_live_...
-deposium config set deposium-url https://app.deposium.ai
+# Log in with a personal user key created in the Deposium app.
+deposium auth login
+
+# Optional defaults (stored encrypted). Keys are kebab-case.
 deposium config set default-tenant my-tenant
 ```
 
@@ -60,18 +67,18 @@ Keys accepted by `deposium config set` (kebab-case on input, stored internally a
 
 > **Note:** `mcp-url` is a deprecated alias for `deposium-url` — still accepted for backwards compatibility.
 >
-> The Edge Runtime URL (`DEPOSIUM_EDGE_URL` env var, used by `chat` + `auth`) is configurable **only via environment variable**, not via `deposium config set`. If you need to pin it, export `DEPOSIUM_EDGE_URL=…` in your shell profile.
+> The Edge Runtime URL (`DEPOSIUM_EDGE_URL` env var, used by chat streaming) is configurable **only via environment variable**, not via `deposium config set`. Login and API-key validation use the app URL.
 
 ### Managing Configuration
 
 ```bash
-# View current configuration (keys shown in camelCase — stored form)
-deposium config list
+# View current configuration and the effective app URL
+deposium config get
 
 # Set a value (kebab-case on the command line)
 deposium config set default-tenant my-tenant
 
-# Get a specific value (either case works for read)
+# Get a specific value (kebab-case key)
 deposium config get deposium-url
 
 # Delete a value
@@ -86,11 +93,11 @@ deposium config reset
 ### API Key Setup
 
 ```bash
-# Interactive authentication
-deposium auth
+# Interactive authentication with an existing personal user key
+deposium auth login
 
 # Or set via environment
-export DEPOSIUM_API_KEY="your-api-key"
+export DEPOSIUM_API_KEY="YOUR_PERSONAL_USER_KEY"
 ```
 
 ### Token Storage
@@ -158,6 +165,12 @@ deposium search "query" --tenant other-tenant --space other-space
 
 ## Network Configuration
 
+### Older CLI versions and local development
+
+CLI versions through `1.5.1` predate the SaaS URL defaults. If you must use an older version against SaaS, set `DEPOSIUM_URL=https://app.deposium.ai` and `DEPOSIUM_EDGE_URL=https://edge.deposium.ai` explicitly. For local development, set `DEPOSIUM_URL=http://localhost:3003` and `DEPOSIUM_EDGE_URL=http://localhost:9000` instead. Version `1.5.2` or newer needs neither override for SaaS.
+
+The CLI's app URL is not the standalone MCP integration URL. Keep `DEPOSIUM_URL` pointed at the app API, even when a separate MCP client uses an MCP endpoint.
+
 ### TLS Enforcement
 
 Non-localhost HTTP connections are **refused by default** in production.
@@ -221,24 +234,14 @@ DEPOSIUM_EDGE_URL=http://localhost:9000
 DEPOSIUM_API_KEY=dep_test_REPLACE_WITH_YOUR_USER_KEY
 ```
 
-### Production
+### SaaS and CI/CD
 
 ```bash
-# .env.production
-DEPOSIUM_URL=https://app.deposium.ai
-DEPOSIUM_EDGE_URL=https://edge.deposium.ai
-DEPOSIUM_API_KEY=prod-key
+# Provide an existing personal user key; SaaS URLs use built-in defaults.
+export DEPOSIUM_API_KEY="YOUR_PERSONAL_USER_KEY"
 ```
 
-### CI/CD
-
-```bash
-# GitHub Actions / GitLab CI
-DEPOSIUM_API_KEY=${{ secrets.DEPOSIUM_API_KEY }}
-DEPOSIUM_URL=https://app.deposium.ai
-
-# Pass --silent on each command to keep CI logs clean.
-```
+In CI, inject `DEPOSIUM_API_KEY` from a secret store. Pass `--silent` on each command if you need quieter logs.
 
 ## Troubleshooting
 
@@ -250,7 +253,7 @@ The CLI reports a plan feature lock (`FEATURE_LOCKED`), a Cloudflare browser cha
 
 ```bash
 # Show effective configuration
-deposium config list
+deposium config get
 
 # Test connectivity
 deposium health --verbose
@@ -262,6 +265,6 @@ deposium health --verbose
 # Reset to defaults
 deposium config reset
 
-# Re-authenticate
-deposium auth
+# Check the existing credential (reset does not remove it)
+deposium auth status
 ```

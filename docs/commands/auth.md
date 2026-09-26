@@ -2,7 +2,7 @@
 
 # Authentication Command
 
-The `auth` command handles API key management and authentication with the Deposium MCP Server.
+The `auth` command saves a personal user API key for the CLI and validates it with the Deposium app API.
 
 ## Usage
 
@@ -14,16 +14,18 @@ deposium auth [command] [options]
 
 ### `login`
 
-Interactively login or set your API key.
+Enter an existing personal user API key. For your first key, open **API Keys** on the [Deposium app's Billing page](https://app.deposium.ai/billing), create a key, and save it when shown. CLI access is included in the [Pro, Teams, and Enterprise plans](https://deposium.ai/en/pricing).
 
 ```bash
 deposium auth login
 ```
 
 - Prompts for API key securely (masked input).
-- Validates the key with the server.
+- Validates the key with the Deposium app API.
 - Stores it in `~/.deposium/credentials` (AES-256-GCM, chmod 0600).
 - Retries up to 3 times on failure.
+
+`auth login` saves the key, not a server URL. CLI `1.5.2` and newer connect to SaaS automatically unless an environment variable or older stored URL overrides the defaults. See the [configuration guide](../guides/configuration.md#which-url-does-the-cli-use).
 
 ### `logout`
 
