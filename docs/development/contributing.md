@@ -1,4 +1,4 @@
-> Revision: 2026-04-24
+> Revision: 2026-09-26
 
 # Contributing to Deposium CLI
 
@@ -13,6 +13,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 - [Pull Request Process](#pull-request-process)
 - [Git Hooks](#git-hooks)
 - [CI/CD Pipeline](#cicd-pipeline)
+- [Release Process](#release-process)
 
 ## 🤝 Code of Conduct
 
@@ -26,7 +27,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 ### Prerequisites
 
 - **Node.js**: `^22.13.0` or `>=24`; the Node 22 floor follows Inquirer 13, Node 23 is not supported, and Node 24 is recommended for development
-- **npm**: Latest version
+- **npm**: The version bundled with a supported Node.js release for development; see the release guide for staged publishing requirements
 - **Git**: For version control
 
 ### Initial Setup
@@ -301,6 +302,10 @@ Every PR triggers automated checks on GitHub Actions:
 2. Check "Checks" tab
 3. View detailed logs for any failures
 4. Fix issues and push again
+
+## Release Process
+
+See the [release and staged npm publishing guide](releases.md) for publication checks and required approvals. A merged PR does not update the package already published on npm.
 
 ## 📝 Commit Message Guidelines
 

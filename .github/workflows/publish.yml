@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Stage npm release
 
 on:
   push:
@@ -7,16 +7,43 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Run npm publish in dry-run mode'
+        description: 'Validate the package without staging it'
         type: boolean
         default: true
+      check_auth_only:
+        description: 'Check npm authentication without building or staging'
+        type: boolean
+        default: false
+
+# Preserve both running and queued releases, as in the mcp-ui workflow.
+concurrency:
+  group: npm-release
+  queue: max
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  publish:
-    name: Build and Publish
+  check-npm-auth:
+    if: github.event_name == 'workflow_dispatch' && inputs.check_auth_only
+    runs-on: ubuntu-latest
+    steps:
+      # Keep this probe independent of repository checkout and package installation.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check npm authentication
+        run: npm whoami --registry=https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  stage:
+    if: github.event_name != 'workflow_dispatch' || !inputs.check_auth_only
+    name: Build and stage
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,10 +69,10 @@ jobs:
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           PKG_VERSION=$(node -p "require('./package.json').version")
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "❌ Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
             exit 1
           fi
-          echo "✅ Tag version matches package.json: $PKG_VERSION"
+          echo "Tag version matches package.json: $PKG_VERSION"
 
       - name: Type check
         run: npm run typecheck
@@ -63,39 +90,27 @@ jobs:
 
       - name: Verify build artifacts
         run: |
-          test -f dist/cli.js || (echo "❌ dist/cli.js missing" && exit 1)
-          echo "✅ Build artifacts present"
+          test -f dist/cli.js || (echo "dist/cli.js missing" && exit 1)
+          echo "Build artifacts present"
 
-      - name: Publish to npm (dry-run)
+      - name: Install npm with staged publishing support
+        run: npm install --global npm@11.15.0 --ignore-scripts
+
+      - name: Verify staging npm version
+        run: |
+          node --version
+          npm --version
+
+      - name: Validate package contents (dry run)
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run == true
-        run: npm publish --dry-run --provenance --access public
+        run: npm pack --dry-run
+
+      - name: Stage for maintainer approval
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        run: |
+          npm stage publish --provenance --access public --tag latest
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          echo "Staged $name@$version. It is not public until a maintainer approves it with npm 2FA." >> "$GITHUB_STEP_SUMMARY"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish to npm
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Best-effort: trigger the docs site (deposium_docs) to rebuild now, so the
-      # published CLI reference (its docs/ is synced from this repo at build time)
-      # goes live immediately instead of waiting for the docs' nightly cron.
-      #
-      # Fires on every REAL publish — tag push AND manual non-dry-run — by mirroring
-      # the publish step's condition, so manual releases notify the docs too.
-      #
-      # Security: triggers via workflow_dispatch using the gh CLI (no third-party
-      # action to vet/pin). DOCS_DISPATCH_TOKEN only needs "Actions: write" scoped
-      # to deposium_docs — it can TRIGGER a rebuild but cannot push content or read
-      # secrets, so a leaked token cannot deface the docs site. continue-on-error +
-      # the docs' nightly cron mean a missing/expired token never blocks a release.
-      #
-      # SECRET REQUIRED: DOCS_DISPATCH_TOKEN — a fine-grained PAT scoped to
-      # theseedship/deposium_docs with Actions: Read and write (nothing else).
-      - name: Notify docs site to rebuild
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
-        run: gh workflow run deploy.yml --repo theseedship/deposium_docs
