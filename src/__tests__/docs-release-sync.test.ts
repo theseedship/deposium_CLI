@@ -3,12 +3,71 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
+import { parse } from 'yaml';
 
 const script = join(process.cwd(), '.github', 'scripts', 'dispatch-docs-release.sh');
 const packageName = '@deposium/cli';
 const version = '2.3.4';
 const registryFlag = '--registry=https://registry.npmjs.org';
 const token = 'secret-test-token-must-not-appear';
+
+type DocsWorkflow = {
+  on: {
+    release: { types: string[] };
+    workflow_dispatch: { inputs: { version: { required: boolean; type: string } } };
+  };
+  permissions: { contents: string };
+  concurrency: { group: string; queue: string; 'cancel-in-progress': boolean };
+  jobs: {
+    sync: {
+      if: string;
+      steps: Array<{
+        name: string;
+        uses?: string;
+        with?: Record<string, unknown>;
+        env?: Record<string, string>;
+        run?: string;
+      }>;
+    };
+  };
+};
+
+test('workflow sends stable releases and manual retries through the public-version validator', () => {
+  const source = readFileSync(join(process.cwd(), '.github', 'workflows', 'docs-sync.yml'), 'utf8');
+  const workflow = parse(source) as DocsWorkflow;
+
+  expect(Object.keys(workflow.on).sort()).toEqual(['release', 'workflow_dispatch']);
+  expect(workflow.on.release.types).toEqual(['published']);
+  expect(workflow.on.workflow_dispatch.inputs.version).toMatchObject({
+    required: true,
+    type: 'string',
+  });
+  expect(workflow.jobs.sync.if).toBe(
+    "github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false"
+  );
+  expect(workflow.permissions).toEqual({ contents: 'read' });
+  expect(workflow.concurrency).toMatchObject({
+    group: 'docs-release-sync',
+    queue: 'max',
+    'cancel-in-progress': false,
+  });
+
+  const checkout = workflow.jobs.sync.steps.find((step) => step.name === 'Checkout automation');
+  const setupNode = workflow.jobs.sync.steps.find((step) => step.name === 'Setup Node.js');
+  const verify = workflow.jobs.sync.steps.find(
+    (step) => step.name === 'Verify public release and notify documentation'
+  );
+  expect(checkout?.uses).toMatch(/^actions\/checkout@[0-9a-f]{40}$/);
+  expect(checkout?.with).toMatchObject({ ref: 'main', 'persist-credentials': false });
+  expect(setupNode?.uses).toMatch(/^actions\/setup-node@[0-9a-f]{40}$/);
+  expect(setupNode?.with).toMatchObject({ 'node-version': '24.x' });
+  expect(verify?.run).toBe('bash .github/scripts/dispatch-docs-release.sh');
+  expect(verify?.env).toEqual({
+    RELEASE_VERSION:
+      "${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}",
+    GH_TOKEN: '${{ secrets.DOCS_DISPATCH_TOKEN }}',
+  });
+});
 
 interface RunOptions {
   releaseVersion?: string;
