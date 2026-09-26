@@ -1565,6 +1565,18 @@ describe('cli preflight', () => {
     runPreflight('search', {});
     expect(configMock.getBaseUrl).toHaveBeenCalledWith(expect.anything(), { insecure: true });
   });
+
+  test('the SaaS default does not warn that the server URL is missing', () => {
+    configMock.getConfig.mockReturnValue({});
+    configMock.getBaseUrl.mockReturnValue('https://app.deposium.ai');
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    runPreflight('search', {});
+
+    expect(configMock.getBaseUrl).toHaveBeenCalledTimes(1);
+    expect(logSpy).not.toHaveBeenCalled();
+    logSpy.mockRestore();
+  });
 });
 
 // ============================================================================

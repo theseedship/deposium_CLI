@@ -73,6 +73,7 @@ import {
   migrateIfPlaintext,
   getConfig,
   getBaseUrl,
+  getEdgeUrl,
   setConfig,
   getConfigPath,
   getApiKey,
@@ -238,9 +239,9 @@ describe('config.ts', () => {
       delete process.env.DEPOSIUM_MCP_URL;
     });
 
-    test('should return default localhost URL when nothing configured', () => {
+    test('should use the public SaaS URL when nothing is configured', () => {
       const url = getBaseUrl(undefined, { validateSecurity: false });
-      expect(url).toBe('http://localhost:3003');
+      expect(url).toBe('https://app.deposium.ai');
     });
 
     test('should prioritize deposiumUrl over mcpUrl', () => {
@@ -279,6 +280,23 @@ describe('config.ts', () => {
       const url = getBaseUrl(config, { insecure: true });
 
       expect(url).toBe('http://production.example.com');
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('getEdgeUrl', () => {
+    test('should use the public Edge Runtime URL when nothing is configured', () => {
+      expect(getEdgeUrl({})).toBe('https://edge.deposium.ai');
+    });
+
+    test('should preserve an explicit local Edge Runtime URL', () => {
+      expect(getEdgeUrl({ edgeUrl: 'http://localhost:9000' })).toBe('http://localhost:9000');
+    });
+
+    test('should preserve the deprecated direct URL fallback', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(getEdgeUrl({ mcpDirectUrl: 'http://localhost:4001' })).toBe('http://localhost:4001');
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });

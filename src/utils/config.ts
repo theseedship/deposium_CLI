@@ -88,6 +88,8 @@ export function enforceUrlSecurity(url: string, options: { insecure?: boolean } 
 // ============================================================================
 
 const CONFIG_DIR = path.join(os.homedir(), '.deposium');
+const DEFAULT_DEPOSIUM_URL = 'https://app.deposium.ai';
+const DEFAULT_EDGE_URL = 'https://edge.deposium.ai';
 
 /**
  * Derive a deterministic encryption key from machine identity.
@@ -235,7 +237,8 @@ export function getConfig(): DeposiumConfig {
  * Get the base URL for Deposium API
  *
  * Priority: deposiumUrl > mcpUrl (deprecated) > default
- * Default is http://localhost:3003 (local SolidStart dev server)
+ * Default is the public Deposium SaaS endpoint. Local development can set
+ * DEPOSIUM_URL or deposium-url explicitly.
  *
  * @param cfg - Optional config object
  * @param options - Options for URL validation
@@ -247,7 +250,7 @@ export function getBaseUrl(
   options: { validateSecurity?: boolean; insecure?: boolean } = {}
 ): string {
   const c = cfg ?? getConfig();
-  const url = c.deposiumUrl ?? c.mcpUrl ?? 'http://localhost:3003';
+  const url = c.deposiumUrl ?? c.mcpUrl ?? DEFAULT_DEPOSIUM_URL;
 
   // Enforce URL security by default (can be disabled for testing)
   const { validateSecurity = true, insecure } = options;
@@ -285,7 +288,8 @@ export function getMcpDirectUrl(
  * Used for chat streaming (replaces direct MCP connection).
  *
  * Priority: edgeUrl > mcpDirectUrl (deprecated) > default
- * Default: http://localhost:9000 (local Edge Runtime dev server)
+ * Default: the public Deposium Edge Runtime endpoint. Local development can
+ * set DEPOSIUM_EDGE_URL explicitly.
  *
  * @param cfg - Optional config object
  * @param options - Options for URL validation
@@ -293,7 +297,7 @@ export function getMcpDirectUrl(
  */
 export function getEdgeUrl(cfg?: DeposiumConfig, options: { insecure?: boolean } = {}): string {
   const c = cfg ?? getConfig();
-  const url = c.edgeUrl ?? c.mcpDirectUrl ?? 'http://localhost:9000';
+  const url = c.edgeUrl ?? c.mcpDirectUrl ?? DEFAULT_EDGE_URL;
 
   // Warn if falling back to deprecated mcpDirectUrl
   if (!c.edgeUrl && c.mcpDirectUrl) {
