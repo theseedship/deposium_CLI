@@ -6,18 +6,26 @@ and approve the staged package with npm two-factor authentication (2FA).
 
 ## Prepare a version
 
-1. Merge the release changes into `main`. Merging alone does not start the release workflow.
+1. Prepare the release changes on a branch.
 2. Choose a version that is neither public nor already staged. Check the exact version with
    `npm view @deposium/cli@<version> version` and `npm stage list @deposium/cli`. If that version is
    already staged, review or approve that stage instead of bumping and staging again.
-3. Update `package.json` and `package-lock.json` to the new version, then merge that change.
-   A version that is already public cannot be staged again as a new release.
-4. Create and push a `v<version>` tag at the release commit. The workflow checks that the tag and
-   `package.json` versions match before staging.
+3. Update `package.json` and `package-lock.json` to the new version and add its changelog entry,
+   then merge that change into `main`. This automatically starts the staging workflow. A merge
+   that does not change the package version does not create a release; versions are not bumped
+   automatically. A version that is already public cannot be staged again as a new release.
+4. Follow the `Stage npm release` run in GitHub Actions and verify its staging result. You can
+   also push a `v<version>` tag at the release commit; the workflow checks that the tag and
+   `package.json` versions match. It reuses an existing stage instead of staging the version twice.
 
 The workflow runs `npm ci`, type checking, lint, tests, a clean build, and an artifact check. It
 uses Node 24 and npm 11.15.0, then runs `npm stage publish --provenance --access public --tag latest`.
-The tag-triggered workflow stages automatically; it does not approve or publish the package.
+Both a version change on `main` and a version tag stage automatically; neither approves or
+publishes the package. Before staging, the workflow checks whether the exact version is already
+public or staged and skips duplicate uploads. Authentication or registry errors fail the run.
+
+The release gate has offline regression tests in `src/__tests__/release-gate.test.ts`, included
+in `npm test` on platforms with Bash. They use stub registry responses and never stage a package.
 
 ## Check the npm credential without staging
 
