@@ -1,0 +1,44 @@
+name: Sync docs after CLI release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Public npm version to document (for example 1.5.2 or v1.5.2)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-release-sync
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Run maintained automation from the default branch, even for a retry of
+      # an older release. The requested npm version is validated separately.
+      - name: Checkout automation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.x'
+
+      - name: Verify public release and notify documentation
+        env:
+          RELEASE_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: bash .github/scripts/dispatch-docs-release.sh
