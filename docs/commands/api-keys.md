@@ -8,16 +8,11 @@ account — creating new keys, listing them, rotating, or deleting.
 > **Difference vs `deposium auth`** : `auth` manages the key **stored
 > locally** in `~/.deposium/credentials` (the one you authenticate with).
 > `api-keys` manages the keys that exist **on your account** (server-side).
-> You'll typically use `api-keys create` to mint a key, then `auth login`
-> with that key to start using it.
+> The first key must come from **API Keys** on the [Deposium app's Billing page](https://app.deposium.ai/billing). Then run `deposium auth login`. The CLI's `api-keys` commands require an existing authenticated key.
 
-## Plan-gated
+## CLI plan access
 
-Creation, deletion, rotation, and usage stats require the **`api_access`
-feature** on your account's plan. On insufficient plans the server returns
-`{ code: "FEATURE_LOCKED" }` and the CLI surfaces that as an error message.
-The `list` subcommand works on all plans (returns an empty list if no
-keys exist).
+CLI access is included in the [Pro, Teams, and Enterprise plans](https://deposium.ai/en/pricing). Some server-side API-key operations require the **`api_access`** feature. If the CLI returns `FEATURE_LOCKED`, check the plan and features shown in Billing or contact Deposium support. Creating the first key in the app does not require a prior CLI login.
 
 ## Usage
 
@@ -48,6 +43,8 @@ The list never includes the secret value — only `id`, `name`, `prefix`
 ### `create` (alias: `new`)
 
 Create a new API key.
+
+Log in with an existing user key first (`deposium auth login`). This command cannot bootstrap a fresh CLI installation.
 
 ```bash
 deposium api-keys create --name "CI/CD"

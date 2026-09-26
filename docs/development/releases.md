@@ -1,6 +1,6 @@
 # Releasing the CLI to npm
 
-The [`Stage npm release`](../../.github/workflows/publish.yml) workflow validates and stages
+The [`Stage npm release`](https://github.com/theseedship/deposium_CLI/blob/main/.github/workflows/publish.yml) workflow validates and stages
 `@deposium/cli`. A successful GitHub job is **not** a public npm release. A maintainer must review
 and approve the staged package with npm two-factor authentication (2FA).
 
