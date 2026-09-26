@@ -1,4 +1,4 @@
-> Revision: 2026-04-24 (config keys are kebab-case — audit fix)
+> Revision: 2026-09-26
 
 # Configuration Guide
 
@@ -141,8 +141,8 @@ the env var is set: `unset DEPOSIUM_API_KEY` to fully clear.
 
 ```bash
 # Via configuration
-deposium config set defaultTenant my-tenant
-deposium config set defaultSpace my-space
+deposium config set default-tenant my-tenant
+deposium config set default-space my-space
 
 # Via environment
 export DEPOSIUM_TENANT=my-tenant
@@ -218,7 +218,7 @@ deposium search "query" --silent
 # .env.development
 DEPOSIUM_URL=http://localhost:3003
 DEPOSIUM_EDGE_URL=http://localhost:9000
-DEPOSIUM_API_KEY=dev-key
+DEPOSIUM_API_KEY=dep_test_REPLACE_WITH_YOUR_USER_KEY
 ```
 
 ### Production
@@ -241,6 +241,10 @@ DEPOSIUM_URL=https://app.deposium.ai
 ```
 
 ## Troubleshooting
+
+### HTTP 403 responses
+
+The CLI reports a plan feature lock (`FEATURE_LOCKED`), a Cloudflare browser challenge, or an API-key permission failure separately. For a feature lock, check your plan and enabled features. A browser challenge cannot be completed by the CLI; contact Deposium support. For other permission failures, check the key's scopes and account permissions.
 
 ### Verify Configuration
 

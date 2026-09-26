@@ -1,8 +1,10 @@
-> Revision: 2026-04-06
+> Revision: 2026-09-26
 
 # Installation Guide
 
 ## 📦 Installation Options
+
+The npm package requires Node.js `^22.13.0 || >=24`; Node 23 is unsupported.
 
 ### Option 1: npm (Recommended for end-users)
 
@@ -13,31 +15,9 @@ npm install -g @deposium/cli
 deposium --version
 ```
 
-### Option 2: Bun Binary (Recommended for production/CI)
+The published `1.5.1` package predates the SaaS URL defaults in current source. With that version, set `DEPOSIUM_URL=https://app.deposium.ai` and `DEPOSIUM_EDGE_URL=https://edge.deposium.ai` explicitly when targeting SaaS.
 
-```bash
-# Linux
-curl -fsSL https://github.com/theseedship/deposium_CLI/releases/latest/download/deposium-linux -o deposium
-chmod +x deposium
-sudo mv deposium /usr/local/bin/
-
-# macOS
-curl -fsSL https://github.com/theseedship/deposium_CLI/releases/latest/download/deposium-macos -o deposium
-chmod +x deposium
-sudo mv deposium /usr/local/bin/
-
-# Windows
-# Download from: https://github.com/theseedship/deposium_CLI/releases/latest/download/deposium-windows.exe
-```
-
-### Option 3: Docker
-
-```bash
-docker pull deposium/cli:latest
-
-# Run with alias
-alias deposium='docker run -it --rm deposium/cli'
-```
+The repository does not currently publish GitHub release binaries or a `deposium/cli` Docker image. For a standalone executable, [build the Bun binary from source](#method-4-bun-binary-build-from-source).
 
 ## 🛠️ Local Installation (Development)
 
@@ -107,17 +87,15 @@ Creates a **tarball** (.tgz) exactly as npm publish would, then installs from it
 
 ```bash
 npm run build
-npm pack
-# Creates: deposium-cli-1.0.0.tgz (scoped: @deposium/cli)
-
-npm install -g ./deposium-cli-1.0.0.tgz
+tarball=$(npm pack --silent)
+npm install -g "./$tarball"
 
 # Test it works
 deposium --version
 
 # Uninstall when done
 npm uninstall -g @deposium/cli
-rm deposium-cli-1.0.0.tgz
+rm -- "$tarball"
 ```
 
 **✅ Best for:**
@@ -127,9 +105,9 @@ rm deposium-cli-1.0.0.tgz
 - Verifying package.json "files" field
 - Finding missing dependencies or files
 
-### Method 4: Bun Binary (Production-ready executable)
+### Method 4: Bun Binary (Build from source)
 
-Compiles a **standalone binary** with zero dependencies. Same as production releases.
+Compiles a **standalone binary** from this checkout. This is a local build, not a published release asset.
 
 ```bash
 # Build for your platform

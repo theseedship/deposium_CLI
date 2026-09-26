@@ -4,7 +4,6 @@ Official command-line interface for [Deposium](https://deposium.ai) — document
 
 [![npm](https://img.shields.io/npm/v/@deposium/cli.svg)](https://www.npmjs.com/package/@deposium/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](package.json)
 
 ## 📋 Overview
 
@@ -65,6 +64,8 @@ Detailed documentation is available in the `docs/` directory:
 
 ## 📦 Quick Install
 
+Requires Node.js `^22.13.0 || >=24` (Node 23 is unsupported).
+
 ```bash
 # Install globally via npm
 npm install -g @deposium/cli
@@ -73,7 +74,11 @@ npm install -g @deposium/cli
 deposium --version
 ```
 
-See the [Installation Guide](docs/guides/installation.md) for Docker, Bun, and local development installation methods.
+Current source builds default to `https://app.deposium.ai` and `https://edge.deposium.ai`. Set `DEPOSIUM_URL` and `DEPOSIUM_EDGE_URL` explicitly for local development. The published npm `1.5.1` predates these SaaS defaults; check your installed version before relying on them.
+
+A 403 response distinguishes a plan feature lock, a Cloudflare browser challenge, and an API-key permission failure.
+
+See the [Installation Guide](docs/guides/installation.md) for Bun and local development installation methods.
 
 ## 🤝 Contributing
 
