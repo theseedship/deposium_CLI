@@ -58,10 +58,30 @@ version remains staged, do not announce a public release.
 
 ## Refresh the documentation after approval
 
-Staging no longer triggers the docs deployment. Once the version is public and verified, run
-`gh workflow run deploy.yml --repo theseedship/deposium_docs` with access to dispatch that
-repository's workflow, then verify its deployment. The docs site's scheduled rebuild remains a
-fallback if an immediate refresh is not needed.
+After approving the package on npm and verifying the public version and `latest` tag, publish
+a stable GitHub Release for the matching `v<version>` tag at the release commit. The
+[`Sync docs after CLI release`](https://github.com/theseedship/deposium_CLI/blob/main/.github/workflows/docs-sync.yml)
+workflow then automatically verifies those npm checks again and sends `cli-released` to
+`theseedship/deposium_docs`. That repository rebuilds and deploys the documentation.
+
+The CLI repository must have `DOCS_DISPATCH_TOKEN`, a fine-grained GitHub token with **Contents:
+read and write** on `theseedship/deposium_docs` (or an equivalent GitHub App token). The ordinary
+`GITHUB_TOKEN` cannot dispatch to another repository. A missing token, registry error,
+unpublished version, non-`latest` version, or dispatch failure fails the workflow instead of
+claiming a successful refresh. Prereleases do not trigger the production documentation.
+
+If the release was published before npm approval, approve it and rerun the failed workflow.
+For a release that already exists, the same checks can be run manually:
+
+```bash
+gh workflow run docs-sync.yml --repo theseedship/deposium_CLI -f version=1.5.2
+```
+
+Use the version you intend to document. A successful dispatch means the documentation build
+was requested; verify the subsequent `deposium_docs` deployment separately. The reference is
+still copied from current CLI `main`, not pinned to the release tag. The nightly docs rebuild
+remains a fallback. npm approval alone does not emit the GitHub Release event, and staging,
+dry runs, and npm-authentication probes never dispatch the documentation.
 
 See the [npm staged publishing guide](https://docs.npmjs.com/staged-publishing/) and
 [`npm stage` command reference](https://docs.npmjs.com/cli/v11/commands/npm-stage/) for the current
