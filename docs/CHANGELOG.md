@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-09-27
+
 ### Fixed
 
 - `upload-batch` and validation's `missing_document` upload now send the gateway's JSON file contract, including base64 content, MIME type, size, and nested destination options. Validation also surfaces a per-file failure returned with HTTP 207.
+- Batch upload streams that JSON request one file at a time, bounding client-side buffering while retaining one batch request.
 
 ## [1.5.2] - 2026-09-26
 
