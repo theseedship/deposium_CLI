@@ -44,9 +44,7 @@ export type ValidateFolderVerdict = 'pass' | 'fail';
  *   - `rule_clarification` → sequenced text/select prompts
  */
 export type ValidateWaitingFor =
-  | 'missing_document'
-  | 'classification_correction'
-  | 'rule_clarification';
+  'missing_document' | 'classification_correction' | 'rule_clarification';
 
 /**
  * Resume Mode B — structured response sent back via tool input.
@@ -217,9 +215,7 @@ export interface ValidateFormFieldText {
 }
 
 export type ValidateFormField =
-  | ValidateFormFieldSelect
-  | ValidateFormFieldFileUpload
-  | ValidateFormFieldText;
+  ValidateFormFieldSelect | ValidateFormFieldFileUpload | ValidateFormFieldText;
 
 /**
  * Form-shape `chat_prompt` emitted by the validate macro.
