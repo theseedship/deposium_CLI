@@ -101,13 +101,18 @@ test('MCPClient.uploadBatch streams a valid single JSON request over Node fetch'
 
   let requestCount = 0;
   let received: unknown;
-  const server = createServer(async (req, res) => {
-    requestCount++;
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) chunks.push(Buffer.from(chunk));
-    received = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ batch_id: 'batch-loopback', status: 'completed' }));
+  const server = createServer((req, res) => {
+    void (async () => {
+      requestCount++;
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(Buffer.from(chunk));
+      received = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ batch_id: 'batch-loopback', status: 'completed' }));
+    })().catch(() => {
+      res.writeHead(500);
+      res.end();
+    });
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
