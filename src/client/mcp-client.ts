@@ -36,6 +36,7 @@
 import axios, { AxiosInstance } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
+import { encodeBatchUploadFile } from '../utils/batch-upload-request';
 
 import pkg from '../../package.json';
 
@@ -420,10 +421,8 @@ export class MCPClient {
   /**
    * Upload one or more files via the gateway's batch-upload endpoint.
    *
-   * Each file is streamed sequentially through `fs.createReadStream` →
-   * `Blob` so peak memory stays bounded by the largest single file
-   * rather than the sum of all files (the previous JSON+base64 path
-   * loaded everything at once).
+   * The gateway accepts JSON with base64 content for each file. The
+   * command layer checks its inline size limits before calling this method.
    *
    * Routes through `MCPClient` (rather than a raw fetch in the command
    * layer) so TLS enforcement, the service-key guardrail, and the
@@ -434,28 +433,27 @@ export class MCPClient {
     options: { spaceId?: string; folderId?: string } = {}
   ): Promise<unknown> {
     const { readFileSync } = await import('node:fs');
-    const form = new FormData();
-    for (const file of files) {
-      // Read sync per-iteration so the previous Blob is eligible for GC
-      // before the next file is loaded. Node's FormData copies the buffer
-      // into its own storage, so we can release the local reference after
-      // append().
-      const buffer = readFileSync(file.path);
-      form.append('files', new Blob([new Uint8Array(buffer)], { type: file.mimeType }), file.name);
-    }
-    if (options.spaceId) form.append('space_id', options.spaceId);
-    if (options.folderId) form.append('folder_id', options.folderId);
+    const body = JSON.stringify({
+      files: files.map((file) =>
+        encodeBatchUploadFile(readFileSync(file.path), file.name, file.mimeType)
+      ),
+      options: {
+        ...(options.spaceId ? { space_id: options.spaceId } : {}),
+        ...(options.folderId ? { folder_id: options.folderId } : {}),
+      },
+    });
 
     const url = `${this.baseUrl}/api/v2/files/batch-upload`;
     const headers: Record<string, string> = {
       'User-Agent': `${CLI_NAME}/${CLI_VERSION} (Node.js ${process.version})`,
       'X-Client-Type': 'cli',
+      'Content-Type': 'application/json',
     };
     if (this.apiKey) headers['X-API-Key'] = this.apiKey;
 
     let response: Response;
     try {
-      response = await fetch(url, { method: 'POST', headers, body: form });
+      response = await fetch(url, { method: 'POST', headers, body });
     } catch (error) {
       if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
         throw connectionRefusedError(this.baseUrl);

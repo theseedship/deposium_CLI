@@ -18,7 +18,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import * as mimeTypes from 'mime-types';
 import { buildAuthError } from '../client/auth-error';
+import { encodeBatchUploadFile } from './batch-upload-request';
 import { hasErrorCauseWithCode } from './errors';
 
 /**
@@ -44,17 +46,19 @@ export async function uploadFileForValidate(
   }
 
   const fileName = path.basename(filePath);
-  const form = new FormData();
-  form.append('files', new Blob([fs.readFileSync(filePath)]), fileName);
-  form.append('space_id', spaceId);
+  const mimeType = mimeTypes.lookup(filePath) || 'application/octet-stream';
+  const body = JSON.stringify({
+    files: [encodeBatchUploadFile(fs.readFileSync(filePath), fileName, mimeType)],
+    options: { space_id: spaceId },
+  });
 
   const url = `${baseUrl.replace(/\/$/, '')}/api/v2/files/batch-upload`;
   let response: Response;
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'X-API-Key': apiKey },
-      body: form,
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      body,
     });
   } catch (error) {
     // Same normalization as MCPClient.postStream — ECONNREFUSED becomes the
@@ -96,16 +100,30 @@ async function throwForUploadError(response: Response): Promise<never> {
 }
 
 interface UploadResponseShape {
-  files?: Array<{ id?: number; file_id?: number; file_name?: string; name?: string }>;
+  files?: Array<{
+    id?: number;
+    file_id?: number;
+    file_name?: string;
+    name?: string;
+    status?: string;
+    error?: string;
+  }>;
   file_id?: number;
   file_name?: string;
 }
 
+function assertUploadedFileStatus(
+  file: NonNullable<UploadResponseShape['files']>[number] | undefined
+): void {
+  if (file?.status && file.status !== 'uploaded' && file.status !== 'completed') {
+    throw new Error(`Upload failed: ${file.error ?? file.status}`);
+  }
+}
+
 /**
- * Normalize the API gateway's batch-upload response. Accepts both
- * `{files: [{id, file_name}]}` and the flat `{file_id, file_name}` shape so
- * we don't crash if the endpoint changes its envelope on single-file
- * uploads.
+ * Normalize the API gateway's batch-upload response. Its current shape is
+ * `{files: [{name, status: 'uploaded', file_id}]}`. Keep compatibility with
+ * older success envelopes and reject per-file failures even on HTTP 207.
  */
 function parseUploadResponse(
   raw: unknown,
@@ -113,6 +131,7 @@ function parseUploadResponse(
 ): { file_id: number; file_name: string } {
   const data = raw as UploadResponseShape;
   const first = data.files?.[0];
+  assertUploadedFileStatus(first);
   const file_id = first?.id ?? first?.file_id ?? data.file_id;
   const file_name = first?.file_name ?? first?.name ?? data.file_name ?? fallbackName;
 

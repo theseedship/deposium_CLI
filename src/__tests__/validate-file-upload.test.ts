@@ -18,7 +18,7 @@ describe('uploadFileForValidate', () => {
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-upload-test-'));
     tmpFile = path.join(tmpDir, 'doc.pdf');
-    fs.writeFileSync(tmpFile, 'fake pdf content');
+    fs.writeFileSync(tmpFile, Buffer.from([0, 1, 127, 128, 255]));
   });
 
   afterEach(() => {
@@ -26,7 +26,7 @@ describe('uploadFileForValidate', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('POSTs to /api/v2/files/batch-upload with X-API-Key header and FormData body', async () => {
+  test('POSTs gateway JSON with binary content, MIME type, and space option', async () => {
     let capturedUrl: string | undefined;
     let capturedHeaders: HeadersInit | undefined;
     let capturedBody: BodyInit | null | undefined;
@@ -38,7 +38,8 @@ describe('uploadFileForValidate', () => {
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ files: [{ id: 42, file_name: 'doc.pdf' }] }),
+        json: () =>
+          Promise.resolve({ files: [{ status: 'uploaded', file_id: 42, name: 'doc.pdf' }] }),
       } as Response);
     }) as unknown as typeof fetch;
 
@@ -52,8 +53,23 @@ describe('uploadFileForValidate', () => {
     expect(result).toEqual({ file_id: 42, file_name: 'doc.pdf' });
     expect(capturedUrl).toBe('http://localhost:3003/api/v2/files/batch-upload');
     expect((capturedHeaders as Record<string, string>)['X-API-Key']).toBe('dep_live_test');
-    // body is FormData — test that it's the right type without inspecting internals
-    expect(capturedBody).toBeInstanceOf(FormData);
+    expect((capturedHeaders as Record<string, string>)['Content-Type']).toBe('application/json');
+    const request = new Request(capturedUrl!, {
+      method: 'POST',
+      headers: capturedHeaders,
+      body: capturedBody,
+    });
+    expect(await request.json()).toEqual({
+      files: [
+        {
+          name: 'doc.pdf',
+          size: 5,
+          mime_type: 'application/pdf',
+          content_base64: Buffer.from([0, 1, 127, 128, 255]).toString('base64'),
+        },
+      ],
+      options: { space_id: 'space-uuid-1' },
+    });
   });
 
   test('strips trailing slash from baseUrl', async () => {
@@ -153,6 +169,23 @@ describe('uploadFileForValidate', () => {
 
     await expect(uploadFileForValidate('http://x', 'k', 's', tmpFile)).rejects.toThrow(
       /missing file_id/
+    );
+  });
+
+  test('rejects a per-file failure returned with HTTP 207', async () => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 207,
+        json: () =>
+          Promise.resolve({
+            files: [{ name: 'doc.pdf', status: 'failed', error: 'Upload denied' }],
+          }),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    await expect(uploadFileForValidate('http://x', 'k', 's', tmpFile)).rejects.toThrow(
+      /Upload failed: Upload denied/
     );
   });
 
