@@ -36,7 +36,7 @@
 import axios, { AxiosInstance } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
-import { encodeBatchUploadFile } from '../utils/batch-upload-request';
+import { createBatchUploadStream } from '../utils/batch-upload-stream';
 
 import pkg from '../../package.json';
 
@@ -432,16 +432,7 @@ export class MCPClient {
     files: Array<{ path: string; name: string; mimeType: string }>,
     options: { spaceId?: string; folderId?: string } = {}
   ): Promise<unknown> {
-    const { readFileSync } = await import('node:fs');
-    const body = JSON.stringify({
-      files: files.map((file) =>
-        encodeBatchUploadFile(readFileSync(file.path), file.name, file.mimeType)
-      ),
-      options: {
-        ...(options.spaceId ? { space_id: options.spaceId } : {}),
-        ...(options.folderId ? { folder_id: options.folderId } : {}),
-      },
-    });
+    const body = createBatchUploadStream(files, options);
 
     const url = `${this.baseUrl}/api/v2/files/batch-upload`;
     const headers: Record<string, string> = {
@@ -453,7 +444,7 @@ export class MCPClient {
 
     let response: Response;
     try {
-      response = await fetch(url, { method: 'POST', headers, body });
+      response = await fetch(url, { method: 'POST', headers, body, duplex: 'half' });
     } catch (error) {
       if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
         throw connectionRefusedError(this.baseUrl);
