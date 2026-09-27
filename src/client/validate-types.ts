@@ -39,7 +39,7 @@ export type ValidateFolderVerdict = 'pass' | 'fail';
  * `chat_prompt.waiting_for` discriminant.
  *
  * Routes the CLI's HITL form rendering branch:
- *   - `missing_document` → `inquirer` file path prompt + multipart upload
+ *   - `missing_document` → `inquirer` file path prompt + JSON batch upload
  *   - `classification_correction` → `inquirer.list` (thematics + 'skip')
  *   - `rule_clarification` → sequenced text/select prompts
  */
