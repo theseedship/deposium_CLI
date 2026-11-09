@@ -1,4 +1,4 @@
-> Revision: 2026-09-26
+> Revision: 2026-11-09
 
 # Installation Guide
 
@@ -32,6 +32,37 @@ deposium search "a phrase from your document" --space YOUR_SPACE_ID
 Use a space ID from the list in the search command. See the [auth guide](../commands/auth.md) for key storage and [older versions and local development](configuration.md#older-cli-versions-and-local-development) for URL overrides.
 
 The repository does not currently publish GitHub release binaries or a `deposium/cli` Docker image. For a standalone executable, [build the Bun binary from source](#method-4-bun-binary-build-from-source).
+
+## Updates
+
+A global npm installation checks the public npm version when you start an
+interactive session (`deposium chat`, `deposium interactive`, or `deposium i`),
+and when opening the CLI without a command in a terminal. If a newer stable
+version is available, it offers **Update and restart now?**. Accepting installs
+that exact version into the existing npm prefix, verifies the installed version,
+and restarts with the same arguments. Your stored API key and configuration stay
+in place. Declining continues with the current version.
+
+The check is bounded and unavailable npm/registry access does not prevent startup.
+It does not run for scripts, JSON output, CI, help/version, checkouts, `npm link`,
+`npx` caches or standalone Bun binaries. It never uses sudo or a shell to install.
+Lookup and installation use the public npm registry for `@deposium`, including
+when a scoped registry is configured; that override applies only to the update.
+An interruption is forwarded once to the active installer/restarted session;
+the parent waits for closure, with a bounded forced stop if the child is stuck.
+An install/verification failure stops the update and does not pretend it succeeded.
+Use `--no-update` or `DEPOSIUM_NO_UPDATE=1` to skip the startup check.
+
+Older CLI versions without this feature need one manual update after the new
+version has been published:
+
+```bash
+npm install -g @deposium/cli@latest
+```
+
+The Deposium MCP endpoint is a **remote server**, not a second local package.
+Its version changes when the server is deployed. Starting or updating the CLI
+never deploys the remote MCP service or changes its credentials.
 
 ## 🛠️ Local Installation (Development)
 

@@ -29,6 +29,7 @@ import { temporalAssertionCommand } from './commands/temporal-assertion';
 import { runPreflight } from './utils/cli-preflight';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
+import { forwardStartupUpdateSignal, offerStartupUpdate } from './utils/startup-update';
 
 // ============================================================================
 // Graceful Shutdown Handlers
@@ -40,7 +41,8 @@ let isShuttingDown = false;
  * Handle graceful shutdown on SIGTERM/SIGINT
  * Ensures clean exit without orphaned processes or connections
  */
-function handleShutdown(signal: string): void {
+function handleShutdown(signal: NodeJS.Signals): void {
+  if (forwardStartupUpdateSignal(signal)) return;
   if (isShuttingDown) {
     // Force exit if already shutting down (user pressed Ctrl+C twice)
     console.log(chalk.red('\nForce exit...'));
@@ -93,6 +95,7 @@ program
       chalk.gray('Document search, graph queries, and AI workflows via Deposium API')
   )
   .version(pkg.version)
+  .option('--no-update', 'Skip the interactive startup update check')
   .option('--insecure', 'Allow insecure HTTP connections to non-localhost servers')
   .hook('preAction', async () => {
     // The command name is settled FIRST: `runPreflight` reads nothing at all for a command
@@ -189,10 +192,15 @@ program
     }
   );
 
-// Parse arguments
-program.parse(process.argv);
-
-// Show help if no command provided
-if (!process.argv.slice(2).length) {
-  program.outputHelp();
+async function runCli(): Promise<void> {
+  const args = process.argv.slice(2);
+  const updatedExitCode = await offerStartupUpdate(pkg.version, args);
+  if (updatedExitCode !== undefined) {
+    process.exitCode = updatedExitCode;
+    return;
+  }
+  await program.parseAsync(process.argv);
+  if (!args.length) program.outputHelp();
 }
+
+void runCli();
