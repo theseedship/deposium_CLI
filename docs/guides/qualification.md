@@ -101,10 +101,10 @@ translation coverage and interpolation slots, without translating result data.
 
 ## Live command input — CLI 1.9.0
 
-**931 tests / 63 files** pass on Node 22.13 and 24. The terminal-stream fixtures exercise actual readline key events: prefix filtering,
+**933 tests / 63 files** pass on Node 22.13 and 24. The terminal-stream fixtures exercise actual readline key events: prefix filtering,
 Up/Down selection, Tab without submission, Enter, exact `/source`, Escape,
 Unicode cursor editing, command arguments, unknown commands, bracketed multiline
-paste, abort/Ctrl+C cleanup and terminal resize. Catalogue pagination is bounded;
+paste (including insertion mid-question and pasted tabs), abort/Ctrl+C cleanup and terminal resize. Catalogue pagination is bounded;
 all main-menu entries fit a normal 24-row terminal. Existing scope/history, HITL,
 canonical answer, credentials and JSON regression suites remain required.
 

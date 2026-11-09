@@ -1,9 +1,23 @@
+import type { Interface } from 'node:readline';
 import { createPrompt, useState, useKeypress, useEffect, useRef } from '@inquirer/core';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { matchingChatCommands } from './chat-command-catalogue';
 import { menuPageSize } from './menu-layout';
 import { tr } from './i18n';
+
+type EditableReadline = Interface & { clearLine: (direction: 0) => void };
+
+function pastedInput(key: string, rl: EditableReadline, value: string, cursor: number): string {
+  if (['enter', 'return', 'tab'].includes(key)) {
+    // Enter clears the buffer; Tab may already be inserted. Rebuild from the prior text.
+    const suffix = value.slice(cursor);
+    rl.clearLine(0);
+    rl.write(`${value.slice(0, cursor)} ${suffix}`);
+    for (const _character of Array.from(suffix)) rl.write('', { name: 'left' });
+  }
+  return rl.line;
+}
 
 /** Readline owns text editing; Inquirer's screen and lifecycle own the completion popup. */
 export const chatMessagePrompt: (
@@ -16,6 +30,7 @@ export const chatMessagePrompt: (
   const [finished, setFinished] = useState(false);
   const [size, setSize] = useState(0);
   const paste = useRef(false);
+  const cursor = useRef(0);
   const matches = dismissed ? [] : matchingChatCommands(value);
 
   useEffect(
@@ -38,9 +53,11 @@ export const chatMessagePrompt: (
   );
 
   useKeypress((key, rl) => {
+    const readline = rl as unknown as EditableReadline;
     const sequence = (key as typeof key & { sequence?: string }).sequence;
     if (sequence === '\u001b[200~') {
       paste.current = true;
+      setDismissed(true);
       return;
     }
     if (sequence === '\u001b[201~') {
@@ -52,11 +69,12 @@ export const chatMessagePrompt: (
       rl.write(text);
       setValue(text);
     };
+    if (paste.current) {
+      setValue(pastedInput(key.name, readline, value, cursor.current));
+      cursor.current = readline.cursor;
+      return;
+    }
     if (key.name === 'enter' || key.name === 'return') {
-      if (paste.current) {
-        replace(`${value} `);
-        return;
-      }
       const answer = matches[index] ? `/${matches[index].command}` : value;
       // Readline clears its buffer before this handler. Restore it for cursor bookkeeping.
       replace(answer);
@@ -79,6 +97,7 @@ export const chatMessagePrompt: (
         setDismissed(false);
       }
     }
+    cursor.current = readline.cursor;
   });
 
   const prompt = `${finished ? chalk.green('✔') : chalk.cyan('?')} ${config.message} ${value}`;

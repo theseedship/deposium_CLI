@@ -96,6 +96,23 @@ describe('live local chat command input', () => {
     t.input.write('\r');
     expect(await t.answer).toBe('/clear /exit');
   });
+  it('preserves pasted word order and the original suffix when pasting mid-question', async () => {
+    const t = await terminal();
+    t.input.write('AB');
+    t.input.write('\u001b[D');
+    t.input.write('\u001b[200~x\ny\u001b[201~');
+    await vi.waitFor(() => expect(t.text()).toContain('Ax yB'));
+    t.input.write('\r');
+    expect(await t.answer).toBe('Ax yB');
+  });
+  it('does not turn pasted tabs or partial commands into a completed destructive command', async () => {
+    for (const pasted of ['/cle\t', '/cle']) {
+      const t = await terminal();
+      t.input.write(`\u001b[200~${pasted}\u001b[201~`);
+      t.input.write('\r');
+      expect(await t.answer).toBe(pasted.replace('\t', ' '));
+    }
+  });
   it('cleans up terminal listeners and paste mode after abort or Ctrl+C', async () => {
     for (const abort of [true, false]) {
       const baseline = process.stdout.listenerCount('resize');

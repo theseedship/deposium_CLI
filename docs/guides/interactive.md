@@ -93,6 +93,8 @@ whereas `/sources` lists sources. After a space, arguments stay untouched:
 `/source 2` and `/space <id>` still work. A slash inside an ordinary question does
 not open the menu. Unknown slash commands remain local errors, never model questions.
 Bracketed multiline paste is kept in the input until you explicitly press Enter.
+Pasted tabs/line breaks become spaces without changing word order. Paste does
+not select a completion: a pasted partial command stays a partial command.
 
 In scripts, CI and `TERM=dumb`, the standard input prompt remains available;
 enter `/` then press Enter for the existing command picker. Suggestions do not
