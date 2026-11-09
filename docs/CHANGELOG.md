@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-09
+
+### Added
+
+- Interactive global npm installs detect a newer public stable CLI version and offer a confirmed update and restart with the same arguments. Checks are bounded, can be disabled, and do not run for scripts/JSON/CI or development installs.
+- Chat chooses one authorized space and supports `/` + Enter, `/help`, `/spaces`, `/space`, `/clear`, `/history`, and `/exit`. A real space change clears conversation history; a rejected change preserves the previous context.
+
+### Fixed
+
+- Group verification notices after the answer and sources instead of interrupting streamed text. Accept current source name/page aliases and explicitly label unavailable source identities rather than printing `undefined`.
+- Search omits fabricated tenant identities and requires an explicit or configured space. Search, tools, health and file read JSON output stays parseable, including empty catalogues and authentication failures.
+- Confirmed self-updates bind lookup and installation to the public npm registry, verify the installed version, preserve credentials/configuration, and forward shutdown while waiting for the child process to close.
+- Require Axios 1.21+, upgrade glob to the patched 14.x baseline and Vitest/coverage to 4.1.12. Regenerate the stale Bun lockfile from the audited npm resolutions; retain the Node 22.13+/24 runtime contract.
+
+### Scope
+
+- The MCP endpoint remains a remote server; updating the CLI does not deploy it. Source commits become public npm code only after maintainer approval of the staged package.
+- These journeys do not qualify every legacy command or a local model alternative. Combined space scopes and global canonical citation resolution retain their separately documented limits.
+
 ## [1.5.3] - 2026-09-27
 
 ### Fixed
