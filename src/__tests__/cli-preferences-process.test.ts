@@ -81,6 +81,9 @@ test('bad language and conflicting space input fail before authentication withou
     expect(result.stdout).toBe('');
     expect(result.stderr).not.toContain('auth login');
   }
+  const scopeError = cli(['settings', 'space', '--json']);
+  expect(scopeError.stderr).toContain('deposium settings space <id>');
+  expect(scopeError.stderr).not.toContain('--space <id>');
   expect(json(['settings', 'show', '--json']).saved_language).toBe('en');
 });
 test('French command help translates metadata without translating flags, enum values or command names', () => {

@@ -29,8 +29,10 @@ export const settingsCommand: Command = new Command('settings')
     new Command('show')
       .description('Show effective settings without credentials or network calls')
       .option('--json', 'Show effective settings as JSON without prompts')
-      .action((options: { json?: boolean }) =>
-        showSettings(options.json ?? settingsCommand.opts().json)
+      .action(
+        withErrorHandling(async (options: { json?: boolean }) => {
+          showSettings(options.json ?? settingsCommand.opts().json);
+        })
       )
   )
   .addCommand(
@@ -60,7 +62,7 @@ export const settingsCommand: Command = new Command('settings')
             else {
               const interactive = !json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
               if (!id && !interactive)
-                throw new Error(tr('Choose an explicit scope with --space <id>.'));
+                throw new Error(tr('Choose a space with deposium settings space <id>.'));
               const { client } = await initializeCommand({ machineReadable: !interactive });
               await saveDefaultSpace(client, id, interactive);
             }

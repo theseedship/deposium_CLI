@@ -608,5 +608,6 @@
   "Language preference: {0}": "Préférence de langue : {0}",
   "Unknown": "Inconnu",
   "System Health": "État des services",
-  " services": " services"
+  " services": " services",
+  "Choose a space with deposium settings space <id>.": "Choisissez un espace avec deposium settings space <id>."
 }
