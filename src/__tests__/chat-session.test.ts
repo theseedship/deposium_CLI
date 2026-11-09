@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import inquirer from 'inquirer';
 import { initializeCommand } from '../utils/command-helpers';
 import { startChat } from '../chat';
+import type { ChatStreamOptions } from '../client/mcp-client';
 
 vi.mock('inquirer', () => ({ default: { prompt: vi.fn() } }));
 vi.mock('../utils/config', () => ({
@@ -25,8 +26,12 @@ test('the REPL keeps scope and follow-up context, isolates a changed space and h
       { id: 'first', name: 'First' },
       { id: 'second', name: 'Second' },
     ]),
-    chatStream: vi.fn(async (_url: string, message: string, opts: any) => {
-      turns.push({ message, spaceIds: [...opts.spaceIds], history: [...opts.conversationHistory] });
+    chatStream: vi.fn(async (_url: string, message: string, opts: ChatStreamOptions) => {
+      turns.push({
+        message,
+        spaceIds: [...(opts.spaceIds ?? [])],
+        history: [...(opts.conversationHistory ?? [])],
+      });
       opts.onToken('Answer.');
     }),
   };
@@ -61,9 +66,9 @@ test('a blocked answer without fallback does not feed the rejected turn into the
   let count = 0;
   const client = {
     listSpaces: vi.fn().mockResolvedValue([{ id: 'first', name: 'First' }]),
-    chatStream: vi.fn(async (_url: string, _message: string, opts: any) => {
+    chatStream: vi.fn(async (_url: string, _message: string, opts: ChatStreamOptions) => {
       histories.push(opts.conversationHistory);
-      if (count++ === 0) opts.onAnswerBlocked({ id: 'answer', reason: 'unsupported_claim' });
+      if (count++ === 0) opts.onAnswerBlocked?.({ id: 'answer', reason: 'unsupported_claim' });
       else opts.onToken('Safe answer.');
     }),
   };

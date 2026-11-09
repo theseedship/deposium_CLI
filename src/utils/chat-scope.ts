@@ -39,6 +39,7 @@ export async function selectChatScope(
   return { spaceIds: [space.id], label: space.name };
 }
 
+/** Compare space IDs without regard to their order or display labels. */
 export function sameChatScope(a: ChatScope, b: ChatScope): boolean {
   const left = [...a.spaceIds].sort();
   const right = [...b.spaceIds].sort();
