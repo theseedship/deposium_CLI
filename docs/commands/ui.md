@@ -1,4 +1,4 @@
-> Revision: 15/02/2025
+> Revision: 2026-11-09
 
 # UI Command
 
@@ -16,7 +16,7 @@ deposium ui [command] [options]
 
 ### `dashboard`
 
-Opens the main interactive HTML dashboard for the Deposium platform.
+Fetches the main HTML dashboard resource for a compatible MCP app host.
 
 ```bash
 deposium ui dashboard [options]
@@ -30,7 +30,7 @@ deposium ui dashboard [options]
 
 ### `search-ui`
 
-Opens a visual search interface.
+Fetches the visual search resource for a compatible MCP app host.
 
 ```bash
 deposium ui search-ui [options]
@@ -44,7 +44,7 @@ deposium ui search-ui [options]
 
 ### `health-monitor`
 
-Opens a real-time health monitor dashboard.
+Fetches the health-monitor resource; the CLI does not run its refresh loop.
 
 ```bash
 deposium ui health-monitor [options]
@@ -59,7 +59,7 @@ deposium ui health-monitor [options]
 
 ### `tools-explorer`
 
-Opens an explorer for available MCP tools.
+Fetches the tools-explorer resource. For a terminal reference, use `deposium tools`.
 
 ```bash
 deposium ui tools-explorer [options]
@@ -73,7 +73,7 @@ deposium ui tools-explorer [options]
 
 ### `embeddings-monitor`
 
-Opens a monitor for the embeddings queue.
+Fetches the embeddings-monitor resource for a compatible MCP app host.
 
 ```bash
 deposium ui embeddings-monitor [options]
@@ -85,3 +85,8 @@ deposium ui embeddings-monitor [options]
 - `--refresh <seconds>`: Refresh interval in seconds (default: 10)
 - `-f, --format <type>`: Output format (json|table|markdown) (default: table)
 - `--silent`: Suppress progress messages
+
+`--port` and `--refresh` are forwarded as resource-generation parameters. They
+neither bind a local port nor start a local browser/server. JSON returns the raw
+resource payload; human output describes its host requirement. A `ui://` URI is
+not a local HTML application opened by this CLI.

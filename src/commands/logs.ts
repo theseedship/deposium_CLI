@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
+import {
+  commandProgress,
+  initializeCommand,
+  withErrorHandling,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const logsCommand = new Command('logs').description(
@@ -18,9 +23,11 @@ logsCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📜 Viewing logs...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📜 Viewing logs...\n'));
 
       const content = await runMcpTool(
         client,
@@ -29,7 +36,7 @@ logsCommand
           level: options.level,
           limit: parseIntOrThrow(options.limit, '--limit'),
         },
-        { label: 'View logs', spinner: !options.silent }
+        { label: 'View logs', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -45,9 +52,11 @@ logsCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📊 Fetching log statistics...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📊 Fetching log statistics...\n'));
 
       const content = await runMcpTool(
         client,
@@ -55,7 +64,7 @@ logsCommand
         {
           time_range: options.timeRange,
         },
-        { label: 'Log stats', spinner: !options.silent }
+        { label: 'Log stats', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -66,25 +75,24 @@ logsCommand
 logsCommand
   .command('clear')
   .description('Clear MCP server logs')
-  .option('--confirm', 'Skip confirmation prompt')
+  .option('--confirm', 'Explicitly confirm clearing server logs')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      if (!options.confirm)
+        throw new Error('Clearing server logs requires --confirm. No logs were cleared.');
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      if (!options.confirm) {
-        console.log(chalk.yellow('⚠️  This will clear all logs. Use --confirm to proceed.'));
-        process.exit(0);
-      }
-
-      console.log(chalk.bold('\n🗑️  Clearing logs...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🗑️  Clearing logs...\n'));
 
       const content = await runMcpTool(
         client,
         'clear_logs',
         {},
-        { label: 'Clear logs', spinner: !options.silent }
+        { label: 'Clear logs', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -103,9 +111,11 @@ logsCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (pattern: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🔍 Searching logs...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔍 Searching logs...\n'));
 
       const content = await runMcpTool(
         client,
@@ -116,7 +126,7 @@ logsCommand
           limit: parseIntOrThrow(options.limit, '--limit'),
           context: parseIntOrThrow(options.context, '--context'),
         },
-        { label: 'Search logs', spinner: !options.silent }
+        { label: 'Search logs', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

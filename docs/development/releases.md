@@ -86,3 +86,17 @@ dry runs, and npm-authentication probes never dispatch the documentation.
 See the [npm staged publishing guide](https://docs.npmjs.com/staged-publishing/) and
 [`npm stage` command reference](https://docs.npmjs.com/cli/v11/commands/npm-stage/) for the current
 staging and approval procedures.
+
+## Avoid moving `latest` backwards
+
+Approval applies the tag stored on the stage. If both 1.7.0 and 1.7.1 were staged
+with `latest`, approving 1.7.0 last can point `latest` back to 1.7.0 even though
+1.7.1 is public. Approve only the intended consolidated stage; an older superseded
+stage need not be approved. After approval, always verify the exact version **and**
+`dist-tags.latest`, source `gitHead` and artifact hash.
+
+To repair only the tag, authenticate a maintainer with `npm login --auth-type=web`,
+then use `npm dist-tag add @deposium/cli@<intended-version> latest`. Complete any
+npm-required 2FA outside chat. No rebuild or republication is required. Approving
+on npmjs.com does not create a terminal npm login session. Never unpublish a valid
+version just to repair a tag.

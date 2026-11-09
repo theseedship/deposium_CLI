@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import {
+  commandProgress,
   initializeCommand,
   withErrorHandling,
   resolveTenantSpace,
@@ -23,9 +24,12 @@ evaluateCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📊 Fetching evaluation metrics...\n'));
+      if (commandProgress(options))
+        console.log(chalk.bold('\n📊 Fetching evaluation metrics...\n'));
 
       const content = await runMcpTool(
         client,
@@ -36,7 +40,7 @@ evaluateCommand
           userId: options.userId,
           includeGlobal: options.includeGlobal ?? false,
         },
-        { label: 'Metrics', spinner: !options.silent }
+        { label: 'Metrics', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -53,9 +57,11 @@ evaluateCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📈 Generating dashboard...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📈 Generating dashboard...\n'));
 
       const content = await runMcpTool(
         client,
@@ -67,7 +73,7 @@ evaluateCommand
           userId: options.userId,
           timeRange: options.timeRange,
         },
-        { label: 'Dashboard generation', spinner: !options.silent }
+        { label: 'Dashboard generation', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -86,9 +92,11 @@ evaluateCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n💬 Submitting feedback...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n💬 Submitting feedback...\n'));
 
       const content = await runMcpTool(
         client,
@@ -104,7 +112,7 @@ evaluateCommand
           score: parseFloatOrThrow(options.score, '--score'),
           feedback: options.feedback,
         },
-        { label: 'Feedback submission', spinner: !options.silent }
+        { label: 'Feedback submission', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -122,9 +130,11 @@ evaluateCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (code: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n⚡ Executing code in sandbox...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n⚡ Executing code in sandbox...\n'));
 
       const content = await runMcpTool(
         client,
@@ -138,7 +148,7 @@ evaluateCommand
           language: options.language,
           timeout: parseIntOrThrow(options.timeout, '--timeout'),
         },
-        { label: 'Code execution', spinner: !options.silent }
+        { label: 'Code execution', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -156,10 +166,13 @@ evaluateCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { config, client } = await initializeCommand();
+      const { config, client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
       const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-      console.log(chalk.bold('\n🕸️  Generating graph visualization...\n'));
+      if (commandProgress(options))
+        console.log(chalk.bold('\n🕸️  Generating graph visualization...\n'));
 
       const content = await runMcpTool(
         client,
@@ -169,7 +182,7 @@ evaluateCommand
           space_id: spaceId,
           max_nodes: parseIntOrThrow(options.maxNodes, '--max-nodes'),
         },
-        { label: 'Graph evaluation', spinner: !options.silent }
+        { label: 'Graph evaluation', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -187,9 +200,11 @@ evaluateCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (code: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🔍 Assessing code quality...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔍 Assessing code quality...\n'));
 
       const testCases = options.testCases
         ? safeParseJSON<unknown[]>(options.testCases, '--test-cases')
@@ -203,7 +218,7 @@ evaluateCommand
           test_cases: testCases,
           language: options.language,
         },
-        { label: 'Quality assessment', spinner: !options.silent }
+        { label: 'Quality assessment', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

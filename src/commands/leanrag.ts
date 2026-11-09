@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, parseAPIResponse } from '../utils/formatter';
 import {
+  commandProgress,
   initializeCommand,
   withErrorHandling,
   resolveTenantSpace,
@@ -26,10 +27,12 @@ leanragCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { config, client } = await initializeCommand();
+      const { config, client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
       const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-      console.log(chalk.bold('\n🎯 LeanRAG retrieval...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🎯 LeanRAG retrieval...\n'));
 
       const content = await runMcpTool(
         client,
@@ -41,7 +44,7 @@ leanragCommand
           top_k: parseIntOrThrow(options.topK, '--top-k'),
           rerank: options.rerank ?? false,
         },
-        { label: 'Retrieval', spinner: !options.silent }
+        { label: 'Retrieval', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -58,9 +61,11 @@ leanragCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (results: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📊 Aggregating results...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📊 Aggregating results...\n'));
 
       // Parse results input
       let resultsData;
@@ -80,7 +85,7 @@ leanragCommand
           results: resultsData,
           strategy: options.strategy,
         },
-        { label: 'Aggregation', spinner: !options.silent }
+        { label: 'Aggregation', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -98,10 +103,12 @@ leanragCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { config, client } = await initializeCommand();
+      const { config, client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
       const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-      console.log(chalk.bold('\n🔬 LeanRAG analysis...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔬 LeanRAG analysis...\n'));
 
       const content = await runMcpTool(
         client,
@@ -111,7 +118,7 @@ leanragCommand
           space_id: spaceId,
           query_text: query,
         },
-        { label: 'Analysis', spinner: !options.silent }
+        { label: 'Analysis', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

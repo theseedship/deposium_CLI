@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
-import { formatOutput, createTitleBox } from './utils/formatter';
+import { formatOutput } from './utils/formatter';
 import { ChatHistory } from './utils/chat-history';
 import { startChat } from './chat';
 import { initializeCommand, getErrorMessage } from './utils/command-helpers';
@@ -10,6 +10,7 @@ import { mcpErrorMessage } from './utils/mcp-content';
 import { runCompoundAnalysis } from './utils/compound-analysis';
 import type { DeposiumConfig } from './utils/config';
 import { browseToolCatalogue } from './utils/tool-catalogue';
+import { createWelcomeBanner } from './utils/branding';
 
 /** Public terminal operations. Internal routers and database administration are not menu actions. */
 export const MAIN_OPERATIONS = [
@@ -100,7 +101,7 @@ async function advanced(client: MCPClient, config: DeposiumConfig, history: Chat
       message: 'Advanced operation:',
       choices: [
         {
-          name: 'Compound reasoning — multi-tool reasoning, not a scoped document chat',
+          name: 'General AI (Compound) — no document space selected',
           value: 'compound',
         },
         {
@@ -122,7 +123,7 @@ async function advanced(client: MCPClient, config: DeposiumConfig, history: Chat
   if (action === 'compound') {
     if (!(await prepareCompoundHistory(history))) return;
     console.log(
-      'This operation may use server reasoning and web tools. For questions scoped to your documents, choose Chat.'
+      'This operation does not select or search one of your document spaces. To summarize your files, return to Chat. General AI may use server reasoning and web tools.'
     );
     await interactiveCompound(client, history, await input('Question:'));
   } else if (action === 'intent') {
@@ -159,7 +160,7 @@ async function advanced(client: MCPClient, config: DeposiumConfig, history: Chat
 }
 
 export async function startInteractive(): Promise<void> {
-  console.log(createTitleBox('DEPOSIUM', 'Document search, chat and service diagnostics'));
+  console.log(createWelcomeBanner());
   const { config, client } = await initializeCommand();
   const history = new ChatHistory(10);
   while (true) {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.2 — Startup and presentation consolidation
+
+- Bare `deposium` opens the menu in a terminal; offline/script help and explicit commands remain available.
+- Move the existing wordmark to startup and fix the real Markdown extension import/types.
+- General AI results distinguish received answers from verified document analysis; remove duplicate reasoning, confidence gauges and result logos.
+- Keep JSON stdout and authentication noninteractive across legacy command families; retain explicit mutation confirmation.
+- Reconcile user/developer documentation with actual commands, keyboard behavior, MCP resource boundaries and release/tag procedure.
+
+
 ## 1.7.1 — Tool catalogue details
 
 - Replace truncated descriptions in the interactive Tools menu with a tool picker

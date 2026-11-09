@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
+import {
+  commandProgress,
+  initializeCommand,
+  withErrorHandling,
+  runMcpTool,
+} from '../utils/command-helpers';
 
 export const dspyCommand = new Command('dspy').description(
   'DSPy intelligent query routing and optimization'
@@ -35,9 +40,11 @@ dspyCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🔍 Analyzing query intent...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔍 Analyzing query intent...\n'));
 
       const content = await runMcpTool(
         client,
@@ -46,7 +53,7 @@ dspyCommand
           query,
           includeTemplates: options.includeTemplates ?? false,
         },
-        { label: 'Analysis', spinner: !options.silent }
+        { label: 'Analysis', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { marked } from 'marked';
-import markedTerminal from 'marked-terminal';
+import { Marked } from 'marked';
+import { markedTerminal } from 'marked-terminal';
+import { terminalText } from './terminal-text';
 import boxen from 'boxen';
 import gradient from 'gradient-string';
 import { decodeMcpContent } from './mcp-content';
@@ -24,19 +25,10 @@ interface CompoundAIResult {
   reasoning?: string;
 }
 
-// Lazy initialization of marked with terminal rendering
-let markedConfigured = false;
-function ensureMarkedConfigured() {
-  if (!markedConfigured) {
-    try {
-      marked.use(markedTerminal());
-      markedConfigured = true;
-    } catch {
-      // Fallback to default marked if terminal rendering fails
-      console.warn('Warning: Could not configure terminal markdown rendering');
-      markedConfigured = true;
-    }
-  }
+function renderMarkdownText(input: string): string {
+  const width = Math.max(20, Math.min(100, process.stdout.columns ?? 80));
+  const renderer = new Marked(markedTerminal({ width, reflowText: true }));
+  return renderer.parse(terminalText(input), { async: false });
 }
 
 export function formatOutput(data: unknown, format: string = 'table'): void {
@@ -132,7 +124,6 @@ function formatTable(data: unknown): void {
 }
 
 function formatMarkdown(data: unknown): void {
-  ensureMarkedConfigured();
   let markdown = '';
 
   if (Array.isArray(data)) {
@@ -172,7 +163,7 @@ function formatMarkdown(data: unknown): void {
     markdown = String(data);
   }
 
-  console.log('\n' + marked(markdown) + '\n');
+  console.log('\n' + renderMarkdownText(markdown) + '\n');
 }
 
 function formatCompoundAI(data: TextBlock[]): void {
@@ -198,85 +189,30 @@ function formatCompoundAI(data: TextBlock[]): void {
 }
 
 function formatCompoundAIObject(result: CompoundAIResult): void {
-  ensureMarkedConfigured();
+  console.log(chalk.bold.cyan('\nGeneral AI response'));
+  console.log(result.success ? 'Response received.' : 'The server reported a failed request.');
+  if (result.answer) console.log('\n' + renderMarkdownText(stripHtmlTags(result.answer)));
 
-  // Display blue gradient ASCII art header
-  const asciiArt = gradient(['#0ea5e9', '#3b82f6', '#6366f1']).multiline(`
- ██████╗  ███████╗██████╗  ██████╗ ███████╗██╗██╗   ██╗███╗   ███╗
- ██╔══██╗ ██╔════╝██╔══██╗██╔═══██╗██╔════╝██║██║   ██║████╗ ████║
- ██║  ██║ █████╗  ██████╔╝██║   ██║███████╗██║██║   ██║██╔████╔██║
- ██║  ██║ ██╔══╝  ██╔═══╝ ██║   ██║╚════██║██║██║   ██║██║╚██╔╝██║
- ██████╔╝ ███████╗██║     ╚██████╔╝███████║██║╚██████╔╝██║ ╚═╝ ██║
- ╚═════╝  ╚══════╝╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝ ╚═╝     ╚═╝
-`);
-
-  console.log(asciiArt);
-  console.log('\n' + divider('AI Analysis Result', 'double') + '\n');
-
-  // Display status in a nice box
-  const statusType = result.success ? 'success' : 'error';
-  const statusMessage = result.success ? 'Analysis completed successfully' : 'Analysis failed';
-  console.log(createInfoBox('Status', statusMessage, statusType));
-
-  // Display the main answer with enhanced formatting
-  if (result.answer) {
-    console.log(chalk.bold.cyan('📝 Answer:\n'));
-    // Strip HTML tags and convert to plain text
-    const plainText = stripHtmlTags(result.answer);
-
-    // Display in a subtle box
+  const tools = Array.isArray(result.tools_used)
+    ? result.tools_used.filter((tool) => typeof tool === 'string')
+    : undefined;
+  if (result.model_used) console.log(`Model (reported): ${terminalText(result.model_used)}`);
+  console.log(
+    `Tools (reported): ${tools ? terminalText(tools.join(', ')) || 'none' : 'not supplied'}`
+  );
+  if (!tools?.length)
     console.log(
-      boxen(plainText, {
-        padding: 1,
-        margin: { top: 0, right: 0, bottom: 1, left: 2 },
-        borderStyle: 'round',
-        borderColor: 'cyan',
-        dimBorder: true,
-      })
+      chalk.yellow(
+        'No tool use is attested by this result; it does not establish that your documents were searched.'
+      )
     );
-  }
-
-  // Display metadata with visual metrics
-  console.log('\n' + divider('Analysis Metadata', 'light') + '\n');
-
-  if (result.confidence !== undefined) {
-    const confidencePercent = result.confidence * 100;
-    displayMetricBar('Confidence', confidencePercent, 100, '%');
-  }
-
-  if (result.model_used) {
-    console.log(`${chalk.cyan('🤖 Model:'.padEnd(22))} ${chalk.white(result.model_used)}`);
-  }
-
-  if (result.tools_used && result.tools_used.length > 0) {
-    console.log(
-      `${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.white(result.tools_used.join(', '))}`
-    );
-  } else {
-    console.log(`${chalk.cyan('🔧 Tools Used:'.padEnd(22))} ${chalk.gray('None')}`);
-  }
-
-  if (result.tokens_used) {
-    console.log(
-      `${chalk.cyan('🎯 Tokens:'.padEnd(22))} ${chalk.white(result.tokens_used.toLocaleString())}`
-    );
-  }
-
-  if (result.execution_time_ms) {
-    const timeStr =
-      result.execution_time_ms >= 1000
-        ? `${(result.execution_time_ms / 1000).toFixed(2)}s`
-        : `${result.execution_time_ms}ms`;
-    console.log(`${chalk.cyan('⚡ Execution Time:'.padEnd(22))} ${chalk.white(timeStr)}`);
-  }
-
-  // Display reasoning if available
-  if (result.reasoning && result.reasoning !== result.answer) {
-    console.log('\n' + divider('Reasoning Process', 'light') + '\n');
-    console.log(chalk.gray(result.reasoning));
-  }
-
-  console.log('\n' + divider('', 'double') + '\n');
+  console.log('For questions about files in a space, use Chat from the main menu.');
+  if (typeof result.tokens_used === 'number')
+    console.log(`Tokens (reported): ${result.tokens_used}`);
+  if (typeof result.execution_time_ms === 'number')
+    console.log(`Server duration (reported): ${result.execution_time_ms} ms`);
+  // Confidence and reasoning remain in explicit JSON. Neither is a verified
+  // quality score, and raw reasoning is not a useful default user result.
 }
 
 function truncate(str: string, maxLength: number): string {

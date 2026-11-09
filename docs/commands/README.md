@@ -1,8 +1,11 @@
-> Revision: 2026-05-06
+> Revision: 2026-11-09
 
 # Command Reference
 
-This directory contains detailed documentation for all 25 Deposium CLI commands.
+This directory documents CLI command families, including legacy/internal references.
+Start with [the menu guide](../guides/interactive.md) and
+[qualification/limits](../guides/qualification.md); inclusion here is not proof
+that every operation is enabled for a public user key.
 
 ## Core Commands
 
@@ -21,8 +24,8 @@ This directory contains detailed documentation for all 25 Deposium CLI commands.
 ## AI & Intelligence
 
 - **[chat](chat.md)**: Interactive AI chat mode.
-- **[compound](compound.md)**: Multi-tool reasoning and research.
-- **[dspy](dspy.md)**: Intelligent query routing and optimization.
+- **[compound](compound.md)**: General server reasoning/research without a selected document space.
+- **[dspy](dspy.md)**: Query diagnostics; routing remains server-internal.
 - **[intelligence](intelligence.md)**: Query analysis, suggestions, and summarization.
 - **[leanrag](leanrag.md)**: Optimized retrieval and ranking.
 

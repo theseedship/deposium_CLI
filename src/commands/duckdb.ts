@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
+import {
+  commandProgress,
+  initializeCommand,
+  withErrorHandling,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const duckdbCommand = new Command('duckdb')
@@ -20,9 +25,11 @@ duckdbCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🦆 Starting DuckDB MCP server...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🦆 Starting DuckDB MCP server...\n'));
 
       const content = await runMcpTool(
         client,
@@ -31,7 +38,7 @@ duckdbCommand
           port: parseIntOrThrow(options.port, '--port'),
           host: options.host,
         },
-        { label: 'Serve', spinner: !options.silent }
+        { label: 'Serve', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -48,9 +55,11 @@ duckdbCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🔗 Connecting to DuckDB...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔗 Connecting to DuckDB...\n'));
 
       const content = await runMcpTool(
         client,
@@ -59,7 +68,7 @@ duckdbCommand
           connection_url: options.url,
           connection_name: options.name,
         },
-        { label: 'Connect', spinner: !options.silent }
+        { label: 'Connect', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -76,9 +85,11 @@ duckdbCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🌐 Executing federated query...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🌐 Executing federated query...\n'));
 
       const sources = safeParseJSON<Record<string, unknown>[]>(options.sources, '--sources');
 
@@ -89,7 +100,7 @@ duckdbCommand
           query,
           sources,
         },
-        { label: 'Federated query', spinner: !options.silent }
+        { label: 'Federated query', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -106,9 +117,11 @@ duckdbCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📤 Exposing DuckDB via MCP...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📤 Exposing DuckDB via MCP...\n'));
 
       const content = await runMcpTool(
         client,
@@ -117,7 +130,7 @@ duckdbCommand
           database_path: options.database,
           readonly: options.readonly ?? false,
         },
-        { label: 'Expose', spinner: !options.silent }
+        { label: 'Expose', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -134,9 +147,11 @@ duckdbCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🔍 Executing MCP query...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔍 Executing MCP query...\n'));
 
       const content = await runMcpTool(
         client,
@@ -145,7 +160,7 @@ duckdbCommand
           query,
           connection_name: options.connection,
         },
-        { label: 'Query', spinner: !options.silent }
+        { label: 'Query', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -160,15 +175,17 @@ duckdbCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📊 Fetching MCP server status...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📊 Fetching MCP server status...\n'));
 
       const content = await runMcpTool(
         client,
         'duckdb_mcp_status',
         {},
-        { label: 'Status check', spinner: !options.silent }
+        { label: 'Status check', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

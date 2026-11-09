@@ -38,7 +38,7 @@ deposium query-history log <query> [options]
 
 ### `export`
 
-Export query history to a file (JSON or CSV).
+Request a server history export (JSON or CSV). The CLI does not itself write a local file.
 
 ```bash
 deposium query-history export [options]
@@ -48,7 +48,7 @@ deposium query-history export [options]
 
 - `--user-id <id>`: Filter by user ID.
 - `--format <type>`: Export format (`json` or `csv`) (default: `json`).
-- `--output <path>`: Output file path.
+- `--output <path>`: Legacy server-side output parameter; this does not create a file on the client. Redirect JSON stdout to save a local response.
 - `--time-range <range>`: Time range (`1h`, `24h`, `7d`, `30d`) (default: `24h`).
 
 ### `retrieve`

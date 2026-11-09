@@ -16,6 +16,5 @@ declare module 'marked-terminal' {
     tab?: number;
   }
 
-  function markedTerminal(options?: TerminalRendererOptions): MarkedExtension;
-  export default markedTerminal;
+  export function markedTerminal(options?: TerminalRendererOptions): MarkedExtension;
 }

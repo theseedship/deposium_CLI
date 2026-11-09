@@ -214,3 +214,8 @@ export async function runMcpTool<T = unknown>(
   }
   return result.content as T;
 }
+
+/** Keep banners and spinners out of machine-readable JSON and explicit silent output. */
+export function commandProgress(options: { format?: string; silent?: boolean }): boolean {
+  return !options.silent && options.format?.toLowerCase() !== 'json';
+}

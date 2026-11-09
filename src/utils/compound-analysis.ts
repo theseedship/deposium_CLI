@@ -6,13 +6,14 @@ import { decodeMcpContent, mcpErrorMessage } from './mcp-content';
 export async function runCompoundAnalysis(
   client: Pick<MCPClient, 'callTool'>,
   history: ChatHistory,
-  query: string
+  query: string,
+  options: { spinner?: boolean } = {}
 ): Promise<unknown> {
   const context = history.getContext(6);
   const result = await client.callTool(
     'compound_analyze',
     { query, ...(context ? { context } : {}) },
-    { spinner: true }
+    { spinner: options.spinner ?? true }
   );
   if (result.isError) throw new Error(mcpErrorMessage(result.content));
   const decoded = decodeMcpContent(result.content);

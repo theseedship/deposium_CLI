@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
+import {
+  commandProgress,
+  initializeCommand,
+  withErrorHandling,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow, parseOptionalInt } from '../utils/parsers';
 
 export const queryHistoryCommand = new Command('query-history')
@@ -21,9 +26,11 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📝 Logging query...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📝 Logging query...\n'));
 
       const content = await runMcpTool(
         client,
@@ -35,7 +42,7 @@ queryHistoryCommand
           results: parseOptionalInt(options.results, '--results'),
           latency: parseOptionalInt(options.latency, '--latency'),
         },
-        { label: 'Query log', spinner: !options.silent }
+        { label: 'Query log', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -53,9 +60,11 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n💾 Exporting query history...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n💾 Exporting query history...\n'));
 
       const content = await runMcpTool(
         client,
@@ -66,7 +75,7 @@ queryHistoryCommand
           output: options.output,
           time_range: options.timeRange,
         },
-        { label: 'Export', spinner: !options.silent }
+        { label: 'Export', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -85,9 +94,11 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📜 Retrieving query history...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📜 Retrieving query history...\n'));
 
       const content = await runMcpTool(
         client,
@@ -98,7 +109,7 @@ queryHistoryCommand
           offset: parseIntOrThrow(options.offset, '--offset'),
           engine: options.engine,
         },
-        { label: 'Retrieve', spinner: !options.silent }
+        { label: 'Retrieve', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -116,9 +127,11 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📊 Fetching query statistics...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📊 Fetching query statistics...\n'));
 
       const content = await runMcpTool(
         client,
@@ -128,7 +141,7 @@ queryHistoryCommand
           time_range: options.timeRange,
           group_by: options.groupBy,
         },
-        { label: 'Stats', spinner: !options.silent }
+        { label: 'Stats', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -145,18 +158,21 @@ queryHistoryCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
       if (!options.confirm) {
-        console.log(
-          chalk.yellow(
-            `⚠️  This will delete queries older than ${options.olderThan} days. Use --confirm to proceed.`
-          )
-        );
+        if (commandProgress(options))
+          console.log(
+            chalk.yellow(
+              `⚠️  This will delete queries older than ${options.olderThan} days. Use --confirm to proceed.`
+            )
+          );
         process.exit(0);
       }
 
-      console.log(chalk.bold('\n🗑️  Cleaning up query history...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🗑️  Cleaning up query history...\n'));
 
       const content = await runMcpTool(
         client,
@@ -164,7 +180,7 @@ queryHistoryCommand
         {
           older_than_days: parseIntOrThrow(options.olderThan, '--older-than'),
         },
-        { label: 'Cleanup', spinner: !options.silent }
+        { label: 'Cleanup', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

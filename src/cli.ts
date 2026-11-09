@@ -30,6 +30,7 @@ import { runPreflight } from './utils/cli-preflight';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
 import { forwardStartupUpdateSignal, offerStartupUpdate } from './utils/startup-update';
+import { configureDefaultAction } from './utils/cli-default-action';
 
 // ============================================================================
 // Graceful Shutdown Handlers
@@ -132,14 +133,18 @@ program.addCommand(validateCommand);
 program.addCommand(temporalAssertionCommand);
 
 // Interactive mode
+async function openInteractiveMenu(): Promise<void> {
+  const { startInteractive } = await import('./interactive');
+  await startInteractive();
+}
+
+configureDefaultAction(program, openInteractiveMenu);
+
 program
   .command('interactive')
   .alias('i')
   .description('Start interactive mode (REPL)')
-  .action(async () => {
-    const { startInteractive } = await import('./interactive');
-    await startInteractive();
-  });
+  .action(openInteractiveMenu);
 
 // Chat mode
 const VALID_ON_AMBIGUOUS = ['prompt', 'fail', 'dump', 'pick-first'] as const;
@@ -200,7 +205,6 @@ async function runCli(): Promise<void> {
     return;
   }
   await program.parseAsync(process.argv);
-  if (!args.length) program.outputHelp();
 }
 
 void runCli();
