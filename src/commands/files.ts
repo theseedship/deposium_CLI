@@ -13,7 +13,7 @@ export const filesCommand = new Command('files').description(
 filesCommand
   .command('list')
   .alias('ls')
-  .description('List documents accessible to your API key')
+  .description('List your uploads, or accessible documents in an explicit space')
   .option('-s, --space <id>', 'Filter by space ID (UUID)')
   .option('--limit <number>', 'Page size (server default 50)')
   .option('--offset <number>', 'Pagination offset', '0')
@@ -21,9 +21,10 @@ filesCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const { client } = await initializeCommand({ machineReadable: format === 'json' });
 
-      if (!options.silent) {
+      if (!options.silent && format !== 'json') {
         const filter = options.space ? ` for space ${chalk.cyan(options.space)}` : '';
         console.log(chalk.bold(`\n📄 Listing documents${filter}...\n`));
       }
@@ -34,17 +35,17 @@ filesCommand
         offset: parseOptionalInt(options.offset, '--offset'),
       });
 
-      if (result.items.length === 0) {
+      if (result.items.length === 0 && format !== 'json') {
         console.log(chalk.yellow('No documents found.'));
         return;
       }
 
-      if (!options.silent) {
+      if (!options.silent && format !== 'json') {
         const total = result.pagination?.total ?? result.items.length;
         console.log(chalk.gray(`Showing ${result.items.length} of ${total} document(s)\n`));
       }
 
-      formatOutput(result.items, options.format);
+      formatOutput(result.items, format);
     })
   );
 
@@ -58,14 +59,15 @@ filesCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (id: string, options) => {
-      const { client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const { client } = await initializeCommand({ machineReadable: format === 'json' });
 
-      if (!options.silent) {
+      if (!options.silent && format !== 'json') {
         console.log(chalk.bold(`\n📄 Fetching document ${chalk.cyan(id)}...\n`));
       }
 
       const doc = await client.getDocument(id);
-      formatOutput(doc, options.format);
+      formatOutput(doc, format);
     })
   );
 
@@ -85,9 +87,10 @@ filesCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (id: string, options) => {
-      const { client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const { client } = await initializeCommand({ machineReadable: format === 'json' });
 
-      if (!options.silent) {
+      if (!options.silent && format !== 'json') {
         console.log(chalk.bold(`\n🔍 Checking document ${chalk.cyan(id)}...\n`));
       }
 
@@ -103,7 +106,7 @@ filesCommand
         size: doc.size,
       };
 
-      formatOutput(summary, options.format);
+      formatOutput(summary, format);
     })
   );
 

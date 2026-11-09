@@ -151,6 +151,27 @@ describe('files command', () => {
     });
   });
 
+  describe('machine-readable reads', () => {
+    it.each(['json', 'JSON'])('lists empty and populated catalogues as %s only', async (format) => {
+      for (const items of [[], SAMPLE_DOCS]) {
+        consoleLogSpy.mockClear();
+        mockListDocuments.mockResolvedValue({ items });
+        await filesCommand.parseAsync(['node', 'test', 'list', '--format', format]);
+        const stdout = consoleLogSpy.mock.calls.map((call) => String(call[0])).join('\n');
+        expect(JSON.parse(stdout)).toEqual(items);
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it.each(['show', 'check'])('%s emits JSON without progress text', async (command) => {
+      mockGetDocument.mockResolvedValue(SAMPLE_DOCS[1]);
+      await filesCommand.parseAsync(['node', 'test', command, '2459', '--format', 'JSON']);
+      const stdout = consoleLogSpy.mock.calls.map((call) => String(call[0])).join('\n');
+      expect(JSON.parse(stdout)).toMatchObject({ id: 2459, file_name: 'report.pdf' });
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   // ============================================================================
   // show
   // ============================================================================

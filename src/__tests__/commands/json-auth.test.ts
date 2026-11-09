@@ -8,6 +8,8 @@ const state = vi.hoisted(() => ({
   callTool: vi.fn(),
   listTools: vi.fn(),
   health: vi.fn(),
+  listDocuments: vi.fn(),
+  getDocument: vi.fn(),
 }));
 
 // Keep initializeCommand and ensureAuthenticated real: auth diagnostics must be
@@ -26,17 +28,23 @@ vi.mock('../../client/mcp-client', () => ({
     callTool = state.callTool;
     listTools = state.listTools;
     health = state.health;
+    listDocuments = state.listDocuments;
+    getDocument = state.getDocument;
   },
 }));
 
 import { searchCommand } from '../../commands/search';
 import { toolsCommand } from '../../commands/tools';
 import { healthCommand } from '../../commands/health';
+import { filesCommand } from '../../commands/files';
 
 const commands = [
   { name: 'search', command: searchCommand, args: ['question', '--format', 'JSON'] },
   { name: 'tools', command: toolsCommand, args: ['--json'] },
   { name: 'health', command: healthCommand, args: ['--format', 'JSON'] },
+  { name: 'files list', command: filesCommand, args: ['list', '--format', 'JSON'] },
+  { name: 'files show', command: filesCommand, args: ['show', '42', '--format', 'JSON'] },
+  { name: 'files check', command: filesCommand, args: ['check', '42', '--format', 'JSON'] },
 ];
 
 describe.each(commands)('$name JSON with real authentication', ({ command, args }) => {
@@ -50,6 +58,8 @@ describe.each(commands)('$name JSON with real authentication', ({ command, args 
     state.callTool.mockResolvedValue({ content: [], isError: false });
     state.listTools.mockResolvedValue([]);
     state.health.mockResolvedValue({ status: 'healthy', services: [] });
+    state.listDocuments.mockResolvedValue({ items: [] });
+    state.getDocument.mockResolvedValue({ id: 42, file_name: 'fixture.pdf' });
     stdout = vi.spyOn(console, 'log').mockImplementation(() => {});
     stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(process, 'exit').mockImplementation(() => {
@@ -98,6 +108,8 @@ describe.each(commands)('$name JSON with real authentication', ({ command, args 
     expect(state.callTool).not.toHaveBeenCalled();
     expect(state.listTools).not.toHaveBeenCalled();
     expect(state.health).not.toHaveBeenCalled();
+    expect(state.listDocuments).not.toHaveBeenCalled();
+    expect(state.getDocument).not.toHaveBeenCalled();
     if (missing) expect(fetchMock).not.toHaveBeenCalled();
   });
 
