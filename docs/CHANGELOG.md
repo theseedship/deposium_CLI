@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0 — Live chat commands and roomier menus
+
+- Show local slash-command suggestions while typing, filtered by prefix with arrow navigation, Tab completion, Enter selection and Escape dismissal. Keep exact commands, arguments, normal readline editing and unknown-command protection.
+- Preserve multiline bracketed paste until explicit submission and clean up terminal/paste mode on completion or interruption. Keep the standard prompt for scripts, CI and dumb terminals.
+- Fit feature menus to terminal height, add text-backed main-menu icons and show up to 15 catalogue entries. Keep all options reachable without forcing long space lists onto the screen.
+- Share the command catalogue between the fallback picker and live suggestions. No new model call, authentication mechanism or settings write is introduced.
+
 ## 1.8.0 — Language and default-space preferences
 
 - Add offline Settings for FR/EN/automatic language and catalogue-validated default-space selection. Keep invocation-only `--lang` overrides separate from saved preferences.

@@ -1,3 +1,4 @@
+import { readChatMessage } from './utils/chat-input';
 import { tr } from './utils/i18n';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
@@ -99,13 +100,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   const details: ChatTurnDetails = { citations: [], verifications: [] };
 
   while (true) {
-    const { message } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'message',
-        message: tr('You:'),
-      },
-    ]);
+    const message = await readChatMessage();
 
     const trimmedMessage = message.trim();
 

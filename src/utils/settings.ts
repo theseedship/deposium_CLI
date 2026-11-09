@@ -1,4 +1,5 @@
 import inquirer from 'inquirer';
+import { menuPageSize } from './menu-layout';
 import { getConfig, setConfig, deleteConfig } from './config';
 import type { MCPClient } from '../client/mcp-client';
 import { initializeCommand } from './command-helpers';
@@ -47,6 +48,8 @@ export async function openSettings(): Promise<void> {
       {
         type: 'select',
         name: 'setting',
+        pageSize: menuPageSize(4),
+        loop: false,
         message: tr('Settings:'),
         choices: [
           { name: tr('Language — menus and default chat answer'), value: 'language' },
@@ -63,6 +66,8 @@ export async function openSettings(): Promise<void> {
           {
             type: 'select',
             name: 'language',
+            pageSize: menuPageSize(3),
+            loop: false,
             message: tr('Language preference:'),
             default: getConfig().language ?? 'auto',
             choices: [

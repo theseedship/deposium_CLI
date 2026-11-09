@@ -48,7 +48,7 @@ test('offline Settings is reachable before login and the next main menu reflects
       choices: expect.arrayContaining([
         expect.objectContaining({
           value: 'settings',
-          name: 'Paramètres — langue et espace par défaut',
+          name: expect.stringContaining('Paramètres — langue et espace par défaut'),
         }),
       ]),
     }),

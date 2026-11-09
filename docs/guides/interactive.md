@@ -65,7 +65,37 @@ CLI **1.8.0+** adds [Settings](../commands/settings.md): saved FR/EN/automatic
 language, an authorized default space shared by scoped commands, and effective
 configuration in Health. `--lang fr|en` overrides this invocation only. Chat uses
 the effective language by default; original server text and technical identifiers
-are preserved. Live `/` completion remains a separate milestone. See the
+are preserved. CLI 1.9.0 adds live `/` completion as described below. See the
 [qualification and limitations](qualification.md) for the exact tested surface.
 
 For complete tool reference and raw input schemas, see the [Tools guide](../commands/tools.md).
+
+## Comfortable menus and chat commands — CLI 1.9.0+
+
+Feature menus show all their entries when the terminal has room, including the
+Advanced and Settings submenus. Icons on the main menu complement text labels;
+no action depends on recognizing an icon. Menus stop at the first/last item
+rather than wrapping unexpectedly. Space, source and tool catalogues show up to
+15 items at a time, reduced on shorter terminals; arrow keys reach the rest.
+
+In Chat, type `/` at the beginning of the input to see local commands immediately.
+Type more letters to filter them (for example `/sp` for spaces or `/so` for sources).
+
+| Key       | Action                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------- |
+| Up / Down | Select a suggestion; no request is sent.                                                 |
+| Tab       | Complete the selected command in the input without running it.                           |
+| Enter     | Run the selected suggestion, or submit the text when no suggestion is visible.           |
+| Escape    | Hide suggestions while preserving the input. Editing the text enables suggestions again. |
+
+An exact command is preferred over longer matches: `/source` reads one citation,
+whereas `/sources` lists sources. After a space, arguments stay untouched:
+`/source 2` and `/space <id>` still work. A slash inside an ordinary question does
+not open the menu. Unknown slash commands remain local errors, never model questions.
+Bracketed multiline paste is kept in the input until you explicitly press Enter.
+Pasted tabs/line breaks become spaces without changing word order. Paste does
+not select a completion: a pasted partial command stays a partial command.
+
+In scripts, CI and `TERM=dumb`, the standard input prompt remains available;
+enter `/` then press Enter for the existing command picker. Suggestions do not
+fetch a catalogue, call a model, change the selected space or persist a setting.

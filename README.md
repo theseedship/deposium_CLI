@@ -118,7 +118,9 @@ CLI 1.8.0+ includes `deposium settings`: choose French, English or automatic
 language, then select one authorized default space by name. `deposium --lang fr`
 overrides only this invocation; `deposium health --context` explains the effective
 configuration without showing credentials. See [Settings](docs/commands/settings.md).
-Live slash completion remains planned.
+CLI 1.9.0+ adds live `/` suggestions in Chat and terminal-height-aware menus.
+Use arrows to choose, Tab to complete, Enter to run and Escape to keep your text.
+See the [interactive guide](docs/guides/interactive.md).
 
 ## 🤝 Contributing
 

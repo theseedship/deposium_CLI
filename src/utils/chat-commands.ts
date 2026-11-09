@@ -1,5 +1,7 @@
 import { tr } from './i18n';
 import inquirer from 'inquirer';
+import { chatCommands } from './chat-command-catalogue';
+import { menuPageSize } from './menu-layout';
 import chalk from 'chalk';
 import type { MCPClient } from '../client/mcp-client';
 import { ChatHistory } from './chat-history';
@@ -42,17 +44,12 @@ export async function executeChatCommand(
         type: 'select',
         name: 'command',
         message: tr('Chat command:'),
-        choices: [
-          { name: tr('Choose space'), value: 'space' },
-          { name: tr('List spaces'), value: 'spaces' },
-          { name: tr('Sources for the last answer'), value: 'sources' },
-          { name: tr('Read a cited passage'), value: 'source' },
-          { name: tr('Verification details'), value: 'verify' },
-          { name: tr('Show help'), value: 'help' },
-          { name: tr('Show history'), value: 'history' },
-          { name: tr('Clear history'), value: 'clear' },
-          { name: tr('Exit chat'), value: 'exit' },
-        ],
+        pageSize: menuPageSize(chatCommands().length),
+        loop: false,
+        choices: chatCommands().map(({ command, description }) => ({
+          name: `/${command} — ${description}`,
+          value: command,
+        })),
       },
     ]);
     command = choice.command;

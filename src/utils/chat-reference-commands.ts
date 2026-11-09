@@ -1,5 +1,6 @@
 import { tr } from './i18n';
 import inquirer from 'inquirer';
+import { menuPageSize } from './menu-layout';
 import {
   chatSourceChoices,
   printChatSources,
@@ -20,7 +21,14 @@ async function readCitation(
       return;
     }
     const answer = await inquirer.prompt<{ citation: string }>([
-      { type: 'select', name: 'citation', message: tr('Read which citation?'), choices },
+      {
+        type: 'select',
+        name: 'citation',
+        message: tr('Read which citation?'),
+        choices,
+        pageSize: menuPageSize(choices.length, 'catalogue'),
+        loop: false,
+      },
     ]);
     reference = answer.citation;
   }

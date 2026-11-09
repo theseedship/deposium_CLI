@@ -81,7 +81,7 @@ This opens a continuous chat interface where you can:
 - Use `/exit` to quit
 - Use `/clear` to clear conversation history
 - Use `/history` to view past messages
-- Use `/help` to list commands, or enter `/` then press Enter to open a command menu
+- Use `/help` to list commands; CLI 1.9.0+ shows suggestions as soon as you type `/` in a terminal
 - Use `/spaces` to list accessible spaces and `/space` to choose another
 - Use `/space <id>` for an explicit scope change
 
@@ -89,8 +89,11 @@ The current space is shown when chat starts and whenever it changes. Changing
 the space clears conversation history so context from another space is not sent
 with the next question. Reselecting the same scope keeps history; a refused change
 leaves the current scope and history intact. Commands such as `/help` and unknown
-slash commands are handled locally and never sent as model questions. The `/`
-menu currently opens after Enter; it is not live completion while typing.
+slash commands are handled locally and never sent as model questions. In CLI 1.9.0+, type a prefix such as `/sp`, use Up/Down to choose, Tab to complete
+without sending, Enter to run, or Escape to hide suggestions while keeping your input.
+Exact command names take priority, and arguments are never completed. The standard
+`/` + Enter picker remains the fallback in scripts, CI and dumb terminals.
+See the [interactive guide](../guides/interactive.md#comfortable-menus-and-chat-commands-cli-190).
 
 Noninteractive callers must provide `--space <id>` or a configured `defaultSpace`;
 an absent scope fails explicitly. This chat picker currently selects one space;

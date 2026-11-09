@@ -1,3 +1,4 @@
+import { menuPageSize } from './menu-layout';
 import { tr } from './i18n';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
@@ -70,6 +71,8 @@ export async function browseToolCatalogue(client: Pick<MCPClient, 'listTools'>):
       {
         type: 'select',
         name: 'toolIndex',
+        pageSize: menuPageSize(tools.length + 1, 'catalogue'),
+        loop: false,
         message: tr('Inspect which tool?'),
         choices: [
           ...tools.map((tool, index) => ({

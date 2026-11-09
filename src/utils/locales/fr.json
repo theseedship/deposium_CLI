@@ -609,5 +609,6 @@
   "Unknown": "Inconnu",
   "System Health": "État des services",
   " services": " services",
-  "Choose a space with deposium settings space <id>.": "Choisissez un espace avec deposium settings space <id>."
+  "Choose a space with deposium settings space <id>.": "Choisissez un espace avec deposium settings space <id>.",
+  "↑↓ choose · Tab complete · Enter run · Esc dismiss": "↑↓ choisir · Tab compléter · Entrée lancer · Échap masquer"
 }
