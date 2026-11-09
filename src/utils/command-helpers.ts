@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 /**
  * Command Helper Utilities
  *
@@ -72,10 +73,10 @@ export function resolveTenantSpace(
   options: { tenant?: string; space?: string },
   config: DeposiumConfig
 ): { tenantId: string | undefined; spaceId: string } {
-  const spaceId = options.space ?? config.defaultSpace;
+  const spaceId = (options.space ?? config.defaultSpace)?.trim();
   if (!spaceId?.trim() || spaceId === 'default') {
     throw new Error(
-      'Choose a space with --space <id> or configure default-space. Use deposium space list.'
+      tr('Choose a space with --space <id> or configure default-space. Use deposium space list.')
     );
   }
   const tenantId = options.tenant ?? config.defaultTenant;
@@ -98,7 +99,7 @@ export function handleCommandError(error: unknown, silent: boolean = false): nev
   const message = error instanceof Error ? getErrorMessage(error) : String(error);
 
   if (!silent) {
-    console.error(chalk.red('\n❌ Error:'), message);
+    console.error(chalk.red(tr('\n❌ Error:')), message);
 
     // Show stack trace only in debug mode
     if (process.env.DEBUG && error instanceof Error && error.stack) {
@@ -209,7 +210,7 @@ export async function runMcpTool<T = unknown>(
   }
   const result = await client.callTool(toolName, args, { spinner: opts.spinner ?? true });
   if (result.isError) {
-    console.error(chalk.red(`\n❌ ${opts.label} failed:`), result.content);
+    console.error(chalk.red(tr('\n❌ {0} failed:', opts.label)), result.content);
     process.exit(1);
   }
   return result.content as T;

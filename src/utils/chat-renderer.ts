@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import chalk from 'chalk';
 import type { ChatActivity } from './chat-activity';
 
@@ -6,7 +7,7 @@ export function createChatRenderer(activity: ChatActivity) {
   let started = false;
   const begin = () => {
     activity.stop();
-    if (!started) process.stdout.write(chalk.green('\nAI: '));
+    if (!started) process.stdout.write(chalk.green(tr('\nAI: ')));
     started = true;
   };
   return {
@@ -29,7 +30,7 @@ export function createChatRenderer(activity: ChatActivity) {
         process.stdout.write('\r\x1b[K');
         for (let i = 0; i < (previous.match(/\n/g) ?? []).length; i++)
           process.stdout.write('\x1b[F\x1b[K');
-        process.stdout.write(chalk.green('AI: ') + answer);
+        process.stdout.write(chalk.green(tr('AI: ')) + answer);
       } else {
         begin();
         process.stdout.write(answer);

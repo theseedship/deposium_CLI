@@ -25,6 +25,32 @@ describe('authorized chat scope', () => {
   test('a noninteractive session requires explicit scope instead of silently searching all', async () => {
     await expect(selectChatScope(client(), {}, false)).rejects.toThrow('--space');
   });
+  test('a saved scope is revalidated in scripts, and a revoked default never expands scope', async () => {
+    expect((await selectChatScope(client(), { initialSpace: 'FIRST' }, false)).spaceIds).toEqual([
+      'first',
+    ]);
+    await expect(selectChatScope(client(), { initialSpace: 'revoked' }, false)).rejects.toThrow(
+      '--space'
+    );
+    const broken = { listSpaces: vi.fn() };
+    await expect(selectChatScope(broken, { space: '' }, false)).rejects.toThrow(
+      'must not be empty'
+    );
+    expect(broken.listSpaces).not.toHaveBeenCalled();
+  });
+  test('an inaccessible saved default warns and prompts; it cannot replace an explicit choice', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(inquirer.prompt).mockClear().mockResolvedValueOnce({ space: 'second' });
+    expect((await selectChatScope(client(), { initialSpace: 'revoked' }, true)).spaceIds).toEqual([
+      'second',
+    ]);
+    expect(warning).toHaveBeenCalled();
+    vi.mocked(inquirer.prompt).mockClear();
+    await expect(
+      selectChatScope(client(), { space: 'foreign', initialSpace: 'first' }, true)
+    ).rejects.toThrow('accessible catalogue');
+    expect(inquirer.prompt).not.toHaveBeenCalled();
+  });
   test('all is not treated as an implicit expansion to every listed space', async () => {
     await expect(selectChatScope(client(), { space: 'all' }, false)).rejects.toThrow(
       'accessible catalogue'

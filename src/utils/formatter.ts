@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { Marked } from 'marked';
@@ -44,10 +45,12 @@ export function formatOutput(data: unknown, format: string = 'table'): void {
   for (const resource of new Map(
     decoded.resources.map((resource) => [resource.uri, resource])
   ).values()) {
-    console.log(`\nMCP resource: ${resource.uri}`);
-    if (resource.mimeType) console.log(`Type: ${resource.mimeType}`);
+    console.log(tr('\nMCP resource: {0}', resource.uri));
+    if (resource.mimeType) console.log(tr('Type: {0}', resource.mimeType));
     console.log(
-      'This resource requires a compatible MCP app host; no dashboard was opened in this terminal.'
+      tr(
+        'This resource requires a compatible MCP app host; no dashboard was opened in this terminal.'
+      )
     );
   }
 }
@@ -70,13 +73,13 @@ function formatTable(data: unknown): void {
       has_embeddings: 'Has embedding vectors',
     };
     data = Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [labels[key] ?? key, value])
+      Object.entries(data).map(([key, value]) => [labels[key] ? tr(labels[key]) : key, value])
     );
   }
   // Handle different data types
   if (Array.isArray(data)) {
     if (data.length === 0) {
-      console.log(chalk.yellow('\n📭 No results found\n'));
+      console.log(chalk.yellow(tr('\n📭 No results found\n')));
       return;
     }
 
@@ -99,7 +102,7 @@ function formatTable(data: unknown): void {
     });
 
     console.log('\n' + table.toString() + '\n');
-    console.log(chalk.gray(`Found ${data.length} result(s)\n`));
+    console.log(chalk.gray(tr('Found {0} result(s)\n', data.length)));
   } else if (data && typeof data === 'object') {
     // Single object - show as key-value pairs
     const table = new Table({
@@ -128,7 +131,7 @@ function formatMarkdown(data: unknown): void {
 
   if (Array.isArray(data)) {
     if (data.length === 0) {
-      console.log(chalk.yellow('\n📭 No results found\n'));
+      console.log(chalk.yellow(tr('\n📭 No results found\n')));
       return;
     }
 
@@ -189,28 +192,33 @@ function formatCompoundAI(data: TextBlock[]): void {
 }
 
 function formatCompoundAIObject(result: CompoundAIResult): void {
-  console.log(chalk.bold.cyan('\nGeneral AI response'));
+  console.log(chalk.bold.cyan(tr('\nGeneral AI response')));
   console.log(result.success ? 'Response received.' : 'The server reported a failed request.');
   if (result.answer) console.log('\n' + renderMarkdownText(stripHtmlTags(result.answer)));
 
   const tools = Array.isArray(result.tools_used)
     ? result.tools_used.filter((tool) => typeof tool === 'string')
     : undefined;
-  if (result.model_used) console.log(`Model (reported): ${terminalText(result.model_used)}`);
+  if (result.model_used) console.log(tr('Model (reported): {0}', terminalText(result.model_used)));
   console.log(
-    `Tools (reported): ${tools ? terminalText(tools.join(', ')) || 'none' : 'not supplied'}`
+    tr(
+      'Tools (reported): {0}',
+      tools ? terminalText(tools.join(', ')) || tr('none') : tr('not supplied')
+    )
   );
   if (!tools?.length)
     console.log(
       chalk.yellow(
-        'No tool use is attested by this result; it does not establish that your documents were searched.'
+        tr(
+          'No tool use is attested by this result; it does not establish that your documents were searched.'
+        )
       )
     );
-  console.log('For questions about files in a space, use Chat from the main menu.');
+  console.log(tr('For questions about files in a space, use Chat from the main menu.'));
   if (typeof result.tokens_used === 'number')
-    console.log(`Tokens (reported): ${result.tokens_used}`);
+    console.log(tr('Tokens (reported): {0}', result.tokens_used));
   if (typeof result.execution_time_ms === 'number')
-    console.log(`Server duration (reported): ${result.execution_time_ms} ms`);
+    console.log(tr('Server duration (reported): {0} ms', result.execution_time_ms));
   // Confidence and reasoning remain in explicit JSON. Neither is a verified
   // quality score, and raw reasoning is not a useful default user result.
 }
@@ -325,10 +333,10 @@ export function displayStatus(
   };
 
   const labels = {
-    online: chalk.green('ONLINE'),
-    offline: chalk.red('OFFLINE'),
-    degraded: chalk.yellow('DEGRADED'),
-    unknown: chalk.gray('UNKNOWN'),
+    online: chalk.green(tr('ONLINE')),
+    offline: chalk.red(tr('OFFLINE')),
+    degraded: chalk.yellow(tr('DEGRADED')),
+    unknown: chalk.gray(tr('UNKNOWN')),
   };
 
   console.log(`${icons[status]} ${chalk.white(label.padEnd(25))} ${labels[status]}`);

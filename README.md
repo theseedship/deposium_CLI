@@ -112,6 +112,14 @@ Older versions need a manual `npm install -g @deposium/cli@latest` first.
 Check `deposium --version` against `npm view @deposium/cli version` to distinguish your installed version from the latest public npm version. Changes merged in this repository may still await npm release approval.
 See [updates and supported installations](docs/guides/installation.md#updates).
 
+## Language and remembered space
+
+CLI 1.8.0+ includes `deposium settings`: choose French, English or automatic
+language, then select one authorized default space by name. `deposium --lang fr`
+overrides only this invocation; `deposium health --context` explains the effective
+configuration without showing credentials. See [Settings](docs/commands/settings.md).
+Live slash completion remains planned.
+
 ## 🤝 Contributing
 
 See [Contributing Guide](docs/development/contributing.md) and [Development Guide](docs/development/ui-system.md) for details on how to get started.

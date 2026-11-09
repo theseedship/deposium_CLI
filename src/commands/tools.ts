@@ -1,3 +1,4 @@
+import { tr } from '../utils/i18n';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
@@ -18,7 +19,7 @@ export const toolsCommand = new Command('tools')
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand({ machineReadable: options.json === true });
 
-      if (!options.json) console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
+      if (!options.json) console.log(chalk.bold(tr('\n🛠️  Fetching Available MCP Tools...\n')));
 
       const tools = await client.listTools();
 
@@ -28,7 +29,7 @@ export const toolsCommand = new Command('tools')
       }
 
       if (tools?.length === 0) {
-        console.log(options.json ? '[]' : chalk.yellow('⚠️  No tools found'));
+        console.log(options.json ? '[]' : chalk.yellow(tr('⚠️  No tools found')));
         return;
       }
 
@@ -72,7 +73,7 @@ export const toolsCommand = new Command('tools')
       });
 
       // Display tools by category
-      console.log(chalk.bold.cyan(`📊 Found ${filteredTools.length} tools:\n`));
+      console.log(chalk.bold.cyan(tr('📊 Found {0} tools:\n', filteredTools.length)));
 
       const sortedCategories = Array.from(categories.entries()).sort((a, b) =>
         a[0].localeCompare(b[0])
@@ -83,7 +84,7 @@ export const toolsCommand = new Command('tools')
         console.log(chalk.gray('─'.repeat(60)));
 
         const table = new Table({
-          head: [chalk.cyan('Tool'), chalk.cyan('Description')],
+          head: [chalk.cyan(tr('Tool')), chalk.cyan(tr('Description'))],
           colWidths: [30, 70],
           wordWrap: true,
           style: {
@@ -100,16 +101,16 @@ export const toolsCommand = new Command('tools')
       }
 
       // Summary statistics
-      console.log(chalk.bold.cyan(`\n📈 Summary:`));
-      console.log(chalk.white(`  Total tools: ${filteredTools.length}`));
-      console.log(chalk.white(`  Categories: ${categories.size}`));
+      console.log(chalk.bold.cyan(tr('\n📈 Summary:')));
+      console.log(chalk.white(tr('  Total tools: {0}', filteredTools.length)));
+      console.log(chalk.white(tr('  Categories: {0}', categories.size)));
 
       if (options.search || options.category) {
-        console.log(chalk.gray(`  (filtered from ${tools.length} total tools)`));
+        console.log(chalk.gray(tr('  (filtered from {0} total tools)', tools.length)));
       }
 
-      console.log(chalk.gray('\n💡 Tip: Use --search or --category to filter tools'));
-      console.log(chalk.gray('💡 Tip: Use --json for machine-readable output\n'));
+      console.log(chalk.gray(tr('\n💡 Tip: Use --search or --category to filter tools')));
+      console.log(chalk.gray(tr('💡 Tip: Use --json for machine-readable output\n')));
     })
   );
 

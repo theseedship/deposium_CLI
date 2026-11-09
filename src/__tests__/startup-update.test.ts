@@ -93,6 +93,19 @@ describe('interactive startup updates', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each([['--lang', 'fr'], ['--lang=en'], ['chat', '--lang', 'fr']])(
+    'language flags preserve update detection and restart arguments: %j',
+    async (...args) => {
+      expect(await offerStartupUpdate('1.5.3', args, runtime)).toBe(0);
+      expect(fetchMock).toHaveBeenCalled();
+      expect(state.spawn).toHaveBeenLastCalledWith(
+        runtime.nodePath,
+        [entry, ...args],
+        expect.any(Object)
+      );
+    }
+  );
+
   it('never updates a checkout or npx installation', async () => {
     expect(
       await offerStartupUpdate('1.5.3', ['chat'], {

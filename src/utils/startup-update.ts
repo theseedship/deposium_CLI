@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
@@ -70,7 +71,10 @@ function newerVersion(candidate: string, current: string): boolean {
 function shouldCheck(args: string[], runtime: UpdateRuntime): boolean {
   const disabled = ['1', 'true'].includes(runtime.env.DEPOSIUM_NO_UPDATE ?? '');
   const excluded = ['--no-update', '--help', '-h', '--version', '-V', '--json', '--format'];
-  const command = args.find((arg) => !arg.startsWith('-'));
+  const navigationArgs = args.filter(
+    (arg, index) => arg !== '--lang' && !arg.startsWith('--lang=') && args[index - 1] !== '--lang'
+  );
+  const command = navigationArgs.find((arg) => !arg.startsWith('-'));
   return (
     runtime.interactive &&
     !runtime.bun &&
@@ -78,7 +82,7 @@ function shouldCheck(args: string[], runtime: UpdateRuntime): boolean {
     !runtime.env.DEPOSIUM_SKIP_UPDATE_CHECK &&
     !disabled &&
     !args.some((arg) => excluded.includes(arg) || arg.startsWith('--format=')) &&
-    (!args.length || ['chat', 'interactive', 'i'].includes(command ?? ''))
+    (!navigationArgs.length || ['chat', 'interactive', 'i'].includes(command ?? ''))
   );
 }
 
@@ -227,7 +231,11 @@ export async function offerStartupUpdate(
         type: 'confirm',
         name: 'update',
         default: true,
-        message: `DEPOSIUM CLI ${latest} is available on npmjs.org (installed ${version}). Update and restart now?`,
+        message: tr(
+          'DEPOSIUM CLI {0} is available on npmjs.org (installed {1}). Update and restart now?',
+          latest,
+          version
+        ),
       },
     ]));
   } catch (error) {
@@ -250,16 +258,18 @@ export async function offerStartupUpdate(
   if (installed !== 0) {
     if (shutdownSignal) return installed;
     console.error(
-      'CLI update failed. Your login is preserved; retry the npm installation before restarting.'
+      tr(
+        'CLI update failed. Your login is preserved; retry the npm installation before restarting.'
+      )
     );
     return installed;
   }
   if (!installedVersionMatches(installation.manifest, latest)) {
     console.error(
-      'The installed CLI version could not be verified. Restart manually after checking npm.'
+      tr('The installed CLI version could not be verified. Restart manually after checking npm.')
     );
     return 1;
   }
-  console.log(`DEPOSIUM CLI ${latest} installed. Restarting…`);
+  console.log(tr('DEPOSIUM CLI {0} installed. Restarting…', latest));
   return runInherited(runtime, [installation.entryPoint, ...args]);
 }

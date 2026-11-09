@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import chalk from 'chalk';
 import type { SSECitation, SSEVerification } from '../client/types';
 import { terminalText as safeText } from './terminal-text';
@@ -49,24 +50,31 @@ export function chatSourceChoices(
 export function printChatSourceDetail(citations: SSECitation[], id: number): void {
   const citation = canonicalCitations(citations).find((item) => citationNumber(item) === id);
   if (!citation || sourceUnavailable(citation)) {
-    console.log('Citation unavailable. Use /sources to see references received for this answer.');
+    console.log(
+      tr('Citation unavailable. Use /sources to see references received for this answer.')
+    );
     return;
   }
   const { label, page, name, identity } = sourceDetails(citation);
   if (!name && !identity) {
-    console.log('Citation document identity is unavailable.');
+    console.log(tr('Citation document identity is unavailable.'));
     return;
   }
   console.log(
-    `\nCitation ${id} — ${safeText(label).replace(/\s+/g, ' ')}${page ? ` p.${page}` : ''}`
+    tr(
+      '\nCitation {0} — {1}{2}',
+      id,
+      safeText(label).replace(/\s+/g, ' '),
+      page ? ` p.${page}` : ''
+    )
   );
   const text = nonEmpty(citation.snippet) ?? nonEmpty(citation.full_content);
   if (text) {
     const excerpt = safeText(text);
     console.log(excerpt.slice(0, 2500));
-    if (excerpt.length > 2500) console.log('[Excerpt truncated]');
-  } else console.log('The server provided a reference but no passage text for this citation.');
-  console.log('Passage received with the last answer; no new document was fetched.');
+    if (excerpt.length > 2500) console.log(tr('[Excerpt truncated]'));
+  } else console.log(tr('The server provided a reference but no passage text for this citation.'));
+  console.log(tr('Passage received with the last answer; no new document was fetched.'));
 }
 
 function nonEmpty(value: unknown): string | undefined {
@@ -126,7 +134,7 @@ function groupChatSources(citations: SSECitation[]) {
 export function printChatSources(citations: SSECitation[]): void {
   const { sources, unavailable } = groupChatSources(citations);
   if (citations.length === 0) return;
-  console.log(chalk.gray('\n📎 Sources:'));
+  console.log(chalk.gray(tr('\n📎 Sources:')));
   for (const source of sources.values()) {
     const pages = [...source.pages].sort((a, b) => a - b);
     const suffix = pages.length ? ` p.${pages.join(', ')}` : '';
@@ -138,10 +146,10 @@ export function printChatSources(citations: SSECitation[]): void {
   }
   if (chatSourceChoices(citations).length)
     console.log(
-      chalk.gray('   Read a cited passage: /source <citation number> · List again: /sources')
+      chalk.gray(tr('   Read a cited passage: /source <citation number> · List again: /sources'))
     );
   if (unavailable)
-    console.log(chalk.yellow(`   - ${unavailable} source reference(s) unavailable.`));
+    console.log(chalk.yellow(tr('   - {0} source reference(s) unavailable.', unavailable)));
 }
 
 type VerificationNote = { severity: string; text: string; type?: string };
@@ -173,9 +181,9 @@ function collectVerification(events: SSEVerification[]) {
 }
 
 function verificationStatus(blocked: boolean, needsReview: boolean, hasImportant: boolean) {
-  if (blocked) return { label: '🚫', text: 'response blocked' };
-  if (needsReview) return { label: '⚠️', text: 'response needs review' };
-  return { label: hasImportant ? '⚠️' : 'ℹ️', text: 'advisory notes' };
+  if (blocked) return { label: '🚫', text: tr('response blocked') };
+  if (needsReview) return { label: '⚠️', text: tr('response needs review') };
+  return { label: hasImportant ? '⚠️' : 'ℹ️', text: tr('advisory notes') };
 }
 
 function printCompactVerification(
@@ -201,17 +209,17 @@ function printCompactVerification(
     if (label) grouped.set(label, (grouped.get(label) ?? 0) + 1);
     else other.push(note);
   }
-  for (const [label, count] of grouped) console.log(`  • ${label}: ${count}`);
+  for (const [label, count] of grouped) console.log(`  • ${tr(label)}: ${count}`);
   const visible = (
     needsReview || blocked ? other : other.filter((note) => !advisory(note.severity))
   ).slice(0, 3);
   for (const note of visible)
     console.log(`  [${note.severity}] ${safeText(note.text).replace(/\s+/g, ' ').slice(0, 180)}`);
   if (visible.length < other.length)
-    console.log(chalk.gray(`  ${other.length - visible.length} additional note(s).`));
+    console.log(chalk.gray(tr('  {0} additional note(s).', other.length - visible.length)));
   if (details.some((note) => note.type === 'entity_unresolved'))
-    console.log(chalk.gray('  An unlinked name is not, by itself, proof of an invented fact.'));
-  console.log(chalk.gray('  Details: /verify or chat --verbose. Check passages with /source.'));
+    console.log(chalk.gray(tr('  An unlinked name is not, by itself, proof of an invented fact.')));
+  console.log(chalk.gray(tr('  Details: /verify or chat --verbose. Check passages with /source.')));
   return grouped.size > 0 && !blocked;
 }
 
@@ -227,7 +235,9 @@ export function printChatVerification(events: SSEVerification[], verbose = false
   );
   const important = details.filter((note) => !advisory(note.severity));
   const status = verificationStatus(blocked, needsReview, important.length > 0);
-  console.log(chalk.yellow(`\n${status.label} Verification: ${status.text} (${notes.size}).`));
+  console.log(
+    chalk.yellow(tr('\n{0} Verification: {1} ({2}).', status.label, status.text, notes.size))
+  );
   if (verbose) {
     for (const note of details) console.log(`  [${note.severity}] ${safeText(note.text)}`);
   } else {

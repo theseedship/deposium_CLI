@@ -980,6 +980,30 @@ describe('runChatTurn', () => {
     expect(output).not.toContain('"description"');
   });
 
+  test('the effective language is forwarded on the chat request, with history and scope intact', async () => {
+    const { initializeLanguage } = await import('../utils/i18n');
+    const { runChatTurn } = await import('../chat');
+    initializeLanguage('en', 'fr', {});
+    try {
+      const client = makeFakeClient([[{ kind: 'token', data: 'réponse' }]]);
+      await runChatTurn({
+        client: client as unknown as import('../client/mcp-client').MCPClient,
+        streamUrl: 'https://edge.example.test',
+        directMcp: false,
+        message: 'Question',
+        conversationHistory: [{ role: 'user', content: 'Previous' }],
+        spaceIds: ['space-1'],
+        onAmbiguous: 'fail',
+      });
+      expect(client.calls[0].args[2]).toMatchObject({
+        language: 'fr',
+        spaceIds: ['space-1'],
+        conversationHistory: [{ role: 'user', content: 'Previous' }],
+      });
+    } finally {
+      initializeLanguage(undefined, undefined, {});
+    }
+  });
   test('passes directMcp flag and streamUrl through to chatStream', async () => {
     const { runChatTurn } = await import('../chat');
     const client = makeFakeClient([[{ kind: 'token', data: 'ok' }]]);
@@ -997,7 +1021,7 @@ describe('runChatTurn', () => {
     expect(streamUrl).toBe('http://mcps:4001');
     expect(opts.directMcp).toBe(true);
     expect(opts.conversationHistory).toEqual([{ role: 'user', content: 'prev' }]);
-    expect(opts.language).toBe('fr');
+    expect(opts.language).toBe('en');
   });
 
   test('keeps the selected space on inline clarification and agent resume', async () => {

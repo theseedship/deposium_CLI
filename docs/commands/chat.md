@@ -244,3 +244,10 @@ Potential improvements:
 - Export conversations to files
 - Configurable history length
 - Token-based context management instead of message count
+
+## Language and remembered space — CLI 1.8.0+
+
+[Settings](settings.md) controls the UI and the default answer language. Use
+`deposium --lang fr chat` for a one-off override. A saved default space is checked
+against the current catalogue; an explicit `--space` is never replaced silently.
+The default space remains separate from a temporary `/space` change in the chat.

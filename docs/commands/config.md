@@ -21,12 +21,13 @@ deposium config set <key> <value>
 **Valid Keys:**
 
 - `api-key`: API key for authentication. Stored in the encrypted
-  credentials file (`~/.deposium/credentials`, chmod 0600), not the
+  credentials file (`~/.deposium/credentials.json`, chmod 0600), not the
   main config. Rejected if it starts with `dep_svc_` — those are
   server-side service keys.
 - `deposium-url`: Deposium server endpoint.
 - `default-tenant`: Default tenant ID.
-- `default-space`: Default space ID.
+- `default-space`: Default space ID. Prefer `settings space` for catalogue-validated selection.
+- `language`: `fr`, `en` or `auto` (CLI 1.8.0+); see [Settings](settings.md) for language priority.
 
 Per-command output format and silent mode are set with `--format` and
 `--silent` flags on each invocation.

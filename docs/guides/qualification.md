@@ -21,7 +21,7 @@ check `deposium --version` and `npm view @deposium/cli version` separately.
 | API scope                  | Ordinary authenticated reads are qualified separately from admin rights. An omitted tenant is server-resolved. Space choices do not grant document access. No cross-tenant exhaustive security qualification is claimed.                                                |
 | Delivery                   | npm staged artifact/source/hash, public version and `latest` are separate checks. A matching stable GitHub Release triggers docs synchronization; verify the Docs deployment afterward.                                                                                 |
 
-The full suite currently passes **878 tests across 57 files** on Node 22.13 and 24. This includes 37 parameterized legacy JSON command cases, two Compound JSON
+The 1.7.2 qualification passed **878 tests across 57 files** on Node 22.13 and 24. This includes 37 parameterized legacy JSON command cases, two Compound JSON
 cases, startup/renderer/branding checks and mutation-refusal coverage. A native
 terminal recipe opens the bare command with its logo, navigates and exits; a
 separate rendering fixture verifies formatted general-AI output without the old
@@ -49,8 +49,10 @@ private-document search. The CLI does not supply local TurboV3/LLM engines by it
 
 ## Still not delivered or universally qualified
 
-- Live slash completion, a shared FR/EN setting and saved preference controls remain
-  roadmap work. The interface is English; Chat currently requests French responses.
+- Live slash completion remains roadmap work. CLI 1.8.0 adds saved language and
+  default-space preferences for the core flows described in [Settings](../commands/settings.md).
+  Historical advanced-command output, server data and library keyboard hints are
+  not all localized. Chat now sends the effective UI language by default.
 - Some server paths deliver a whole answer in a burst. An activity indicator does
   not make generation faster or provide true producer streaming.
 - Full narrow-table/resize/reflow behavior and standalone Bun binaries are not
@@ -65,3 +67,32 @@ private-document search. The CLI does not supply local TurboV3/LLM engines by it
 See the [command reference](../commands/README.md), [interactive guide](interactive.md)
 and [release procedure](../development/releases.md). Historical development/audit
 records retain their original dates and test counts; they are not current release claims.
+
+## Preferences qualification — CLI 1.8.0
+
+**914 tests / 61 files** pass on Node 22.13 and 24, including the existing
+credential, JSON, HITL and canonical-answer tests. A real terminal recipe verifies
+French startup → Settings → Back → clean exit without changing the user's
+preferences. An ordinary-key read-only probe observes 22 authorized spaces and
+confirms access to the selected recipe space via a fresh catalogue, with Health
+`ok` and the requested French invocation language. No model call or business-data
+mutation is needed for this preferences qualification.
+
+The static documentation check covers **126 offline help invocations**, 43
+Markdown files and 221 literal examples, with no unknown command/option or missing
+local file target. This is distinct from executing every backend operation.
+
+Language priority, locale precedence, automatic mode and invocation-only overrides
+are checked independently. Process tests use isolated temporary homes to verify
+persistence across launches, encrypted storage and unchanged synthetic credentials.
+They exercise real command parsing, offline settings, translated help and clean
+JSON, including invalid flags and conflicting scope options. No real user
+preferences are modified by those tests.
+
+Catalogue fixtures cover authorized, revoked, empty and failed lookups, explicit
+versus saved scope, environment precedence, noninteractive refusal and preserving
+prior settings on failure. Health JSON without `--context` retains its existing
+contract; explicit context distinguishes unavailable catalogue data from endpoint
+health and strips credential-bearing URL components. Chat tests verify the actual
+request language with the selected scope/history retained. Catalogue tests check
+translation coverage and interpolation slots, without translating result data.

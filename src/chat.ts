@@ -1,3 +1,4 @@
+import { tr } from './utils/i18n';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
@@ -19,6 +20,7 @@ import { executeChatCommand } from './utils/chat-commands';
 import { createChatActivity, type ChatActivity } from './utils/chat-activity';
 import { createChatRenderer } from './utils/chat-renderer';
 import type { ChatTurnDetails } from './utils/chat-output';
+import { getLanguage } from './utils/i18n';
 
 /**
  * `--on-ambiguous` policy — what the CLI does when the server emits a
@@ -52,8 +54,8 @@ export function resolveOnAmbiguousMode(explicit?: OnAmbiguousMode): OnAmbiguousM
 }
 
 export async function startChat(options: ChatOptions = {}): Promise<void> {
-  console.log(createTitleBox('AI CHAT', 'Streaming conversation with Deposium AI'));
-  console.log(chalk.gray('Commands: /help | /space | /clear | /history | /exit\n'));
+  console.log(createTitleBox(tr('AI CHAT'), tr('Streaming conversation with Deposium AI')));
+  console.log(chalk.gray(tr('Commands: /help | /space | /clear | /history | /exit\n')));
 
   // Resolve URLs + print mode banner FIRST, BEFORE any prompt that
   // could come out of initializeCommand → ensureAuthenticated. If the
@@ -71,16 +73,16 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
     directMcp = true;
     console.warn(
       chalk.yellow(
-        '⚠️  --direct mode: bypassing Edge Runtime (no rate-limiting, no auth gateway)\n'
+        tr('⚠️  --direct mode: bypassing Edge Runtime (no rate-limiting, no auth gateway)\n')
       )
     );
-    console.log(chalk.gray(`MCP direct: ${streamUrl}\n`));
+    console.log(chalk.gray(tr('MCP direct: {0}\n', streamUrl)));
   } else {
     streamUrl = getEdgeUrl(config);
-    console.log(chalk.gray(`Edge Runtime: ${streamUrl}\n`));
+    console.log(chalk.gray(tr('Edge Runtime: {0}\n', streamUrl)));
   }
 
-  console.log(chalk.gray(`HITL policy: --on-ambiguous=${onAmbiguous}\n`));
+  console.log(chalk.gray(tr('HITL policy: --on-ambiguous={0}\n', onAmbiguous)));
 
   // NOW bootstrap (auth + MCPClient). May prompt if the API key is
   // missing — the user already saw the mode banner above so they
@@ -88,9 +90,10 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   const { client } = await initializeCommand();
 
   let scope = await selectChatScope(client, {
-    space: options.space ?? config.defaultSpace,
+    space: options.space,
+    initialSpace: config.defaultSpace,
   });
-  console.log(chalk.cyan(`Space: ${scope.label}\n`));
+  console.log(chalk.cyan(tr('Space: {0}\n', scope.label)));
 
   const chatHistory = new ChatHistory(10);
   const details: ChatTurnDetails = { citations: [], verifications: [] };
@@ -100,7 +103,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
       {
         type: 'input',
         name: 'message',
-        message: 'You:',
+        message: tr('You:'),
       },
     ]);
 
@@ -118,7 +121,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
         scope = result.scope;
         if (result.exit) break;
       } catch (error: unknown) {
-        console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
+        console.error(chalk.red(tr('\n❌ Error:')), getErrorMessage(error));
       }
       continue;
     }
@@ -152,10 +155,10 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
       chatHistory.addAssistantMessage(fullResponse);
 
       const exchanges = Math.floor(chatHistory.getMessages().length / 2);
-      console.log(chalk.gray(`\n💭 ${exchanges} exchange${exchanges !== 1 ? 's' : ''}\n`));
+      console.log(chalk.gray(tr('\n💭 {0} exchange{1}\n', exchanges, exchanges !== 1 ? 's' : '')));
     } catch (error: unknown) {
       process.stdout.write('\n');
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
+      console.error(chalk.red(tr('\n❌ Error:')), getErrorMessage(error));
       chatHistory.removeLastMessage();
     }
   }
@@ -205,14 +208,14 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const streamOpts: ChatStreamOptions = {
     spaceIds: args.spaceIds,
     conversationHistory: args.conversationHistory,
-    language: 'fr',
+    language: getLanguage(),
     onToken: (token) => {
       if (typeof token !== 'string' || !token) return;
       screen.token(token);
       fullResponse += token;
     },
-    onMetadata: () => screen.phase('Processing request'),
-    onToolCall: () => screen.phase('Working with tools'),
+    onMetadata: () => screen.phase(tr('Processing request')),
+    onToolCall: () => screen.phase(tr('Working with tools')),
     onCitation: (c) => citations.push(c),
     onDone: () => {
       streamDone = true;
@@ -240,9 +243,9 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     onAnswerBlocked: (data) => {
       activity.stop();
       suppressResponse = true;
-      console.log(chalk.red(`\n🚫 Answer blocked: ${data.reason}`));
+      console.log(chalk.red(tr('\n🚫 Answer blocked: {0}', data.reason)));
       if (data.fallback_answer) {
-        console.log(chalk.gray('Fallback:'));
+        console.log(chalk.gray(tr('Fallback:')));
         console.log(data.fallback_answer);
         // The fallback IS a safe answer the server explicitly offered
         // — persist it in place of the blocked draft.
@@ -288,7 +291,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       activity.stop();
       const decision = await handleChatPrompt(prompt, args.onAmbiguous, args.prompter);
 
-      process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
+      process.stdout.write(chalk.gray(tr('↪ Resuming ({0})\n', describeDecision(decision))));
       screen.waiting('Resuming request');
       // Each resume is a new stream; an earlier gate stream cannot attest
       // completion of its successor. EOF alone is not an answer receipt.
