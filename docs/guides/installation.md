@@ -46,6 +46,10 @@ in place. Declining continues with the current version.
 The check is bounded and unavailable npm/registry access does not prevent startup.
 It does not run for scripts, JSON output, CI, help/version, checkouts, `npm link`,
 `npx` caches or standalone Bun binaries. It never uses sudo or a shell to install.
+Lookup and installation use the public npm registry for `@deposium`, including
+when a scoped registry is configured; that override applies only to the update.
+An interruption is forwarded once to the active installer/restarted session;
+the parent waits for closure, with a bounded forced stop if the child is stuck.
 An install/verification failure stops the update and does not pretend it succeeded.
 Use `--no-update` or `DEPOSIUM_NO_UPDATE=1` to skip the startup check.
 

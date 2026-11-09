@@ -1,10 +1,46 @@
-import { execFile, spawn } from 'node:child_process';
+import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import inquirer from 'inquirer';
 
 const PACKAGE = '@deposium/cli';
 const REGISTRY = 'https://registry.npmjs.org';
+let activeChild: ChildProcess | undefined;
+let shutdownSignal: NodeJS.Signals | undefined;
+let shutdownTimer: NodeJS.Timeout | undefined;
+
+function signalExitCode(signal: NodeJS.Signals | null): number {
+  return signal === 'SIGINT' ? 130 : signal === 'SIGTERM' ? 143 : 1;
+}
+
+/** Let the CLI's shutdown handler wait for its installer/restarted session to close. */
+export function forwardStartupUpdateSignal(signal: NodeJS.Signals): boolean {
+  if (!activeChild) return false;
+  if (shutdownSignal) return true;
+  const child = activeChild;
+  shutdownSignal = signal;
+  try {
+    child.kill(signal);
+  } catch {
+    /* close may already be pending */
+  }
+  shutdownTimer = setTimeout(() => {
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      /* already closed */
+    }
+  }, 2000);
+  shutdownTimer.unref();
+  return true;
+}
+
+function clearActiveChild(child: ChildProcess): void {
+  if (activeChild !== child) return;
+  activeChild = undefined;
+  if (shutdownTimer) clearTimeout(shutdownTimer);
+  shutdownTimer = undefined;
+}
 
 export interface UpdateRuntime {
   nodePath: string;
@@ -105,9 +141,16 @@ function runInherited(runtime: UpdateRuntime, args: string[]): Promise<number> {
       env: { ...runtime.env, DEPOSIUM_SKIP_UPDATE_CHECK: '1' },
       shell: false,
     });
-    child.once('error', () => resolve(1));
+    activeChild = child;
+    child.once('error', () => {
+      if (!child.pid) {
+        clearActiveChild(child);
+        resolve(1);
+      }
+    });
     child.once('close', (code, signal) => {
-      resolve(code ?? (signal === 'SIGINT' ? 130 : signal === 'SIGTERM' ? 143 : 1));
+      clearActiveChild(child);
+      resolve(shutdownSignal ? signalExitCode(shutdownSignal) : (code ?? signalExitCode(signal)));
     });
   });
 }
@@ -145,6 +188,7 @@ export async function offerStartupUpdate(
   runtime: UpdateRuntime = currentRuntime()
 ): Promise<number | undefined> {
   if (!shouldCheck(args, runtime) || !stableVersion(version)) return;
+  shutdownSignal = undefined;
   let installation: Awaited<ReturnType<typeof globalInstallation>>;
   let latest: string | undefined;
   try {
@@ -163,7 +207,7 @@ export async function offerStartupUpdate(
         type: 'confirm',
         name: 'update',
         default: true,
-        message: `DEPOSIUM CLI ${latest} is available (installed ${version}). Update and restart now?`,
+        message: `DEPOSIUM CLI ${latest} is available on npmjs.org (installed ${version}). Update and restart now?`,
       },
     ]));
   } catch (error) {
@@ -179,10 +223,12 @@ export async function offerStartupUpdate(
     installation.prefix,
     `${PACKAGE}@${latest}`,
     `--registry=${REGISTRY}`,
+    `--@deposium:registry=${REGISTRY}`,
     '--ignore-scripts',
     '--engine-strict',
   ]);
   if (installed !== 0) {
+    if (shutdownSignal) return installed;
     console.error(
       'CLI update failed. Your login is preserved; retry the npm installation before restarting.'
     );

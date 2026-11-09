@@ -18,7 +18,11 @@ vi.mock('node:fs', () => ({
 }));
 vi.mock('inquirer', () => ({ default: { prompt: state.prompt } }));
 
-import { offerStartupUpdate, type UpdateRuntime } from '../utils/startup-update';
+import {
+  forwardStartupUpdateSignal,
+  offerStartupUpdate,
+  type UpdateRuntime,
+} from '../utils/startup-update';
 
 const prefix = '/test/node';
 const npm = `${prefix}/lib/node_modules/npm/bin/npm-cli.js`;
@@ -174,6 +178,7 @@ describe('interactive startup updates', () => {
         prefix,
         '@deposium/cli@1.6.0',
         '--registry=https://registry.npmjs.org',
+        '--@deposium:registry=https://registry.npmjs.org',
         '--ignore-scripts',
         '--engine-strict',
       ],
@@ -286,5 +291,26 @@ describe('interactive startup updates', () => {
     });
     expect(await offerStartupUpdate('1.5.3', ['chat'], runtime)).toBe(1);
     expect(state.spawn).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards shutdown to the installer, waits for close and never restarts after cancellation', async () => {
+    const child = Object.assign(new EventEmitter(), { kill: vi.fn(), pid: 123 });
+    state.spawn.mockReturnValue(child);
+    let settled = false;
+    const update = offerStartupUpdate('1.5.3', ['chat'], runtime).then((code) => {
+      settled = true;
+      return code;
+    });
+    await vi.waitFor(() => expect(state.spawn).toHaveBeenCalledTimes(1));
+    expect(forwardStartupUpdateSignal('SIGTERM')).toBe(true);
+    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+    expect(forwardStartupUpdateSignal('SIGTERM')).toBe(true);
+    expect(child.kill).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    child.emit('close', 0, null); // even a graceful zero must not launch a new chat.
+    expect(await update).toBe(143);
+    expect(state.spawn).toHaveBeenCalledTimes(1);
+    expect(forwardStartupUpdateSignal('SIGTERM')).toBe(false);
   });
 });

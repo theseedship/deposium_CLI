@@ -29,7 +29,7 @@ import { temporalAssertionCommand } from './commands/temporal-assertion';
 import { runPreflight } from './utils/cli-preflight';
 import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
-import { offerStartupUpdate } from './utils/startup-update';
+import { forwardStartupUpdateSignal, offerStartupUpdate } from './utils/startup-update';
 
 // ============================================================================
 // Graceful Shutdown Handlers
@@ -41,7 +41,8 @@ let isShuttingDown = false;
  * Handle graceful shutdown on SIGTERM/SIGINT
  * Ensures clean exit without orphaned processes or connections
  */
-function handleShutdown(signal: string): void {
+function handleShutdown(signal: NodeJS.Signals): void {
+  if (forwardStartupUpdateSignal(signal)) return;
   if (isShuttingDown) {
     // Force exit if already shutting down (user pressed Ctrl+C twice)
     console.log(chalk.red('\nForce exit...'));
