@@ -1,4 +1,5 @@
 import { tr } from './i18n';
+import { printSearchResult } from './search-output';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { Marked } from 'marked';
@@ -38,10 +39,16 @@ export function formatOutput(data: unknown, format: string = 'table'): void {
     return;
   }
   const decoded = decodeMcpContent(data);
+  let searchRendered = false;
   for (const value of decoded.values) {
+    if (printSearchResult(value)) {
+      searchRendered = true;
+      continue;
+    }
     if (format.toLowerCase() === 'markdown') formatMarkdown(value);
     else formatTable(value);
   }
+  if (searchRendered) return;
   for (const resource of new Map(
     decoded.resources.map((resource) => [resource.uri, resource])
   ).values()) {
@@ -105,7 +112,10 @@ function formatTable(data: unknown): void {
     console.log(chalk.gray(tr('Found {0} result(s)\n', data.length)));
   } else if (data && typeof data === 'object') {
     // Single object - show as key-value pairs
+    const width = Math.max(24, Math.min(120, process.stdout.columns ?? 80));
+    const keyWidth = Math.max(8, Math.min(24, Math.floor(width * 0.3)));
     const table = new Table({
+      colWidths: [keyWidth, width - keyWidth - 3],
       style: {
         head: [],
         border: ['grey'],
@@ -115,12 +125,20 @@ function formatTable(data: unknown): void {
 
     Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
       table.push({
-        [chalk.cyan(key)]:
-          typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value),
+        [chalk.cyan(truncate(terminalText(key), 80))]: truncate(
+          terminalText(typeof value === 'object' ? JSON.stringify(value) : String(value)),
+          1600
+        ),
       });
     });
 
     console.log('\n' + table.toString() + '\n');
+    if (
+      Object.values(data).some(
+        (value) => (typeof value === 'object' ? JSON.stringify(value) : String(value)).length > 1600
+      )
+    )
+      console.log(tr('Large fields are abbreviated. Use --format json for the complete response.'));
   } else {
     console.log('\n' + String(data) + '\n');
   }

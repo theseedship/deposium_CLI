@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1 — Responsive search results
+
+- Render search passages with document names, page references and excerpts instead of serializing the complete retrieval/graph payload into a table. Explain empty results and the difference between Search and Chat.
+- Bound generic object-table cells and column widths to prevent large Unicode payloads from blocking the terminal after a successful tool call. Explicit JSON remains complete.
+- Clarify that the tool catalogue is a reference for MCP clients and API integrations; selecting a catalogue entry does not execute it.
+
 ## 1.9.0 — Live chat commands and roomier menus
 
 - Show local slash-command suggestions while typing, filtered by prefix with arrow navigation, Tab completion, Enter selection and Escape dismissal. Keep exact commands, arguments, normal readline editing and unknown-command protection.

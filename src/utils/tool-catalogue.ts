@@ -66,6 +66,11 @@ export async function browseToolCatalogue(client: Pick<MCPClient, 'listTools'>):
   console.log(
     tr('\nChoose a tool to read its full description and input parameters. No tool is run.')
   );
+  console.log(
+    tr(
+      'This reference helps configure MCP clients and API integrations. For document questions, use Chat or Search.'
+    )
+  );
   while (true) {
     const { toolIndex } = await inquirer.prompt<{ toolIndex: number }>([
       {

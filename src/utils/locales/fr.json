@@ -610,5 +610,15 @@
   "System Health": "État des services",
   " services": " services",
   "Choose a space with deposium settings space <id>.": "Choisissez un espace avec deposium settings space <id>.",
-  "↑↓ choose · Tab complete · Enter run · Esc dismiss": "↑↓ choisir · Tab compléter · Entrée lancer · Échap masquer"
+  "↑↓ choose · Tab complete · Enter run · Esc dismiss": "↑↓ choisir · Tab compléter · Entrée lancer · Échap masquer",
+  "\nSearch returned {0} passage(s).": "\nLa recherche a renvoyé {0} passage(s).",
+  "No matching passage. Try another term or choose another space.": "Aucun passage correspondant. Essayez un autre terme ou choisissez un autre espace.",
+  "Unnamed document": "Document sans nom",
+  "No passage text supplied.": "Aucun texte de passage fourni.",
+  "File ID: {0}": "Identifiant du fichier : {0}",
+  "Showing {0} of {1} passages. Use --format json for the complete response.": "Affichage de {0} passages sur {1}. Utilisez --format json pour la réponse complète.",
+  "\nThese are retrieved passages, not an AI answer. Choose Chat for a synthesis.": "\nCes passages proviennent de la recherche. Choisissez Conversation pour obtenir une synthèse.",
+  "Large fields are abbreviated. Use --format json for the complete response.": "Les champs volumineux sont abrégés. Utilisez --format json pour la réponse complète.",
+  "Tools — reference for MCP clients and API integrations": "Outils — référence pour clients MCP et intégrations API",
+  "This reference helps configure MCP clients and API integrations. For document questions, use Chat or Search.": "Cette référence sert à configurer des clients MCP et des intégrations API. Pour vos documents, utilisez Conversation ou Recherche."
 }

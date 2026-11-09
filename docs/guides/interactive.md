@@ -49,6 +49,23 @@ DSPy routing, DuckDB administration and query-retention cleanup are server-inter
 operations. They are not public menu actions. Legacy CLI spellings are retained
 for diagnostic compatibility, but cannot grant access to internal tools.
 
+## Search results — CLI 1.9.1+
+
+Search shows retrieved passages with their file names, pages and physical file
+IDs when supplied. This is retrieval, not a synthesized answer; choose Chat to ask
+questions using your documents. After the result, the interactive menu returns.
+`/exit` belongs to Chat; choose Exit in the main menu or press Ctrl+C to leave.
+
+Human-readable search output shows up to 20 passages with excerpts. Larger fields
+in generic object tables are abbreviated and columns fit the terminal. This only
+bounds presentation: `deposium search <query> --space <id> --format json` preserves
+the full returned payload. The count describes passages returned, not distinct
+files or a proof that the whole corpus was searched.
+
+The Tools entry is a technical reference for building MCP/API integrations, not an
+execution menu. Inspecting an entry shows its purpose and input schema without
+calling it. For everyday document work, use Search or Chat.
+
 ## Reading results and errors
 
 The terminal unwraps bounded MCP content envelopes before displaying business data.

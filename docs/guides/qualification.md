@@ -112,3 +112,14 @@ These CPU tests do not establish a production-model latency gain or native
 Windows/Linux terminal behavior. A standalone terminal recipe can inspect these
 local commands without sending a model request. The existing activity indicator
 and the server's actual token delivery are unchanged by completion.
+
+## Search display regression — CLI 1.9.1
+
+An authorized read-only search returned twenty passages and roughly 130 kB of
+business data. In 1.9.0 the generic table renderer produced no output before a
+2.5-second child-process deadline. With passage presentation, replaying the same
+private response finishes in about 105 ms, exit 0, with 12.7 kB of terminal output.
+This is one display replay, not a server latency or retrieval-quality benchmark.
+No private document text is committed. Synthetic large-Unicode fixtures run in
+bounded child processes so a rendering regression cannot freeze the test runner.
+JSON preserves the original response; preview limits do not change retrieval.
