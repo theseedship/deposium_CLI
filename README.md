@@ -95,6 +95,10 @@ Use a space ID from `deposium space list` in the search command. `auth login` us
 
 For URL questions, older versions, and local development, see the [configuration guide](docs/guides/configuration.md). The [installation guide](docs/guides/installation.md) covers other installation methods.
 
+Global npm installs offer a confirmed update and restart at interactive startup.
+Scripts and JSON output stay noninteractive; `--no-update` disables the check.
+See [updates and supported installations](docs/guides/installation.md#updates).
+
 ## 🤝 Contributing
 
 See [Contributing Guide](docs/development/contributing.md) and [Development Guide](docs/development/ui-system.md) for details on how to get started.
