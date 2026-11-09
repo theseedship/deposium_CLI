@@ -389,7 +389,7 @@ For new features:
 ## 📚 Additional Resources
 
 - **Website**: [deposium.ai](https://deposium.ai)
-- **Documentation**: [docs/](.) — local documentation
+- **Documentation**: [Documentation](../commands/README.md) — local documentation
 - **Issues**: [GitHub Issues](https://github.com/theseedship/deposium_CLI/issues)
 - **Community**: [Discord](https://discord.gg/88unzXDT)
 

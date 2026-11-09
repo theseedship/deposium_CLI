@@ -71,6 +71,8 @@ deposium auth status
     hostname + username via `scryptSync`.
 4.  **Transmission**: Key is sent via `X-API-Key` header with every request.
 
+<a id="key-types"></a>
+
 ## Key types — user-key vs service-key
 
 Deposium issues two API key families:

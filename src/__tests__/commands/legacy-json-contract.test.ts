@@ -117,3 +117,25 @@ test('clearing logs without confirmation fails before authentication or backend 
   expect(output).not.toHaveBeenCalled();
   expect(exit).toHaveBeenCalledWith(1);
 });
+
+test.each([[], ['--confirm']])(
+  'internal cleanup refuses explicitly before auth, including %j',
+  async (confirmation) => {
+    resetOptions(queryHistoryCommand);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const output = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    await queryHistoryCommand.parseAsync([
+      'node',
+      'test',
+      'cleanup',
+      ...confirmation,
+      '--format',
+      'json',
+    ]);
+    expect(init).not.toHaveBeenCalled();
+    expect(client.callTool).not.toHaveBeenCalled();
+    expect(output).not.toHaveBeenCalled();
+    expect(exit).toHaveBeenCalledWith(1);
+  }
+);

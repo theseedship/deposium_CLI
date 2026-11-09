@@ -157,32 +157,9 @@ queryHistoryCommand
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
-    withErrorHandling(async (options) => {
-      const { client } = await initializeCommand({
-        machineReadable: options.format?.toLowerCase() === 'json',
-      });
-
-      if (!options.confirm) {
-        if (commandProgress(options))
-          console.log(
-            chalk.yellow(
-              `⚠️  This will delete queries older than ${options.olderThan} days. Use --confirm to proceed.`
-            )
-          );
-        process.exit(0);
-      }
-
-      if (commandProgress(options)) console.log(chalk.bold('\n🗑️  Cleaning up query history...\n'));
-
-      const content = await runMcpTool(
-        client,
-        'query_cleanup',
-        {
-          older_than_days: parseIntOrThrow(options.olderThan, '--older-than'),
-        },
-        { label: 'Cleanup', spinner: commandProgress(options) }
+    withErrorHandling(async () => {
+      throw new Error(
+        'query_cleanup is a server-internal operation, unavailable to public CLI callers. No history was changed.'
       );
-
-      formatOutput(content, options.format);
     })
   );

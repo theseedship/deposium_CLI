@@ -20,7 +20,7 @@ check `deposium --version` and `npm view @deposium/cli version` separately.
 | API scope                  | Ordinary authenticated reads are qualified separately from admin rights. An omitted tenant is server-resolved. Space choices do not grant document access. No cross-tenant exhaustive security qualification is claimed.                                                |
 | Delivery                   | npm staged artifact/source/hash, public version and `latest` are separate checks. A matching stable GitHub Release triggers docs synchronization; verify the Docs deployment afterward.                                                                                 |
 
-The full suite currently passes **876 tests across 57 files** on Node 22.13 and 24. This includes 37 parameterized legacy JSON command cases, two Compound JSON
+The full suite currently passes **878 tests across 57 files** on Node 22.13 and 24. This includes 37 parameterized legacy JSON command cases, two Compound JSON
 cases, startup/renderer/branding checks and mutation-refusal coverage. A native
 terminal recipe opens the bare command with its logo, navigates and exits; a
 separate rendering fixture verifies formatted general-AI output without the old
