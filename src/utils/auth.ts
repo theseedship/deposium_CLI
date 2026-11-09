@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { getApiKey, setApiKey, hasApiKey } from './config';
@@ -44,18 +45,20 @@ export async function promptApiKey(): Promise<string> {
     {
       type: 'password',
       name: 'apiKey',
-      message: 'Enter your API key:',
+      message: tr('Enter your API key:'),
       mask: '*',
       validate: (input: string) => {
         const trimmed = input?.trim() ?? '';
         if (trimmed.length === 0) {
-          return 'API key cannot be empty';
+          return tr('API key cannot be empty');
         }
         if (trimmed.length < 10) {
-          return 'API key seems too short';
+          return tr('API key seems too short');
         }
         if (trimmed.startsWith('dep_svc_')) {
-          return 'Service-keys (dep_svc_*) are for server-side use only — paste a user-key (dep_live_* or dep_test_*).';
+          return tr(
+            'Service-keys (dep_svc_*) are for server-side use only — paste a user-key (dep_live_* or dep_test_*).'
+          );
         }
         return true;
       },
@@ -163,7 +166,7 @@ export async function ensureAuthenticated(
       }
 
       // If key is invalid, notify user and continue to re-authentication
-      log(chalk.yellow('\n⚠️  Stored API key is no longer valid\n'));
+      log(chalk.yellow(tr('\n⚠️  Stored API key is no longer valid\n')));
     } catch (error: unknown) {
       // Fall back to the stored key ONLY when the server is truly
       // unreachable — a 5xx, timeout-with-response, or unknown error
@@ -172,7 +175,7 @@ export async function ensureAuthenticated(
       // instead of silently trusting the cache.
       if (isNetworkDownError(error)) {
         log(chalk.yellow('\n⚠️  Could not reach Deposium API: ' + getErrorMessage(error)));
-        log(chalk.gray('Proceeding with the stored key (offline-friendly).\n'));
+        log(chalk.gray(tr('Proceeding with the stored key (offline-friendly).\n')));
         return existingKey;
       }
       log(
@@ -181,7 +184,7 @@ export async function ensureAuthenticated(
             getErrorMessage(error)
         )
       );
-      log(chalk.gray('Please re-authenticate.\n'));
+      log(chalk.gray(tr('Please re-authenticate.\n')));
     }
   }
 
@@ -191,46 +194,48 @@ export async function ensureAuthenticated(
   }
 
   // No valid key stored, need to authenticate
-  console.log(chalk.cyan('🔐 Authentication required for Deposium API\n'));
+  console.log(chalk.cyan(tr('🔐 Authentication required for Deposium API\n')));
 
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const apiKey = await promptApiKey();
 
-      console.log(chalk.gray('Validating API key...'));
+      console.log(chalk.gray(tr('Validating API key...')));
       const isValid = await validateApiKeyWithServer(baseUrl, apiKey);
 
       if (isValid) {
         // Save the valid key
         setApiKey(apiKey);
-        console.log(chalk.green('✅ API key validated successfully\n'));
+        console.log(chalk.green(tr('✅ API key validated successfully\n')));
         return apiKey;
       } else {
         if (attempt < maxAttempts) {
           console.log(
-            chalk.red(`\n❌ Authentication failed (attempt ${attempt}/${maxAttempts})\n`)
+            chalk.red(tr('\n❌ Authentication failed (attempt {0}/{1})\n', attempt, maxAttempts))
           );
         } else {
-          console.log(chalk.red('\n❌ Authentication failed - maximum attempts reached\n'));
+          console.log(chalk.red(tr('\n❌ Authentication failed - maximum attempts reached\n')));
         }
       }
     } catch (error: unknown) {
       if (attempt < maxAttempts) {
         console.log(
-          chalk.red(`\n❌ Error: ${getErrorMessage(error)} (attempt ${attempt}/${maxAttempts})\n`)
+          chalk.red(
+            tr('\n❌ Error: {0} (attempt {1}/{2})\n', getErrorMessage(error), attempt, maxAttempts)
+          )
         );
       } else {
-        console.log(chalk.red(`\n❌ Error: ${getErrorMessage(error)}\n`));
+        console.log(chalk.red(tr('\n❌ Error: {0}\n', getErrorMessage(error))));
       }
     }
   }
 
   // If we get here, authentication failed after all attempts
-  console.log(chalk.yellow('💡 To configure your API key manually, run:'));
-  console.log(chalk.cyan('   deposium auth login\n'));
-  console.log(chalk.gray('Or set it directly:'));
-  console.log(chalk.cyan('   deposium config set apiKey <your-api-key>\n'));
+  console.log(chalk.yellow(tr('💡 To configure your API key manually, run:')));
+  console.log(chalk.cyan(tr('   deposium auth login\n')));
+  console.log(chalk.gray(tr('Or set it directly:')));
+  console.log(chalk.cyan(tr('   deposium config set api-key <your-api-key>\n')));
 
   process.exit(1);
 }

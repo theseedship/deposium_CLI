@@ -72,6 +72,7 @@ import {
   deriveEncryptionKey,
   migrateIfPlaintext,
   getConfig,
+  getSavedPreferences,
   getBaseUrl,
   getEdgeUrl,
   setConfig,
@@ -96,6 +97,16 @@ describe('config.ts', () => {
   afterEach(() => {
     // Restore env vars
     process.env = { ...originalEnv };
+  });
+
+  test('saved presentation preferences are separate from credentials and environment space overrides', () => {
+    setConfig('language', 'fr');
+    setConfig('defaultSpace', 'saved');
+    setApiKey('fixture-only-private');
+    process.env.DEPOSIUM_SPACE = 'environment';
+    expect(getSavedPreferences()).toEqual({ language: 'fr', defaultSpace: 'saved' });
+    expect(getConfig()).toMatchObject({ language: 'fr', defaultSpace: 'environment' });
+    expect(getApiKey()).toBe('fixture-only-private');
   });
 
   describe('enforceUrlSecurity', () => {

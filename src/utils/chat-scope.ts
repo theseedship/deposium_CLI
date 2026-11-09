@@ -1,5 +1,7 @@
+import { tr } from './i18n';
 import inquirer from 'inquirer';
 import type { MCPClient } from '../client/mcp-client';
+import { terminalText } from './terminal-text';
 
 export interface ChatScope {
   spaceIds: string[];
@@ -18,31 +20,36 @@ export async function selectChatScope(
   options: ChatScopeOptions = {},
   interactive = Boolean(process.stdin.isTTY)
 ): Promise<ChatScope> {
+  if (options.space !== undefined && !options.space.trim())
+    throw new Error(tr('Space ID must not be empty.'));
   const spaces = await client.listSpaces();
   if (spaces.length === 0)
-    throw new Error('No accessible spaces. Create a space in DEPOSIUM first.');
-  let selected = options.space;
+    throw new Error(tr('No accessible spaces. Create a space in DEPOSIUM first.'));
+  let selected = options.space?.trim();
   if (!selected) {
-    if (!interactive) throw new Error('Choose an explicit scope with --space <id>.');
     const preferred = spaces.find(
-      (space) => space.id.toLowerCase() === options.initialSpace?.toLowerCase()
+      (space) => space.id.toLowerCase() === options.initialSpace?.trim().toLowerCase()
     );
+    if (!interactive) {
+      if (!preferred) throw new Error(tr('Choose an explicit scope with --space <id>.'));
+      return { spaceIds: [preferred.id], label: terminalText(preferred.name) };
+    }
     if (options.initialSpace && !preferred)
       console.warn(
-        'The configured default space is no longer accessible. Choose an available space.'
+        tr('The configured default space is no longer accessible. Choose an available space.')
       );
     const answer = await inquirer.prompt<{ space: string }>([
       {
         type: 'select',
         name: 'space',
         default: preferred?.id,
-        message: options.promptMessage ?? 'Chat in which space?',
+        message: options.promptMessage ?? tr('Chat in which space?'),
         choices: [
           ...spaces.map((space) => ({
             name:
               spaces.filter((candidate) => candidate.name === space.name).length > 1
-                ? `${space.name} (${space.id})`
-                : space.name,
+                ? `${terminalText(space.name)} (${terminalText(space.id)})`
+                : terminalText(space.name),
             value: space.id,
           })),
         ],
@@ -51,8 +58,9 @@ export async function selectChatScope(
     selected = answer.space;
   }
   const space = spaces.find((space) => space.id.toLowerCase() === selected.toLowerCase());
-  if (!space) throw new Error('Space is not in your accessible catalogue. Use /spaces to list it.');
-  return { spaceIds: [space.id], label: space.name };
+  if (!space)
+    throw new Error(tr('Space is not in your accessible catalogue. Use /spaces to list it.'));
+  return { spaceIds: [space.id], label: terminalText(space.name) };
 }
 
 /** Compare space IDs without regard to their order or display labels. */
@@ -80,4 +88,11 @@ export function parseChatCommand(input: string): { command: string; argument: st
   if (!input.startsWith('/')) return undefined;
   const [command, ...words] = input.slice(1).split(/\s+/);
   return { command: command.toLowerCase(), argument: words.join(' ') };
+}
+
+/** Render local slash help in the current language while keeping command tokens stable. */
+export function getChatHelp(): string {
+  return CHAT_HELP.split('\n')
+    .map((line) => tr(line))
+    .join('\n');
 }

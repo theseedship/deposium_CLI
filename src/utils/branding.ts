@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import chalk from 'chalk';
 import gradient from 'gradient-string';
 
@@ -13,7 +14,8 @@ export function createWelcomeBanner(columns = process.stdout.columns ?? 80): str
   const width = Number.isFinite(columns) && columns > 0 ? columns : 80;
   const fits = LOGO.split('\n').every((line) => line.length <= width);
   const title = fits ? LOGO : 'DEPOSIUM®';
-  const subtitle = width >= 40 ? 'Document chat · Search · Diagnostics' : 'Document workspace';
+  const subtitle =
+    width >= 40 ? tr('Document chat · Search · Diagnostics') : tr('Document workspace');
   return (
     '\n' +
     gradient(['#0ea5e9', '#3b82f6', '#6366f1']).multiline(title) +

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0 — Language and default-space preferences
+
+- Add offline Settings for FR/EN/automatic language and catalogue-validated default-space selection. Keep invocation-only `--lang` overrides separate from saved preferences.
+- Share the effective language across core terminal flows, command help and the default Chat response. Preserve command tokens, machine JSON and original server data.
+- Show safe instance origins, language source and catalogue-checked default-space status in Health; explicit `--context` adds diagnostics without changing existing JSON output.
+- Keep revoked defaults, environment overrides, catalogue failures and explicit scope distinct. Settings writes preserve credentials; live slash completion remains separate.
+
 ## 1.7.2 — Startup and presentation consolidation
 
 - Bare `deposium` opens the menu in a terminal; offline/script help and explicit commands remain available.

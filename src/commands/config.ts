@@ -1,3 +1,4 @@
+import { tr } from '../utils/i18n';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import {
@@ -11,6 +12,8 @@ import {
   getConfigPath,
   DeposiumConfig,
 } from '../utils/config';
+import { saveLanguage } from '../utils/preferences';
+import { updateSavedLanguage } from '../utils/i18n';
 import { assertNotServiceKey } from '../utils/auth';
 
 type ConfigKey = keyof DeposiumConfig;
@@ -29,14 +32,21 @@ export const configCommand = new Command('config')
           'mcp-url', // @deprecated - use deposium-url
           'default-tenant',
           'default-space',
+          'language',
         ];
 
         if (!validKeys.includes(key)) {
-          console.error(chalk.red(`\n❌ Invalid key: ${key}`));
-          console.log(chalk.yellow('\nValid keys:'));
+          console.error(chalk.red(tr('\n❌ Invalid key: {0}', key)));
+          console.log(chalk.yellow(tr('\nValid keys:')));
           validKeys.forEach((k) => console.log(`  - ${k}`));
           console.log('');
           process.exit(1);
+        }
+
+        if (key === 'language') {
+          saveLanguage(value);
+          console.log(tr('Language preference saved.'));
+          return;
         }
 
         // `api-key` is special: it goes to the separate credentials
@@ -47,12 +57,14 @@ export const configCommand = new Command('config')
         // message instead of a cryptic 401 on the next call.
         if (key === 'api-key') {
           if (typeof value !== 'string' || value.trim().length === 0) {
-            console.error(chalk.red('\n❌ api-key must be a non-empty string\n'));
+            console.error(chalk.red(tr('\n❌ api-key must be a non-empty string\n')));
             process.exit(1);
           }
           assertNotServiceKey(value, 'prompt');
           setApiKey(value);
-          console.log(chalk.green(`\n✅ Set ${chalk.cyan('api-key')} (stored in credentials)\n`));
+          console.log(
+            chalk.green(tr('\n✅ Set {0} (stored in credentials)\n', chalk.cyan('api-key')))
+          );
           return;
         }
 
@@ -69,7 +81,9 @@ export const configCommand = new Command('config')
 
         setConfig(camelKey, parsedValue);
         console.log(
-          chalk.green(`\n✅ Set ${chalk.cyan(key)} = ${chalk.yellow(String(parsedValue))}\n`)
+          chalk.green(
+            tr('\n✅ Set {0} = {1}\n', chalk.cyan(key), chalk.yellow(String(parsedValue)))
+          )
         );
       })
   )
@@ -92,26 +106,39 @@ export const configCommand = new Command('config')
           if (value !== undefined) {
             console.log(chalk.cyan(key) + ':', chalk.yellow(value));
           } else {
-            console.log(chalk.gray(`${key}: not set`));
+            console.log(chalk.gray(tr('{0}: not set', key)));
           }
         } else {
-          console.log(chalk.bold('\n📋 Deposium CLI Configuration:\n'));
+          console.log(chalk.bold(tr('\n📋 Deposium CLI Configuration:\n')));
 
           // Mask API key for security (show first 8 chars + ...)
           const maskedApiKey = config.apiKey
             ? config.apiKey.substring(0, 8) + '...'
-            : chalk.gray('not set');
+            : chalk.gray(tr('not set'));
 
           const baseUrl = getBaseUrl(config);
+          console.log(tr('Language preference: {0}', config.language ?? 'auto'));
 
-          console.log(chalk.cyan('api-key:'), maskedApiKey);
-          console.log(chalk.cyan('deposium-url:'), config.deposiumUrl ?? chalk.gray('not set'));
-          console.log(chalk.cyan('mcp-url:'), config.mcpUrl ?? chalk.gray('not set (deprecated)'));
-          console.log(chalk.cyan('effective-url:'), baseUrl);
-          console.log(chalk.cyan('default-tenant:'), config.defaultTenant ?? chalk.gray('not set'));
-          console.log(chalk.cyan('default-space:'), config.defaultSpace ?? chalk.gray('not set'));
+          console.log(chalk.cyan(tr('api-key:')), maskedApiKey);
+          console.log(
+            chalk.cyan(tr('deposium-url:')),
+            config.deposiumUrl ?? chalk.gray(tr('not set'))
+          );
+          console.log(
+            chalk.cyan(tr('mcp-url:')),
+            config.mcpUrl ?? chalk.gray(tr('not set (deprecated)'))
+          );
+          console.log(chalk.cyan(tr('effective-url:')), baseUrl);
+          console.log(
+            chalk.cyan(tr('default-tenant:')),
+            config.defaultTenant ?? chalk.gray(tr('not set'))
+          );
+          console.log(
+            chalk.cyan(tr('default-space:')),
+            config.defaultSpace ?? chalk.gray(tr('not set'))
+          );
           console.log('');
-          console.log(chalk.gray('Config file:'), getConfigPath());
+          console.log(chalk.gray(tr('Config file:')), getConfigPath());
           console.log('');
         }
       })
@@ -123,23 +150,27 @@ export const configCommand = new Command('config')
       .action((key) => {
         if (key === 'api-key') {
           deleteApiKey();
-          console.log(chalk.green(`\n✅ Deleted ${chalk.cyan('api-key')} (from credentials)\n`));
+          console.log(
+            chalk.green(tr('\n✅ Deleted {0} (from credentials)\n', chalk.cyan('api-key')))
+          );
           return;
         }
         const camelKey = key.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase()) as ConfigKey;
         deleteConfig(camelKey);
-        console.log(chalk.green(`\n✅ Deleted ${chalk.cyan(key)}\n`));
+        if (key === 'language') updateSavedLanguage('auto');
+        console.log(chalk.green(tr('\n✅ Deleted {0}\n', chalk.cyan(key))));
       })
   )
   .addCommand(
     new Command('reset').description('Reset all configuration to defaults').action(() => {
       resetConfig();
-      console.log(chalk.green('\n✅ Configuration reset to defaults\n'));
+      updateSavedLanguage('auto');
+      console.log(chalk.green(tr('\n✅ Configuration reset to defaults\n')));
     })
   )
   .addCommand(
     new Command('path').description('Show configuration file path').action(() => {
-      console.log(chalk.gray('\nConfiguration file:'));
+      console.log(chalk.gray(tr('\nConfiguration file:')));
       console.log(chalk.cyan(getConfigPath()));
       console.log('');
     })

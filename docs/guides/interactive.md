@@ -22,6 +22,7 @@ The startup wordmark appears once at menu entry, with a compact narrow-screen fa
 | Corpus statistics | Inspect the selected space's indexed corpus.                              | Counts reported by the server, including documents, pages and graph data when available. Counts are not a content-quality score or proof that every document finished indexing.                 |
 | Health            | Inspect the connected service's health response.                          | Reported status, including degraded/unknown states; a successful HTTP request is not proof that all services are healthy.                                                                       |
 | Tools             | Inspect the server's tool catalogue.                                      | CLI 1.7.1+: select a tool to read its complete description and input parameters, then inspect another or go back. Inspection does not execute the tool. A failed catalogue request is an error. |
+| Settings          | Configure language and one authorized default space (CLI 1.8.0+).         | Offline language preferences; catalogue-backed space picker; no credential or permission changes.                                                                                               |
 | Advanced          | Access reasoning, query diagnostics, graph exploration and MCP resources. | An explanation before each operation; see below.                                                                                                                                                |
 
 For scoped operations, select an accessible space by **name**. A configured default
@@ -60,10 +61,11 @@ When an operation fails, check the selected space, credentials and required
 permissions. Returning to the menu does not log you out. Chat history exists only
 in the running process; a new chat or a real space change starts fresh context.
 
-The current terminal interface remains English. CLI 1.7.0 adds chat activity,
-source inspection and grouped verification notes; see the [chat guide](../commands/chat.md#activity-and-source-inspection-cli-170).
-A unified FR/EN setting, Health preference display and live `/` completion remain
-separate roadmap milestones. See the [qualification and limitations](qualification.md)
-for what has actually been checked.
+CLI **1.8.0+** adds [Settings](../commands/settings.md): saved FR/EN/automatic
+language, an authorized default space shared by scoped commands, and effective
+configuration in Health. `--lang fr|en` overrides this invocation only. Chat uses
+the effective language by default; original server text and technical identifiers
+are preserved. Live `/` completion remains a separate milestone. See the
+[qualification and limitations](qualification.md) for the exact tested surface.
 
 For complete tool reference and raw input schemas, see the [Tools guide](../commands/tools.md).

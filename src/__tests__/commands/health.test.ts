@@ -6,12 +6,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Create mock functions
 const mockHealth = vi.fn();
 const mockCallTool = vi.fn();
+const mockListSpaces = vi.fn();
 
 // Mock modules before importing command
 vi.mock('../../client/mcp-client', () => ({
   MCPClient: class MockMCPClient {
     health = mockHealth;
     callTool = mockCallTool;
+    listSpaces = mockListSpaces;
   },
 }));
 
@@ -26,6 +28,7 @@ vi.mock('../../utils/config', () => ({
 }));
 
 import { healthCommand } from '../../commands/health';
+import { getConfig } from '../../utils/config';
 
 describe('health command', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -37,6 +40,9 @@ describe('health command', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     mockHealth.mockClear();
+    mockListSpaces.mockClear();
+    vi.mocked(getConfig).mockReturnValue({});
+    healthCommand.setOptionValue('context', false);
     mockCallTool.mockClear();
   });
 
@@ -44,6 +50,38 @@ describe('health command', () => {
     vi.clearAllMocks();
   });
 
+  it('context JSON distinguishes inaccessible saved scope without changing the raw health contract', async () => {
+    vi.mocked(getConfig).mockReturnValue({
+      defaultSpace: 'revoked',
+      apiKey: 'PRIVATE',
+      edgeUrl: 'https://name:secret@edge.example.test/private?token=value',
+    });
+    const health = { status: 'healthy', services: [] };
+    mockHealth.mockResolvedValue(health);
+    mockListSpaces.mockResolvedValue([]);
+    await healthCommand.parseAsync(['node', 'test', '--format', 'json', '--context']);
+    const result = JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'));
+    expect(result.health).toEqual(health);
+    expect(result.context.space).toMatchObject({ id: 'revoked', status: 'inaccessible' });
+    expect(result.context.edge).toBe('https://edge.example.test');
+    expect(JSON.stringify(result.context)).not.toMatch(/PRIVATE|secret|token/);
+    expect(mockCallTool).not.toHaveBeenCalled();
+  });
+  it('context honours verbose details and catalogue failure is reported separately from health', async () => {
+    vi.mocked(getConfig).mockReturnValue({ defaultSpace: 'saved' });
+    mockHealth.mockResolvedValue({ status: 'healthy' });
+    mockListSpaces.mockRejectedValue(new Error('catalogue unavailable'));
+    mockCallTool.mockResolvedValue({ content: [{ type: 'text', text: 'details' }] });
+    await healthCommand.parseAsync(['node', 'test', '--format', 'json', '--verbose', '--context']);
+    const result = JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'));
+    expect(result.context.space.status).toBe('unavailable');
+    expect(result.details).toEqual([{ type: 'text', text: 'details' }]);
+    expect(mockCallTool).toHaveBeenCalledExactlyOnceWith(
+      'system_health',
+      { verbose: true },
+      { spinner: false }
+    );
+  });
   it('should have correct command configuration', () => {
     expect(healthCommand.name()).toBe('health');
     expect(healthCommand.description()).toContain('health');

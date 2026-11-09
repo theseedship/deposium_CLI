@@ -1,3 +1,4 @@
+import { tr } from '../utils/i18n';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import {
@@ -26,35 +27,35 @@ export const authCommand = new Command('auth')
 
         // Check if already logged in
         if (hasApiKey()) {
-          console.log(chalk.yellow('\n⚠️  You are already logged in'));
+          console.log(chalk.yellow(tr('\n⚠️  You are already logged in')));
           const currentApiKey = getApiKey();
           console.log(
-            chalk.gray('Your current API key: ') + chalk.cyan(maskApiKey(currentApiKey ?? ''))
+            chalk.gray(tr('Your current API key: ')) + chalk.cyan(maskApiKey(currentApiKey ?? ''))
           );
           console.log(
-            chalk.gray('\nTo logout first, run: ') + chalk.cyan('deposium auth logout\n')
+            chalk.gray(tr('\nTo logout first, run: ')) + chalk.cyan(tr('deposium auth logout\n'))
           );
           process.exit(0);
         }
 
-        console.log(chalk.cyan('\n🔐 Login to Deposium\n'));
-        console.log(chalk.gray(`Server: ${baseUrl}\n`));
+        console.log(chalk.cyan(tr('\n🔐 Login to Deposium\n')));
+        console.log(chalk.gray(tr('Server: {0}\n', baseUrl)));
 
         const maxAttempts = 3;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           try {
             const apiKey = await promptApiKey();
 
-            console.log(chalk.gray('\nValidating API key...'));
+            console.log(chalk.gray(tr('\nValidating API key...')));
             const isValid = await validateApiKeyWithServer(baseUrl, apiKey);
 
             if (isValid) {
               setApiKey(apiKey);
-              console.log(chalk.green('\n✅ Login successful!'));
-              console.log(chalk.gray('API key: ') + chalk.cyan(maskApiKey(apiKey)));
+              console.log(chalk.green(tr('\n✅ Login successful!')));
+              console.log(chalk.gray(tr('API key: ')) + chalk.cyan(maskApiKey(apiKey)));
               console.log(
                 chalk.gray(
-                  '\nYou can now use all Deposium CLI commands without providing credentials.\n'
+                  tr('\nYou can now use all Deposium CLI commands without providing credentials.\n')
                 )
               );
               process.exit(0);
@@ -69,21 +70,28 @@ export const authCommand = new Command('auth')
             if (attempt < maxAttempts) {
               console.log(
                 chalk.red(
-                  `\n❌ Error: ${getErrorMessage(error)} (attempt ${attempt}/${maxAttempts})\n`
+                  tr(
+                    '\n❌ Error: {0} (attempt {1}/{2})\n',
+                    getErrorMessage(error),
+                    attempt,
+                    maxAttempts
+                  )
                 )
               );
             } else {
-              console.log(chalk.red(`\n❌ Error: ${getErrorMessage(error)}`));
+              console.log(chalk.red(tr('\n❌ Error: {0}', getErrorMessage(error))));
             }
           }
         }
 
         console.log(
-          chalk.yellow('\n💡 Make sure you are using a valid API key from your Deposium account.\n')
+          chalk.yellow(
+            tr('\n💡 Make sure you are using a valid API key from your Deposium account.\n')
+          )
         );
         process.exit(1);
       } catch (error: unknown) {
-        console.error(chalk.red('\n❌ Login failed:'), getErrorMessage(error));
+        console.error(chalk.red(tr('\n❌ Login failed:')), getErrorMessage(error));
         process.exit(1);
       }
     })
@@ -92,18 +100,20 @@ export const authCommand = new Command('auth')
     new Command('logout').description('Remove stored credentials').action(async () => {
       try {
         if (!hasApiKey()) {
-          console.log(chalk.yellow('\n⚠️  You are not logged in\n'));
+          console.log(chalk.yellow(tr('\n⚠️  You are not logged in\n')));
           process.exit(0);
         }
 
         const currentKey = getApiKey() ?? '';
         deleteApiKey();
 
-        console.log(chalk.green('\n✅ Logged out successfully'));
-        console.log(chalk.gray('Removed API key: ') + chalk.cyan(maskApiKey(currentKey)));
-        console.log(chalk.gray('\nTo login again, run: ') + chalk.cyan('deposium auth login\n'));
+        console.log(chalk.green(tr('\n✅ Logged out successfully')));
+        console.log(chalk.gray(tr('Removed API key: ')) + chalk.cyan(maskApiKey(currentKey)));
+        console.log(
+          chalk.gray(tr('\nTo login again, run: ')) + chalk.cyan(tr('deposium auth login\n'))
+        );
       } catch (error: unknown) {
-        console.error(chalk.red('\n❌ Logout failed:'), getErrorMessage(error));
+        console.error(chalk.red(tr('\n❌ Logout failed:')), getErrorMessage(error));
         process.exit(1);
       }
     })
@@ -115,9 +125,9 @@ export const authCommand = new Command('auth')
         const baseUrl = getBaseUrl(config);
         const envKey = process.env.DEPOSIUM_API_KEY?.trim();
 
-        console.log(chalk.bold('\n🔐 Authentication Status\n'));
+        console.log(chalk.bold(tr('\n🔐 Authentication Status\n')));
 
-        console.log(chalk.gray('Deposium URL: ') + chalk.cyan(baseUrl));
+        console.log(chalk.gray(tr('Deposium URL: ')) + chalk.cyan(baseUrl));
 
         if (envKey) {
           // Reject service-keys BEFORE sending them to the server — mirrors
@@ -126,26 +136,26 @@ export const authCommand = new Command('auth')
           // though we know we'll reject it anyway.
           assertNotServiceKey(envKey, 'env');
 
-          console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
-          console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(envKey)));
+          console.log(chalk.gray(tr('Authentication: ')) + chalk.green(tr('✅ Logged in')));
+          console.log(chalk.gray(tr('API Key: ')) + chalk.cyan(maskApiKey(envKey)));
           console.log(
-            chalk.gray('Source: ') +
-              chalk.yellow('DEPOSIUM_API_KEY env var') +
-              chalk.gray(' (overrides stored credentials)')
+            chalk.gray(tr('Source: ')) +
+              chalk.yellow(tr('DEPOSIUM_API_KEY env var')) +
+              chalk.gray(tr(' (overrides stored credentials)'))
           );
 
-          console.log(chalk.gray('\nValidating credentials...'));
+          console.log(chalk.gray(tr('\nValidating credentials...')));
           try {
             const isValid = await validateApiKeyWithServer(baseUrl, envKey);
 
             if (isValid) {
-              console.log(chalk.green('✅ API key is valid\n'));
+              console.log(chalk.green(tr('✅ API key is valid\n')));
             } else {
-              console.log(chalk.red('❌ API key is invalid'));
+              console.log(chalk.red(tr('❌ API key is invalid')));
               console.log(
-                chalk.gray('Update or unset ') +
-                  chalk.cyan('DEPOSIUM_API_KEY') +
-                  chalk.gray(' to fix\n')
+                chalk.gray(tr('Update or unset ')) +
+                  chalk.cyan(tr('DEPOSIUM_API_KEY')) +
+                  chalk.gray(tr(' to fix\n'))
               );
             }
           } catch (error: unknown) {
@@ -158,38 +168,38 @@ export const authCommand = new Command('auth')
           // should be rejected at the CLI boundary before we transmit it.
           assertNotServiceKey(apiKey, 'stored');
 
-          console.log(chalk.gray('Authentication: ') + chalk.green('✅ Logged in'));
-          console.log(chalk.gray('API Key: ') + chalk.cyan(maskApiKey(apiKey)));
-          console.log(chalk.gray('Source: ') + chalk.cyan('stored credentials'));
+          console.log(chalk.gray(tr('Authentication: ')) + chalk.green(tr('✅ Logged in')));
+          console.log(chalk.gray(tr('API Key: ')) + chalk.cyan(maskApiKey(apiKey)));
+          console.log(chalk.gray(tr('Source: ')) + chalk.cyan(tr('stored credentials')));
 
           // Try to validate the key
-          console.log(chalk.gray('\nValidating credentials...'));
+          console.log(chalk.gray(tr('\nValidating credentials...')));
           try {
             const isValid = await validateApiKeyWithServer(baseUrl, apiKey);
 
             if (isValid) {
-              console.log(chalk.green('✅ API key is valid\n'));
+              console.log(chalk.green(tr('✅ API key is valid\n')));
             } else {
-              console.log(chalk.red('❌ API key is invalid'));
+              console.log(chalk.red(tr('❌ API key is invalid')));
               console.log(
-                chalk.gray('Run: ') +
-                  chalk.cyan('deposium auth login') +
-                  chalk.gray(' to re-authenticate\n')
+                chalk.gray(tr('Run: ')) +
+                  chalk.cyan(tr('deposium auth login')) +
+                  chalk.gray(tr(' to re-authenticate\n'))
               );
             }
           } catch (error: unknown) {
             console.log(chalk.yellow('⚠️  Could not validate: ' + getErrorMessage(error) + '\n'));
           }
         } else {
-          console.log(chalk.gray('Authentication: ') + chalk.red('❌ Not logged in'));
+          console.log(chalk.gray(tr('Authentication: ')) + chalk.red(tr('❌ Not logged in')));
           console.log(
-            chalk.gray('\nRun: ') +
-              chalk.cyan('deposium auth login') +
-              chalk.gray(' to authenticate\n')
+            chalk.gray(tr('\nRun: ')) +
+              chalk.cyan(tr('deposium auth login')) +
+              chalk.gray(tr(' to authenticate\n'))
           );
         }
       } catch (error: unknown) {
-        console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
+        console.error(chalk.red(tr('\n❌ Error:')), getErrorMessage(error));
         process.exit(1);
       }
     })

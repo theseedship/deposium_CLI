@@ -1,10 +1,11 @@
+import { tr } from './i18n';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import type { MCPClient } from '../client/mcp-client';
 import { ChatHistory } from './chat-history';
 import type { ChatTurnDetails } from './chat-output';
 import { executeReferenceCommand } from './chat-reference-commands';
-import { CHAT_HELP, ChatScope, sameChatScope, selectChatScope } from './chat-scope';
+import { getChatHelp, ChatScope, sameChatScope, selectChatScope } from './chat-scope';
 
 interface CommandContext {
   client: Pick<MCPClient, 'listSpaces'>;
@@ -23,9 +24,9 @@ async function changeSpace(argument: string, context: CommandContext): Promise<C
       context.details.citations = [];
       context.details.verifications = [];
     }
-    console.log(chalk.gray('Conversation history cleared for the new space.'));
+    console.log(chalk.gray(tr('Conversation history cleared for the new space.')));
   }
-  console.log(chalk.cyan(`Space: ${next.label}\n`));
+  console.log(chalk.cyan(tr('Space: {0}\n', next.label)));
   return next;
 }
 
@@ -40,17 +41,17 @@ export async function executeChatCommand(
       {
         type: 'select',
         name: 'command',
-        message: 'Chat command:',
+        message: tr('Chat command:'),
         choices: [
-          { name: 'Choose space', value: 'space' },
-          { name: 'List spaces', value: 'spaces' },
-          { name: 'Sources for the last answer', value: 'sources' },
-          { name: 'Read a cited passage', value: 'source' },
-          { name: 'Verification details', value: 'verify' },
-          { name: 'Show help', value: 'help' },
-          { name: 'Show history', value: 'history' },
-          { name: 'Clear history', value: 'clear' },
-          { name: 'Exit chat', value: 'exit' },
+          { name: tr('Choose space'), value: 'space' },
+          { name: tr('List spaces'), value: 'spaces' },
+          { name: tr('Sources for the last answer'), value: 'sources' },
+          { name: tr('Read a cited passage'), value: 'source' },
+          { name: tr('Verification details'), value: 'verify' },
+          { name: tr('Show help'), value: 'help' },
+          { name: tr('Show history'), value: 'history' },
+          { name: tr('Clear history'), value: 'clear' },
+          { name: tr('Exit chat'), value: 'exit' },
         ],
       },
     ]);
@@ -58,7 +59,7 @@ export async function executeChatCommand(
   }
   const result = { scope: context.scope, exit: false };
   if (local.argument && command !== 'space' && command !== 'source') {
-    console.log(chalk.yellow('Unexpected command argument. Use /help.'));
+    console.log(chalk.yellow(tr('Unexpected command argument. Use /help.')));
     return result;
   }
   if (['sources', 'source', 'verify'].includes(command)) {
@@ -67,11 +68,11 @@ export async function executeChatCommand(
   }
   switch (command) {
     case 'exit':
-      console.log(chalk.green('\n👋 Goodbye!\n'));
+      console.log(chalk.green(tr('\n👋 Goodbye!\n')));
       result.exit = true;
       break;
     case 'help':
-      console.log(CHAT_HELP);
+      console.log(getChatHelp());
       break;
     case 'clear':
       context.history.clear();
@@ -79,7 +80,7 @@ export async function executeChatCommand(
         context.details.citations = [];
         context.details.verifications = [];
       }
-      console.log(chalk.yellow('🗑️  Conversation history cleared\n'));
+      console.log(chalk.yellow(tr('🗑️  Conversation history cleared\n')));
       break;
     case 'history':
       context.history.display();
@@ -92,7 +93,7 @@ export async function executeChatCommand(
       result.scope = await changeSpace(local.argument, context);
       break;
     default:
-      console.log(chalk.yellow('Unknown chat command. Use /help.'));
+      console.log(chalk.yellow(tr('Unknown chat command. Use /help.')));
   }
   return result;
 }
