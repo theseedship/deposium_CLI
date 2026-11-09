@@ -38,7 +38,9 @@ After an answer:
 The source view uses cached passages from the last answer. It does not fetch a
 new document, open a browser or download a whole PDF. An unavailable reference
 stays unavailable. Changing space, clearing history or starting another question
-clears old reference details. Failed streams do not expose partial source details.
+clears old reference details. Failed streams or EOF without the final `done` receipt do not expose partial
+source details. A receipt before an interactive gate cannot certify its resumed
+stream.
 
 By default, familiar verification codes are grouped into understandable categories,
 such as amounts requiring a source check or names not linked in the graph.

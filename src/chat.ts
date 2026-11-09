@@ -190,6 +190,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   let fullResponse = '';
   let completed = false;
   let hadStreamError = false;
+  let streamDone = false;
   const activity = args.activity ?? createChatActivity();
   const screen = createChatRenderer(activity);
   // Suppressed = true when the backend blocked the answer via Guardian
@@ -217,6 +218,9 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       screen.phase('Working with tools');
     },
     onCitation: (c) => citations.push(c),
+    onDone: () => {
+      streamDone = true;
+    },
     onChatPrompt: (prompt) => {
       activity.stop();
       pendingPrompts.push(prompt);
@@ -290,6 +294,9 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
 
       process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
       screen.waiting('Resuming request');
+      // Each resume is a new stream; an earlier gate stream cannot attest
+      // completion of its successor. EOF alone is not an answer receipt.
+      streamDone = false;
 
       if (prompt.correlation_id) {
         await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
@@ -313,7 +320,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     activity.stop();
     process.stdout.write('\n');
 
-    completed = !hadStreamError;
+    completed = streamDone && !hadStreamError;
     if (completed) printChatSources(citations);
 
     // If Guardian blocked without offering a fallback, return empty so

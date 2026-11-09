@@ -95,3 +95,69 @@ test('empty tokens do not hide activity and reported stream errors invalidate so
   });
   expect(details).toHaveBeenCalledWith({ citations: [], verifications: [] });
 });
+
+test.each([false, true])('source inspection requires final stream done (%s)', async (done) => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  const details = vi.fn();
+  const citation = { citation_id: 1, file_id: 1, snippet: 'Emitted source' };
+  const verification = { passed: false, issues: [{ type: 'amount_mismatch', severity: 'high' }] };
+  const client = {
+    chatStream: vi.fn(async (_url: string, _message: string, options: ChatStreamOptions) => {
+      options.onToken('Answer');
+      options.onCitation?.(citation);
+      options.onVerification?.(verification);
+      if (done) options.onDone?.({ total_duration_ms: 1 });
+    }),
+  };
+  await runChatTurn({
+    client: client as unknown as MCPClient,
+    streamUrl: 'https://edge.example.test',
+    directMcp: false,
+    message: 'Q',
+    conversationHistory: [],
+    onAmbiguous: 'fail',
+    activity: activity(),
+    onDetails: details,
+  });
+  expect(details).toHaveBeenCalledWith({
+    citations: done ? [citation] : [],
+    verifications: [verification],
+  });
+});
+
+test('a gate stream done does not certify a truncated resumed stream', async () => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  const details = vi.fn();
+  const client = {
+    chatStream: vi.fn(async (_url: string, _message: string, options: ChatStreamOptions) => {
+      options.onChatPrompt?.({
+        type: 'confirm',
+        correlation_id: 'gate',
+        message: 'Continue?',
+      } as never);
+      options.onDone?.({ total_duration_ms: 1 });
+    }),
+    resumeAgent: vi.fn(
+      async (_url: string, _id: string, _decision: unknown, options: ChatStreamOptions) => {
+        options.onToken('Partial');
+        options.onCitation?.({ citation_id: 1, file_id: 1, snippet: 'Partial source' });
+        // Transport EOF, deliberately no final done receipt.
+      }
+    ),
+  };
+  await runChatTurn({
+    client: client as unknown as MCPClient,
+    streamUrl: 'https://edge.example.test',
+    directMcp: false,
+    message: 'Q',
+    conversationHistory: [],
+    onAmbiguous: 'prompt',
+    prompter: async () => ({ action: 'confirm', confirmed: true }),
+    activity: activity(),
+    onDetails: details,
+  });
+  expect(client.resumeAgent).toHaveBeenCalledOnce();
+  expect(details).toHaveBeenCalledWith({ citations: [], verifications: [] });
+});

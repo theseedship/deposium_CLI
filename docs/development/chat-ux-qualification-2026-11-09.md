@@ -27,7 +27,8 @@ No source text, credential or raw private identifier is recorded here.
 - Native terminal fixture: three TTY streams, real elapsed spinner, delayed fake
   tokens, clean transition to the answer, grouped notices and citation inspection;
   process exits normally. This fixture tests rendering, not production latency.
-- Full suite: 802 tests across 51 files. CPU tests cover token output before the next fragment arrives, cleanup on disconnect,
+- Full suite: 805 tests across 51 files. CPU tests cover token output before the next fragment arrives, cleanup on disconnect,
+  final-stream completion receipts (including HITL resumes),
   bounded/non-executable cached passages, exact emitted citation IDs, missing and
   superseded/unavailable references, same-space versus changed-space handling,
   explicit detailed verification and noninteractive silence.
