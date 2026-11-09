@@ -468,6 +468,7 @@ describe('runChatTurn', () => {
       for (const ev of events) {
         if (ev.kind === 'token') opts.onToken?.(ev.data as string);
         else if (ev.kind === 'citation') opts.onCitation?.(ev.data);
+        else if (ev.kind === 'done') opts.onDone?.(ev.data);
         else if (ev.kind === 'chat_prompt') opts.onChatPrompt?.(ev.data);
         else if (ev.kind === 'error') opts.onError?.(ev.data);
         else if (ev.kind === 'answer_replace') opts.onAnswerReplace?.(ev.data);
@@ -917,6 +918,7 @@ describe('runChatTurn', () => {
       [
         { kind: 'token', data: 'answer' },
         { kind: 'citation', data: citation },
+        { kind: 'done', data: { total_duration_ms: 1 } },
       ],
     ]);
 
@@ -959,6 +961,7 @@ describe('runChatTurn', () => {
         { kind: 'token', data: 'Draft.' },
         { kind: 'citation', data: { file_id: 1, file_name: 'guide.pdf', page_number: 2 } },
         { kind: 'answer_replace', data: { id: 'a1', final_answer: 'Final answer.' } },
+        { kind: 'done', data: { total_duration_ms: 1 } },
       ],
     ]);
     const result = await runChatTurn({

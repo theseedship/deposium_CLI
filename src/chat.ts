@@ -211,12 +211,8 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       screen.token(token);
       fullResponse += token;
     },
-    onMetadata: () => {
-      screen.phase('Processing request');
-    },
-    onToolCall: () => {
-      screen.phase('Working with tools');
-    },
+    onMetadata: () => screen.phase('Processing request'),
+    onToolCall: () => screen.phase('Working with tools'),
     onCitation: (c) => citations.push(c),
     onDone: () => {
       streamDone = true;
