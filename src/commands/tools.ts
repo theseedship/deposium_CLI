@@ -22,7 +22,7 @@ export const toolsCommand = new Command('tools')
 
       const tools = await client.listTools();
 
-      if (options.show) {
+      if (options.show !== undefined) {
         showCatalogueEntry(tools, options);
         return;
       }
@@ -145,6 +145,7 @@ function showCatalogueEntry(
   tools: MCPTool[],
   options: { show: string; search?: string; category?: string; json?: boolean }
 ): void {
+  if (!options.show.trim()) throw new Error('--show requires a non-empty exact tool name.');
   if (options.search || options.category)
     throw new Error('--show selects one exact tool; use it without --search or --category.');
   const tool = tools.find((entry) => entry.name === options.show);

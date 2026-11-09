@@ -1,14 +1,7 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { stripVTControlCharacters } from 'node:util';
 import type { MCPClient, MCPTool } from '../client/mcp-client';
-
-function text(value: unknown): string {
-  if (typeof value !== 'string') return '';
-  // Server catalogue text is reference material, never terminal control input.
-  // eslint-disable-next-line no-control-regex
-  return stripVTControlCharacters(value).replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '');
-}
+import { terminalText as text } from './terminal-text';
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);

@@ -193,4 +193,16 @@ describe('tools command', () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
     expect(mockCallTool).not.toHaveBeenCalled();
   });
+
+  it.each(['', '   '])(
+    'rejects an empty exact name %j without returning the whole catalogue',
+    async (name) => {
+      mockListTools.mockResolvedValue([{ name: 'deposium_search', description: 'Search' }]);
+      await toolsCommand.parseAsync(['node', 'test', '--show', name, '--json']);
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy.mock.calls.flat().join(' ')).toContain('non-empty exact tool name');
+      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(mockCallTool).not.toHaveBeenCalled();
+    }
+  );
 });
