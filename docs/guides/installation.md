@@ -35,23 +35,32 @@ The repository does not currently publish GitHub release binaries or a `deposium
 
 ## Updates
 
-A global npm installation checks the public npm version when you start an
-interactive session (`deposium chat`, `deposium interactive`, or `deposium i`),
-and when opening the CLI without a command in a terminal. If a newer stable
-version is available, it offers **Update and restart now?**. Accepting installs
-that exact version into the existing npm prefix, verifies the installed version,
-and restarts with the same arguments. Your stored API key and configuration stay
-in place. Declining continues with the current version.
+**Requires CLI 1.6.0 or newer.** Check your installed version and the latest
+public npm version separately:
 
-The check is bounded and unavailable npm/registry access does not prevent startup.
-It does not run for scripts, JSON output, CI, help/version, checkouts, `npm link`,
-`npx` caches or standalone Bun binaries. It never uses sudo or a shell to install.
-Lookup and installation use the public npm registry for `@deposium`, including
-when a scoped registry is configured; that override applies only to the update.
-An interruption is forwarded once to the active installer/restarted session;
-the parent waits for closure, with a bounded forced stop if the child is stuck.
-An install/verification failure stops the update and does not pretend it succeeded.
-Use `--no-update` or `DEPOSIUM_NO_UPDATE=1` to skip the startup check.
+```bash
+deposium --version
+npm view @deposium/cli version
+```
+
+Documentation can describe changes merged before their npm release is approved.
+An older public version does not gain these features just because its documentation
+has been updated.
+
+A global npm installation checks for a newer public stable version when you run
+`deposium chat`, `deposium interactive` (or `deposium i`), or `deposium` without
+a command in a terminal. It asks **Update and restart now?** before installing.
+Accepting verifies the installed version and restarts with the same arguments.
+Your stored API key and configuration stay in place. Declining continues with
+the current version. An unavailable registry does not prevent normal startup.
+
+The check does not run for scripts, JSON output, CI, help/version, development
+checkouts, `npm link`, `npx` caches or standalone Bun binaries.
+Use `--no-update` or `DEPOSIUM_NO_UPDATE=1` to skip it. Lookup and installation
+use the public npm registry for `@deposium`, even if you configured a scoped
+registry; that override applies only to this update. The updater never invokes
+sudo. If installation fails, it reports failure and stops; resolve the npm
+installation error before retrying.
 
 Older CLI versions without this feature need one manual update after the new
 version has been published:

@@ -95,8 +95,18 @@ Use a space ID from `deposium space list` in the search command. `auth login` us
 
 For URL questions, older versions, and local development, see the [configuration guide](docs/guides/configuration.md). The [installation guide](docs/guides/installation.md) covers other installation methods.
 
-Global npm installs offer a confirmed update and restart at interactive startup.
+### Choose how to use the CLI
+
+- `deposium search "a phrase from your document" --space YOUR_SPACE_ID` runs one command and returns to your shell. Your stored login remains available for the next command.
+- `deposium interactive` (or `deposium i`) opens the menu interface.
+- `deposium chat --space YOUR_SPACE_ID` starts a continuous conversation. In CLI 1.6.0+, enter `/` then press Enter for the chat command menu. Chat history lasts only for the current process; closing chat does not log you out.
+
+### Keep the CLI up to date
+
+Starting with **CLI 1.6.0**, global npm installs offer a confirmed update and restart at interactive startup.
 Scripts and JSON output stay noninteractive; `--no-update` disables the check.
+Older versions need a manual `npm install -g @deposium/cli@latest` first.
+Check `deposium --version` against `npm view @deposium/cli version` to distinguish your installed version from the latest public npm version. Changes merged in this repository may still await npm release approval.
 See [updates and supported installations](docs/guides/installation.md#updates).
 
 ## 🤝 Contributing
