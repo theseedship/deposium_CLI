@@ -49,7 +49,7 @@ private-document search. The CLI does not supply local TurboV3/LLM engines by it
 
 ## Still not delivered or universally qualified
 
-- Live slash completion remains roadmap work. CLI 1.8.0 adds saved language and
+- CLI 1.8.0 adds saved language and
   default-space preferences for the core flows described in [Settings](../commands/settings.md).
   Historical advanced-command output, server data and library keyboard hints are
   not all localized. Chat now sends the effective UI language by default.
@@ -98,3 +98,17 @@ contract; explicit context distinguishes unavailable catalogue data from endpoin
 health and strips credential-bearing URL components. Chat tests verify the actual
 request language with the selected scope/history retained. Catalogue tests check
 translation coverage and interpolation slots, without translating result data.
+
+## Live command input — CLI 1.9.0
+
+**931 tests / 63 files** pass on Node 22.13 and 24. The terminal-stream fixtures exercise actual readline key events: prefix filtering,
+Up/Down selection, Tab without submission, Enter, exact `/source`, Escape,
+Unicode cursor editing, command arguments, unknown commands, bracketed multiline
+paste, abort/Ctrl+C cleanup and terminal resize. Catalogue pagination is bounded;
+all main-menu entries fit a normal 24-row terminal. Existing scope/history, HITL,
+canonical answer, credentials and JSON regression suites remain required.
+
+These CPU tests do not establish a production-model latency gain or native
+Windows/Linux terminal behavior. A standalone terminal recipe can inspect these
+local commands without sending a model request. The existing activity indicator
+and the server's actual token delivery are unchanged by completion.

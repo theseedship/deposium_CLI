@@ -1,5 +1,6 @@
 import { tr } from './utils/i18n';
 import inquirer from 'inquirer';
+import { menuPageSize } from './utils/menu-layout';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
 import { formatOutput } from './utils/formatter';
@@ -17,14 +18,18 @@ import { createWelcomeBanner } from './utils/branding';
 
 /** Public terminal operations. Internal routers and database administration are not menu actions. */
 export const MAIN_OPERATIONS = [
-  { name: 'Chat — ask questions about documents in one space', value: 'chat' },
-  { name: 'Search — find passages in one space', value: 'search' },
-  { name: 'Corpus statistics — document, page and graph counts', value: 'corpus' },
-  { name: 'Health — check the connected service', value: 'health' },
-  { name: 'Tools — inspect the server catalogue', value: 'tools' },
-  { name: 'Settings — language and default space', value: 'settings' },
-  { name: 'Advanced — reasoning, query diagnostics and MCP resources', value: 'advanced' },
-  { name: 'Exit', value: 'exit' },
+  { name: 'Chat — ask questions about documents in one space', value: 'chat', icon: '💬' },
+  { name: 'Search — find passages in one space', value: 'search', icon: '🔎' },
+  { name: 'Corpus statistics — document, page and graph counts', value: 'corpus', icon: '📊' },
+  { name: 'Health — check the connected service', value: 'health', icon: '🩺' },
+  { name: 'Tools — inspect the server catalogue', value: 'tools', icon: '🧰' },
+  { name: 'Settings — language and default space', value: 'settings', icon: '⚙️' },
+  {
+    name: 'Advanced — reasoning, query diagnostics and MCP resources',
+    value: 'advanced',
+    icon: '🧭',
+  },
+  { name: 'Exit', value: 'exit', icon: '↩' },
 ];
 
 /** Select an authorized named space, using the configured default only as a picker preference.
@@ -80,6 +85,8 @@ export async function prepareCompoundHistory(history: ChatHistory): Promise<bool
       {
         type: 'select',
         name: 'context',
+        pageSize: menuPageSize(4),
+        loop: false,
         message: tr('Compound conversation context:'),
         choices: [
           { name: tr('Start a new context (clear previous exchanges)'), value: 'clear' },
@@ -102,6 +109,8 @@ async function advanced(history: ChatHistory) {
     {
       type: 'select',
       name: 'action',
+      pageSize: menuPageSize(7),
+      loop: false,
       message: tr('Advanced operation:'),
       choices: [
         {
@@ -160,6 +169,8 @@ async function advanced(history: ChatHistory) {
       {
         type: 'select',
         name: 'resource',
+        pageSize: menuPageSize(3),
+        loop: false,
         message: tr('Resource to inspect (no browser is opened):'),
         choices: [
           { name: tr('Dashboard resource'), value: 'ui_show_dashboard' },
@@ -180,8 +191,13 @@ export async function startInteractive(): Promise<void> {
       {
         type: 'select',
         name: 'command',
+        pageSize: menuPageSize(MAIN_OPERATIONS.length),
+        loop: false,
         message: tr('Select an operation:'),
-        choices: MAIN_OPERATIONS.map((choice) => ({ ...choice, name: tr(choice.name) })),
+        choices: MAIN_OPERATIONS.map((choice) => ({
+          ...choice,
+          name: `${choice.icon}  ${tr(choice.name)}`,
+        })),
       },
     ]);
     if (command === 'exit') return;

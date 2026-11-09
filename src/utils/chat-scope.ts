@@ -1,5 +1,6 @@
 import { tr } from './i18n';
 import inquirer from 'inquirer';
+import { menuPageSize } from './menu-layout';
 import type { MCPClient } from '../client/mcp-client';
 import { terminalText } from './terminal-text';
 
@@ -42,6 +43,8 @@ export async function selectChatScope(
       {
         type: 'select',
         name: 'space',
+        pageSize: menuPageSize(spaces.length, 'catalogue'),
+        loop: false,
         default: preferred?.id,
         message: options.promptMessage ?? tr('Chat in which space?'),
         choices: [

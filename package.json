@@ -1,6 +1,6 @@
 {
   "name": "@deposium/cli",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "CLI for Deposium MCP Server - Document search, graph queries, and AI workflows",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -73,7 +73,8 @@
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",
     "mime-types": "^3.0.2",
-    "ora": "^9.4.1"
+    "ora": "^9.4.1",
+    "@inquirer/core": "11.1.10"
   },
   "devDependencies": {
     "@types/mime-types": "^3.0.1",
