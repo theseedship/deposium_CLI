@@ -1,6 +1,6 @@
 {
   "name": "@deposium/cli",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "CLI for Deposium MCP Server - Document search, graph queries, and AI workflows",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -59,7 +59,7 @@
     "access": "public"
   },
   "dependencies": {
-    "axios": "^1.19.0",
+    "axios": "^1.21.0",
     "boxen": "^8.0.1",
     "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",
