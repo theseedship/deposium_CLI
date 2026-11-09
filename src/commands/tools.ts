@@ -13,12 +13,12 @@ export const toolsCommand = new Command('tools')
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
 
-      console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
+      if (!options.json) console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
 
       const tools = await client.listTools();
 
       if (tools?.length === 0) {
-        console.log(chalk.yellow('⚠️  No tools found'));
+        console.log(options.json ? '[]' : chalk.yellow('⚠️  No tools found'));
         return;
       }
 
@@ -39,6 +39,7 @@ export const toolsCommand = new Command('tools')
         filteredTools = filteredTools.filter(
           (tool) =>
             tool.name.toLowerCase().startsWith(category) ||
+            tool.name.toLowerCase().startsWith(`deposium_${category}`) ||
             (tool.category && tool.category.toLowerCase() === category)
         );
       }
@@ -53,7 +54,7 @@ export const toolsCommand = new Command('tools')
       const categories = new Map<string, MCPTool[]>();
 
       filteredTools.forEach((tool) => {
-        const category = tool.name.split('.')[0] ?? 'other';
+        const category = tool.name.replace(/^deposium_/, '').split(/[._]/)[0] ?? 'other';
         if (!categories.has(category)) {
           categories.set(category, []);
         }

@@ -1,4 +1,4 @@
-> Revision: 15/02/2025
+> Revision: 2026-11-09
 
 # Health Command
 
@@ -14,6 +14,10 @@ deposium health [options]
 
 - `-v, --verbose`: Show detailed health information (calls `system_health` tool for deeper inspection).
 - `-f, --format <type>`: Output format (`json` or `table`) (default: `table`).
+
+`--format json` writes only the health response to stdout in both standard and
+verbose mode. Progress and dashboard formatting are suppressed; failures go to
+stderr and return a nonzero exit code.
 
 ## Description
 

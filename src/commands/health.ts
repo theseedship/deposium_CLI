@@ -19,17 +19,22 @@ export const healthCommand = new Command('health')
     const { client, baseUrl } = await initializeCommand();
 
     try {
-      console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
+      const machineOutput = options.format === 'json';
+      if (!machineOutput) console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
 
       // First check server connectivity
       const health = await client.health();
+      if (machineOutput && !options.verbose) {
+        formatOutput(health, 'json');
+        return;
+      }
 
       if (options.verbose) {
         // Call system_health tool for detailed info
         const detailedHealth = await client.callTool(
           'system_health',
           { verbose: true },
-          { spinner: true }
+          { spinner: !machineOutput }
         );
 
         if (detailedHealth.isError) {
@@ -84,8 +89,10 @@ export const healthCommand = new Command('health')
       }
     } catch (error: unknown) {
       console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is reachable.');
-      console.log(chalk.gray('  Verify DEPOSIUM_URL and that the API responds at /api/cli/mcp.\n'));
+      console.error(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is reachable.');
+      console.error(
+        chalk.gray('  Verify DEPOSIUM_URL and that the API responds at /api/cli/mcp.\n')
+      );
       process.exit(1);
     }
   });
