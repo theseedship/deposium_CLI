@@ -1,9 +1,25 @@
-> Revision: 2026-07-05
+> Revision: 2026-11-09
 
 # AI Chat Mode
 
 Interactive streaming conversation with Deposium AI. Chat streams are routed
 via the **Edge Runtime gateway** (auth + rate-limiting) by default.
+
+The space picker, `/` command menu and compact verification/source presentation
+described here require **CLI 1.6.0 or newer**. Compare `deposium --version` with
+`npm view @deposium/cli version`; the latest merged source can be newer than the
+public npm package. See [installation and updates](../guides/installation.md#updates).
+
+## Login and conversation lifetime
+
+After `deposium auth login`, later commands reuse your stored API key. Returning
+to the shell, entering `/exit`, or closing the terminal does not log you out.
+Use `deposium auth logout` to remove the stored key. If `DEPOSIUM_API_KEY` is set,
+it still supplies authentication; see the [auth guide](auth.md#logout).
+
+Conversation history is different: it exists only while the chat process runs.
+Starting `deposium chat` again starts a new conversation. `/clear` or a real
+space change also clears that in-memory history.
 
 ## How It Works
 

@@ -1,4 +1,4 @@
-> Revision: 2026-04-25
+> Revision: 2026-11-09
 
 # Authentication Command
 
@@ -24,6 +24,13 @@ deposium auth login
 - Validates the key with the Deposium app API.
 - Stores it in `~/.deposium/credentials` (AES-256-GCM, chmod 0600).
 - Retries up to 3 times on failure.
+
+You do not need to log in before each command: later CLI processes reuse the
+stored key. Finishing a command or closing the terminal does not log you out.
+Chat conversation history is kept only in the running chat process; it is not
+part of the saved credential. A key that is revoked, expired or refused by the
+server can still require authentication again. To replace a stored key, run
+`deposium auth logout` before `deposium auth login`.
 
 `auth login` saves the key, not a server URL. CLI `1.5.2` and newer connect to SaaS automatically unless an environment variable or older stored URL overrides the defaults. See the [configuration guide](../guides/configuration.md#which-url-does-the-cli-use).
 

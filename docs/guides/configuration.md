@@ -1,4 +1,4 @@
-> Revision: 2026-09-26
+> Revision: 2026-11-09
 
 # Configuration Guide
 
@@ -21,14 +21,15 @@ Settings are loaded in this order (later sources override earlier):
 
 ## Environment Variables
 
-| Variable            | Description                               | Default                    | Example                 |
-| ------------------- | ----------------------------------------- | -------------------------- | ----------------------- |
-| `DEPOSIUM_API_KEY`  | API authentication key (user-key)         | -                          | `dep_live_...`          |
-| `DEPOSIUM_URL`      | Deposium server URL                       | `https://app.deposium.ai`  | `http://localhost:3003` |
-| `DEPOSIUM_EDGE_URL` | Edge Runtime gateway URL (chat streaming) | `https://edge.deposium.ai` | `http://localhost:9000` |
-| `DEPOSIUM_INSECURE` | Allow HTTP to non-localhost (`true`)      | `false`                    | `true`                  |
-| `DEPOSIUM_TENANT`   | Default tenant ID                         | -                          | `tenant-123`            |
-| `DEPOSIUM_SPACE`    | Default space ID                          | -                          | `space-456`             |
+| Variable             | Description                                            | Default                    | Example                 |
+| -------------------- | ------------------------------------------------------ | -------------------------- | ----------------------- |
+| `DEPOSIUM_API_KEY`   | API authentication key (user-key)                      | -                          | `dep_live_...`          |
+| `DEPOSIUM_URL`       | Deposium server URL                                    | `https://app.deposium.ai`  | `http://localhost:3003` |
+| `DEPOSIUM_EDGE_URL`  | Edge Runtime gateway URL (chat streaming)              | `https://edge.deposium.ai` | `http://localhost:9000` |
+| `DEPOSIUM_INSECURE`  | Allow HTTP to non-localhost (`true`)                   | `false`                    | `true`                  |
+| `DEPOSIUM_TENANT`    | Default tenant ID                                      | -                          | `tenant-123`            |
+| `DEPOSIUM_SPACE`     | Default space ID                                       | -                          | `space-456`             |
+| `DEPOSIUM_NO_UPDATE` | Skip the interactive startup update check (CLI 1.6.0+) | `false`                    | `1`                     |
 
 Output format and silent mode are per-invocation: pass `--format
 json|table|markdown` and `--silent` on each command (there is no
