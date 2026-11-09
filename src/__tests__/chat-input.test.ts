@@ -143,8 +143,8 @@ describe('live local chat command input', () => {
 
 describe('menu viewport', () => {
   it('shows all feature choices on a normal terminal and bounds long data lists', () => {
-    expect(menuPageSize(8, 'features', 24)).toBe(8);
-    expect(menuPageSize(9, 'features', 24)).toBe(9);
+    expect(menuPageSize(8, 'features', 24)).toBe(15);
+    expect(menuPageSize(9, 'features', 24)).toBe(15);
     expect(menuPageSize(100, 'catalogue', 40)).toBe(15);
     expect(menuPageSize(100, 'catalogue', 16)).toBe(7);
     expect(menuPageSize(8, 'features', 12)).toBe(3);

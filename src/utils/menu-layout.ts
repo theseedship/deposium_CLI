@@ -5,5 +5,7 @@ export function menuPageSize(
   rows = process.stdout.rows ?? 24
 ): number {
   const available = Math.max(3, Math.floor(rows) - 9);
-  return Math.max(1, Math.min(count, available, kind === 'catalogue' ? 15 : 20));
+  // Inquirer counts wrapped display rows, not choices. Leave room for long feature labels.
+  if (kind === 'features') return Math.min(available, 20);
+  return Math.max(1, Math.min(count, available, 15));
 }
