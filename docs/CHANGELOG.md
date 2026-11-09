@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.1 — Tool catalogue details
+
+- Replace truncated descriptions in the interactive Tools menu with a tool picker
+  and complete reference view. Show reported parameter types, requirements,
+  enums and defaults without executing the tool.
+- Add `tools --show <name>` and `tools --show <name> --json` for direct inspection;
+  the existing JSON list remains an array.
+- Keep complete nested/conditional schemas available as raw JSON and distinguish
+  advertised descriptions from execution, model and permission guarantees.
+
 All notable changes to the Deposium CLI will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

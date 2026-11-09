@@ -41,6 +41,9 @@ describe('tools command', () => {
     mockListTools.mockClear();
     mockCallTool.mockClear();
     mockHealth.mockClear();
+    // Commander retains option values between parseAsync calls in this test process.
+    for (const option of toolsCommand.options)
+      toolsCommand.setOptionValue(option.attributeName(), option.defaultValue);
   });
 
   afterEach(() => {
@@ -135,5 +138,59 @@ describe('tools command', () => {
     mockListTools.mockResolvedValue([search, { name: 'deposium_graph', description: 'Graph' }]);
     await toolsCommand.parseAsync(['node', 'test', '--category', 'search', '--json']);
     expect(JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'))).toEqual([search]);
+  });
+
+  it('shows one complete tool description and parameters without invoking it', async () => {
+    const description = `${'Tool instructions. '.repeat(20)}LAST INSTRUCTION`;
+    mockListTools.mockResolvedValue([
+      {
+        name: 'deposium_search',
+        description,
+        inputSchema: { properties: { query: { type: 'string' } }, required: ['query'] },
+      },
+    ]);
+    await toolsCommand.parseAsync(['node', 'test', '--show', 'deposium_search']);
+    const output = consoleSpy.mock.calls.flat().join('\n');
+    expect(output).toContain(description);
+    expect(output).toContain('query — required (string)');
+    expect(mockCallTool).not.toHaveBeenCalled();
+  });
+
+  it('show JSON returns the original entry, including its full schema, with no progress text', async () => {
+    const tool = {
+      name: 'deposium_search',
+      description: 'Search',
+      inputSchema: { anyOf: [{ required: ['query'] }] },
+    };
+    mockListTools.mockResolvedValue([tool]);
+    await toolsCommand.parseAsync(['node', 'test', '--show', 'deposium_search', '--json']);
+    expect(JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'))).toEqual(tool);
+    expect(mockCallTool).not.toHaveBeenCalled();
+  });
+
+  it('an exact tool name missing from the catalogue fails instead of claiming success', async () => {
+    mockListTools.mockResolvedValue([]);
+    await toolsCommand.parseAsync(['node', 'test', '--show', 'missing', '--json']);
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy.mock.calls.flat().join(' ')).toContain('Tool not found');
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(mockCallTool).not.toHaveBeenCalled();
+  });
+
+  it('does not silently ignore catalogue filters when inspecting an exact name', async () => {
+    mockListTools.mockResolvedValue([{ name: 'deposium_search', description: 'Search' }]);
+    await toolsCommand.parseAsync([
+      'node',
+      'test',
+      '--show',
+      'deposium_search',
+      '--category',
+      'graph',
+      '--json',
+    ]);
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy.mock.calls.flat().join(' ')).toContain('without --search or --category');
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(mockCallTool).not.toHaveBeenCalled();
   });
 });

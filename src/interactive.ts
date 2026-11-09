@@ -9,6 +9,7 @@ import { selectChatScope } from './utils/chat-scope';
 import { mcpErrorMessage } from './utils/mcp-content';
 import { runCompoundAnalysis } from './utils/compound-analysis';
 import type { DeposiumConfig } from './utils/config';
+import { browseToolCatalogue } from './utils/tool-catalogue';
 
 /** Public terminal operations. Internal routers and database administration are not menu actions. */
 export const MAIN_OPERATIONS = [
@@ -184,13 +185,7 @@ export async function startInteractive(): Promise<void> {
         // A returned HTTP response is not evidence that every service is healthy.
         formatOutput(await client.health(), 'table');
       } else if (command === 'tools') {
-        const tools = await client.listTools();
-        if (!tools.length) console.log('The server returned an empty tool catalogue.');
-        else
-          formatOutput(
-            tools.map(({ name, description }) => ({ name, description })),
-            'table'
-          );
+        await browseToolCatalogue(client);
       } else if (command === 'advanced') await advanced(client, config, history);
     } catch (error) {
       console.error(chalk.red('Operation failed:'), getErrorMessage(error));

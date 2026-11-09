@@ -3,11 +3,16 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import type { MCPTool } from '../client/mcp-client';
 import { initializeCommand, withErrorHandling } from '../utils/command-helpers';
+import { printToolDetail } from '../utils/tool-catalogue';
 
 export const toolsCommand = new Command('tools')
   .description('List and explore available MCP tools')
   .option('-c, --category <name>', 'Filter by category')
   .option('-s, --search <term>', 'Search tool names/descriptions')
+  .option(
+    '--show <name>',
+    'Read one exact tool name, its complete description and input parameters'
+  )
   .option('--json', 'Output as JSON')
   .action(
     withErrorHandling(async (options) => {
@@ -16,6 +21,11 @@ export const toolsCommand = new Command('tools')
       if (!options.json) console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
 
       const tools = await client.listTools();
+
+      if (options.show) {
+        showCatalogueEntry(tools, options);
+        return;
+      }
 
       if (tools?.length === 0) {
         console.log(options.json ? '[]' : chalk.yellow('⚠️  No tools found'));
@@ -129,4 +139,17 @@ function getCategoryIcon(category: string): string {
   };
 
   return icons[category] || '🔧';
+}
+
+function showCatalogueEntry(
+  tools: MCPTool[],
+  options: { show: string; search?: string; category?: string; json?: boolean }
+): void {
+  if (options.search || options.category)
+    throw new Error('--show selects one exact tool; use it without --search or --category.');
+  const tool = tools.find((entry) => entry.name === options.show);
+  if (!tool)
+    throw new Error('Tool not found in the returned catalogue. Use deposium tools to list names.');
+  if (options.json) console.log(JSON.stringify(tool, null, 2));
+  else printToolDetail(tool);
 }
