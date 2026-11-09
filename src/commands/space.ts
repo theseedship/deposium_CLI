@@ -16,20 +16,23 @@ spaceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const progress = !options.silent && format !== 'json';
+      const { client } = await initializeCommand({ machineReadable: format === 'json' });
 
-      if (!options.silent) {
+      if (progress) {
         console.log(chalk.bold('\n📂 Fetching spaces...\n'));
       }
 
       const spaces = await client.listSpaces();
 
       if (spaces.length === 0) {
-        console.log(chalk.yellow('No spaces found.'));
+        if (format === 'json') formatOutput([], 'json');
+        else console.log(chalk.yellow('No spaces found.'));
         return;
       }
 
-      if (!options.silent) {
+      if (progress) {
         console.log(chalk.gray(`Found ${spaces.length} space${spaces.length > 1 ? 's' : ''}\n`));
       }
 
@@ -47,9 +50,11 @@ spaceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (id: string, options) => {
-      const { client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const progress = !options.silent && format !== 'json';
+      const { client } = await initializeCommand({ machineReadable: format === 'json' });
 
-      if (!options.silent) {
+      if (progress) {
         console.log(chalk.bold(`\n📂 Fetching space ${chalk.cyan(id)}...\n`));
       }
 
@@ -60,8 +65,14 @@ spaceCommand
 
       if (!space) {
         console.error(chalk.red(`\n❌ Space not found: ${id}`));
-        console.log(chalk.gray('Run `deposium space list` to see available spaces.\n'));
+        if (format === 'json')
+          formatOutput(
+            { error: 'SPACE_NOT_FOUND', message: 'Space not found or inaccessible.' },
+            'json'
+          );
+        else console.error(chalk.gray('Run `deposium space list` to see available spaces.\n'));
         process.exit(1);
+        return;
       }
 
       formatOutput(space, options.format);
@@ -79,9 +90,11 @@ spaceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (name: string, options) => {
-      const { client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const progress = !options.silent && format !== 'json';
+      const { client } = await initializeCommand({ machineReadable: format === 'json' });
 
-      if (!options.silent) {
+      if (progress) {
         console.log(chalk.bold(`\n📂 Creating space ${chalk.cyan(name)}...\n`));
       }
 
@@ -93,7 +106,7 @@ spaceCommand
           name,
           description: options.description,
         },
-        { label: 'Create', spinner: !options.silent }
+        { label: 'Create', spinner: progress }
       );
 
       // `formatOutput` renders the created entity below — no need for a

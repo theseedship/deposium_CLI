@@ -29,7 +29,7 @@ This directory contains detailed documentation for all 25 Deposium CLI commands.
 ## Data Management
 
 - **[corpus](corpus.md)**: Corpus statistics and evaluation.
-- **[duckdb](duckdb.md)**: DuckDB connection, federation, and mcp-server.
+- **[duckdb](duckdb.md)**: Legacy server-internal database operations; unavailable with user keys.
 - **[files](files.md)**: Manage documents — list, show, check, rm.
 - **[space](space.md)**: Manage workspaces — list, show, create.
 - **[upload-batch](upload-batch.md)**: Batch file upload utility.
@@ -50,4 +50,4 @@ This directory contains detailed documentation for all 25 Deposium CLI commands.
 ## Utilities
 
 - **[mermaid](mermaid.md)**: Diagram generation and querying.
-- **[ui](ui.md)**: Launch interactive dashboards.
+- **[ui](ui.md)**: Fetch resources for a compatible MCP UI host.

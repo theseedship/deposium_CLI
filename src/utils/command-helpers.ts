@@ -67,32 +67,19 @@ export async function initializeCommand(options: InitializeOptions = {}): Promis
   return { config, baseUrl, apiKey, client };
 }
 
-/**
- * Resolve tenant and space IDs from command options, config, and defaults.
- *
- * Priority (per field):
- *   1. Command-line option (`--tenant`, `--space`)
- *   2. Configured default (`defaultTenant`, `defaultSpace` in config)
- *   3. Literal fallback (`'default'`)
- *
- * @param options - Command options object (must have optional tenant/space fields)
- * @param config - Loaded config (usually from `initializeCommand()`)
- * @returns Resolved `{ tenantId, spaceId }`
- *
- * @example
- * ```typescript
- * const { client, config } = await initializeCommand();
- * const { tenantId, spaceId } = resolveTenantSpace(options, config);
- * ```
- */
+/** Resolve a real space; an omitted tenant is resolved and authorized by the server. */
 export function resolveTenantSpace(
   options: { tenant?: string; space?: string },
   config: DeposiumConfig
-): { tenantId: string; spaceId: string } {
-  return {
-    tenantId: options.tenant ?? config.defaultTenant ?? 'default',
-    spaceId: options.space ?? config.defaultSpace ?? 'default',
-  };
+): { tenantId: string | undefined; spaceId: string } {
+  const spaceId = options.space ?? config.defaultSpace;
+  if (!spaceId?.trim() || spaceId === 'default') {
+    throw new Error(
+      'Choose a space with --space <id> or configure default-space. Use deposium space list.'
+    );
+  }
+  const tenantId = options.tenant ?? config.defaultTenant;
+  return { tenantId: tenantId === 'default' ? undefined : tenantId, spaceId };
 }
 
 /**
@@ -191,6 +178,19 @@ export function withErrorHandling<T extends unknown[]>(
  * formatOutput(content, options.format);
  * ```
  */
+// Mirrored public-CLI exclusions from MCP mcp-tool-access.ts, checked 2026-11-09.
+// This improves diagnostics; the authenticated server remains the authority.
+const INTERNAL_CLI_TOOLS = new Set([
+  'dspy_route',
+  'duckdb_serve',
+  'duckdb_connect',
+  'duckdb_federate',
+  'duckdb_expose',
+  'duckdb_mcp_status',
+  'duckdb_query_mcp',
+  'query_cleanup',
+]);
+
 export async function runMcpTool<T = unknown>(
   client: MCPClient,
   toolName: string,
@@ -202,6 +202,11 @@ export async function runMcpTool<T = unknown>(
   // withErrorHandling wrapper which formats and exits. The isError
   // branch below covers the case where the SERVER returned a
   // tool-level error (HTTP 200 with isError: true in the body).
+  if (INTERNAL_CLI_TOOLS.has(toolName)) {
+    throw new Error(
+      `${toolName} is a server-internal operation, unavailable with a public CLI user key. Use chat, search or health for supported user operations.`
+    );
+  }
   const result = await client.callTool(toolName, args, { spinner: opts.spinner ?? true });
   if (result.isError) {
     console.error(chalk.red(`\n❌ ${opts.label} failed:`), result.content);

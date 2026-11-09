@@ -5,13 +5,13 @@ import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/comma
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const uiCommand = new Command('ui').description(
-  'Interactive UI dashboards and visualizations'
+  'Fetch MCP app resources for a compatible UI host (not a terminal dashboard)'
 );
 
 // ui.show_dashboard - Interactive HTML dashboard
 uiCommand
   .command('dashboard')
-  .description('Open interactive HTML dashboard')
+  .description('Fetch the HTML dashboard resource (requires an MCP app host)')
   .option('--port <number>', 'Server port', '8080')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
@@ -19,7 +19,7 @@ uiCommand
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
 
-      console.log(chalk.bold('\n🎨 Opening dashboard...\n'));
+      console.log(chalk.bold('\n🎨 Fetching dashboard...\n'));
 
       const content = await runMcpTool(
         client,
@@ -35,7 +35,7 @@ uiCommand
 // ui.show_search - Visual search interface
 uiCommand
   .command('search-ui')
-  .description('Open visual search interface')
+  .description('Fetch the visual search resource (requires an MCP app host)')
   .option('--port <number>', 'Server port', '8081')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
@@ -43,7 +43,7 @@ uiCommand
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
 
-      console.log(chalk.bold('\n🔍 Opening search interface...\n'));
+      console.log(chalk.bold('\n🔍 Fetching search interface...\n'));
 
       const content = await runMcpTool(
         client,
@@ -59,7 +59,7 @@ uiCommand
 // ui.show_health - Real-time health monitor
 uiCommand
   .command('health-monitor')
-  .description('Open real-time health monitor')
+  .description('Fetch the health monitor resource (requires an MCP app host)')
   .option('--port <number>', 'Server port', '8082')
   .option('--refresh <seconds>', 'Refresh interval in seconds', '5')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
@@ -68,7 +68,7 @@ uiCommand
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
 
-      console.log(chalk.bold('\n💚 Opening health monitor...\n'));
+      console.log(chalk.bold('\n💚 Fetching health monitor...\n'));
 
       const content = await runMcpTool(
         client,
@@ -87,7 +87,7 @@ uiCommand
 // ui.show_tools - MCP tools explorer
 uiCommand
   .command('tools-explorer')
-  .description('Open MCP tools explorer')
+  .description('Fetch the tools explorer resource (requires an MCP app host)')
   .option('--port <number>', 'Server port', '8083')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
@@ -95,7 +95,7 @@ uiCommand
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
 
-      console.log(chalk.bold('\n🛠️  Opening tools explorer...\n'));
+      console.log(chalk.bold('\n🛠️  Fetching tools explorer...\n'));
 
       const content = await runMcpTool(
         client,
@@ -120,7 +120,7 @@ uiCommand
     withErrorHandling(async (options) => {
       const { client } = await initializeCommand();
 
-      console.log(chalk.bold('\n⚡ Opening embeddings monitor...\n'));
+      console.log(chalk.bold('\n⚡ Fetching embeddings monitor...\n'));
 
       const content = await runMcpTool(
         client,

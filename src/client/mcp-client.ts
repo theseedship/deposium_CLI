@@ -36,6 +36,7 @@
 import axios, { AxiosInstance } from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
+import { decodeMcpContent, mcpErrorMessage } from '../utils/mcp-content';
 import { createBatchUploadStream } from '../utils/batch-upload-stream';
 
 import pkg from '../../package.json';
@@ -269,14 +270,17 @@ export class MCPClient {
         }
       );
 
-      spinner?.succeed(`Tool ${chalk.green(toolName)} completed`);
-
       if (responseData.isError) {
+        spinner?.fail(`Tool ${chalk.red(toolName)} failed`);
         return {
           content: responseData.result ?? responseData.error,
           isError: true,
         };
       }
+      if (responseData.result === undefined)
+        throw new Error('Invalid MCP response: missing tool result.');
+      decodeMcpContent(responseData.result); // Nested tool errors are failures too.
+      spinner?.succeed(`Tool ${chalk.green(toolName)} completed`);
       return { content: responseData.result, isError: false };
     } catch (error) {
       spinner?.fail(`Tool ${chalk.red(toolName)} failed`);
@@ -314,17 +318,21 @@ export class MCPClient {
             { tool: '_list_tools', params: {} },
             { headers: { 'X-Request-ID': requestId } }
           );
-          if (response.data.isError) {
-            console.error(chalk.red('Failed to list tools:'), response.data.result);
-            return [];
+          if (response.data.isError) throw new Error(mcpErrorMessage(response.data.result));
+          const tools = response.data.result?.tools ?? response.data.result;
+          if (
+            !Array.isArray(tools) ||
+            !tools.every((tool) => tool && typeof tool.name === 'string')
+          ) {
+            throw new Error('Invalid MCP tool catalogue response.');
           }
-          return response.data.result?.tools ?? response.data.result ?? [];
+          return tools;
         },
         { maxRetries: this.maxRetries, retryBaseDelay: this.retryBaseDelay }
       );
     } catch (error) {
-      console.error(chalk.red('Failed to list tools:'), (error as Error).message);
-      return [];
+      if (axios.isAxiosError(error)) throwForKnownAxiosError(error, this.baseUrl, '/api/cli/mcp');
+      throw error;
     }
   }
 

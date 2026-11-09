@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { formatOutput, safeParseJSON } from '../utils/formatter';
+import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 
 export const dspyCommand = new Command('dspy').description(
@@ -9,8 +9,8 @@ export const dspyCommand = new Command('dspy').description(
 
 // dspy.route - Intelligent query routing
 dspyCommand
-  .command('route')
-  .description('Route query to optimal engine (SQL/PGQ/Cypher)')
+  .command('route', { hidden: true })
+  .description('Server-internal routing (unavailable to public CLI callers)')
   .argument('<query>', 'Query to route')
   .option('--user-id <id>', 'User ID for routing')
   .option('--params <json>', 'Additional parameters JSON')
@@ -18,28 +18,10 @@ dspyCommand
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
-    withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
-
-      console.log(chalk.bold('\n🧭 Routing query...\n'));
-
-      const params = options.params
-        ? safeParseJSON<Record<string, unknown>>(options.params, '--params')
-        : {};
-
-      const content = await runMcpTool(
-        client,
-        'dspy_route',
-        {
-          query,
-          userId: options.userId,
-          params,
-          evaluateResult: options.evaluate ?? false,
-        },
-        { label: 'Routing', spinner: !options.silent }
+    withErrorHandling(async () => {
+      throw new Error(
+        'DSPy route is a server-internal operation and is unavailable with a user API key. Use chat for documents or intelligence analyze to inspect query intent.'
       );
-
-      formatOutput(content, options.format);
     })
   );
 

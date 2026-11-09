@@ -8,6 +8,7 @@ export interface ChatScope {
 
 export interface ChatScopeOptions {
   space?: string;
+  promptMessage?: string;
 }
 
 /** Resolve only from the authenticated catalogue; the server rechecks each call. */
@@ -26,9 +27,15 @@ export async function selectChatScope(
       {
         type: 'select',
         name: 'space',
-        message: 'Chat in which space?',
+        message: options.promptMessage ?? 'Chat in which space?',
         choices: [
-          ...spaces.map((space) => ({ name: `${space.name} (${space.id})`, value: space.id })),
+          ...spaces.map((space) => ({
+            name:
+              spaces.filter((candidate) => candidate.name === space.name).length > 1
+                ? `${space.name} (${space.id})`
+                : space.name,
+            value: space.id,
+          })),
         ],
       },
     ]);

@@ -122,7 +122,7 @@ program.addCommand(dspyCommand);
 program.addCommand(uiCommand);
 program.addCommand(logsCommand);
 program.addCommand(queryHistoryCommand);
-program.addCommand(duckdbCommand);
+program.addCommand(duckdbCommand, { hidden: true });
 program.addCommand(uploadBatchCommand);
 program.addCommand(benchmarkCommand);
 program.addCommand(spaceCommand);

@@ -2,6 +2,8 @@
 
 # DSPy Command
 
+`dspy route` is server-internal and unavailable with a public CLI user key. From CLI 1.6.1 it is hidden from help and refused locally; use `chat` for documents or `intelligence analyze` for query-intent inspection. The direct `dspy analyze` command is separate.
+
 The `dspy` command group handles intelligent query routing and optimization using the DSPy framework logic.
 
 ## Usage

@@ -48,7 +48,7 @@ describe('dspy command', () => {
     expect(names).toEqual(expect.arrayContaining(['route', 'analyze']));
   });
 
-  it('route subcommand calls dspy_route', async () => {
+  it('route refuses the internal tool locally without a network request', async () => {
     mockCallTool.mockResolvedValue({ content: { engine: 'fts' }, isError: false });
     await dspyCommand.parseAsync([
       'node',
@@ -57,11 +57,12 @@ describe('dspy command', () => {
       'find machine learning papers',
       '--silent',
     ]);
-    expect(mockCallTool).toHaveBeenCalledWith(
-      'dspy_route',
-      expect.objectContaining({ query: 'find machine learning papers' }),
-      expect.any(Object)
+    expect(mockCallTool).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('server-internal')
     );
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
   it('handles isError gracefully', async () => {

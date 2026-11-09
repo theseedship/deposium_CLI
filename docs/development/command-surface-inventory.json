@@ -1,0 +1,976 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-09",
+  "cli_base": "53ab964feb96fa69ed512d357d204c4f45bc09ff",
+  "method": "TypeScript AST command declarations, literal tool references and dynamic call expressions; no execution, no credentials. Commands nested under a parent retain that file parent context. Dynamic mappings need manual review.",
+  "groups": [
+    {
+      "file": "src/commands/api-keys.ts",
+      "commands": [
+        {
+          "signature": "api-keys",
+          "description": "Manage server-side API keys (list, create, delete, rotate, usage)",
+          "line": 7
+        },
+        {
+          "signature": "list",
+          "description": "List API keys on your account",
+          "line": 12
+        },
+        {
+          "signature": "create",
+          "description": "Create a new API key (requires `api_access` feature on your plan)",
+          "line": 45
+        },
+        {
+          "signature": "delete",
+          "description": "Delete an API key by ID",
+          "line": 93
+        },
+        {
+          "signature": "rotate",
+          "description": "Rotate an API key — old secret is invalidated, new one issued",
+          "line": 131
+        },
+        {
+          "signature": "usage",
+          "description": "Show usage statistics for an API key",
+          "line": 178
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/auth.ts",
+      "commands": [
+        {
+          "signature": "auth",
+          "description": "Manage authentication with Deposium API",
+          "line": 19
+        },
+        {
+          "signature": "login",
+          "description": "Authenticate with API key",
+          "line": 22
+        },
+        {
+          "signature": "logout",
+          "description": "Remove stored credentials",
+          "line": 92
+        },
+        {
+          "signature": "status",
+          "description": "Show authentication status",
+          "line": 112
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/benchmark.ts",
+      "commands": [
+        {
+          "signature": "benchmark",
+          "description": "OpenBench LLM benchmarking and evaluation",
+          "line": 41
+        },
+        {
+          "signature": "list",
+          "description": "List available OpenBench categories and providers",
+          "line": 72
+        },
+        {
+          "signature": "run",
+          "description": "Run a standardized LLM benchmark",
+          "line": 118
+        },
+        {
+          "signature": "corpus",
+          "description": "Evaluate a Deposium corpus for search/retrieval quality",
+          "line": 191
+        },
+        {
+          "signature": "compare",
+          "description": "Compare benchmark results across multiple models",
+          "line": 296
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "openbench_corpus_eval",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "openbench_list",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "openbench_run",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/compound.ts",
+      "commands": [
+        {
+          "signature": "compound",
+          "description": "Compound AI operations with Groq",
+          "line": 16
+        },
+        {
+          "signature": "analyze",
+          "description": "Deep reasoning with multi-tool orchestration",
+          "line": 19
+        },
+        {
+          "signature": "research",
+          "description": "Topic research with web search",
+          "line": 40
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "compound_research",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/config.ts",
+      "commands": [
+        {
+          "signature": "config",
+          "description": "Manage Deposium CLI configuration",
+          "line": 18
+        },
+        {
+          "signature": "set",
+          "description": "Set a configuration value",
+          "line": 21
+        },
+        {
+          "signature": "get",
+          "description": "Get a configuration value",
+          "line": 77
+        },
+        {
+          "signature": "delete",
+          "description": "Delete a configuration value",
+          "line": 120
+        },
+        {
+          "signature": "reset",
+          "description": "Reset all configuration to defaults",
+          "line": 135
+        },
+        {
+          "signature": "path",
+          "description": "Show configuration file path",
+          "line": 141
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/corpus.ts",
+      "commands": [
+        {
+          "signature": "corpus",
+          "description": "Corpus statistics and evaluation",
+          "line": 12
+        },
+        {
+          "signature": "stats",
+          "description": "Get corpus statistics",
+          "line": 15
+        },
+        {
+          "signature": "evaluate",
+          "description": "Evaluate corpus quality with LLM-as-judge",
+          "line": 44
+        },
+        {
+          "signature": "improve",
+          "description": "Get improvement suggestions for corpus",
+          "line": 81
+        },
+        {
+          "signature": "eval-snapshot",
+          "description": "Snapshot corpus evaluation (one-shot — no recurring stream)",
+          "line": 125
+        },
+        {
+          "signature": "monitor",
+          "description": "Monitor corpus quality with anomaly detection",
+          "line": 159
+        },
+        {
+          "signature": "freshness",
+          "description": "Check corpus freshness against external sources",
+          "line": 202
+        },
+        {
+          "signature": "drift",
+          "description": "Detect concept drift over time",
+          "line": 235
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "corpus_drift",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "corpus_evaluate",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "corpus_freshness",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "corpus_improve",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "corpus_monitor",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "corpus_realtime_eval",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "corpus_stats",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/dspy.ts",
+      "commands": [
+        {
+          "signature": "dspy",
+          "description": "DSPy intelligent query routing and optimization",
+          "line": 6
+        },
+        {
+          "signature": "route",
+          "description": "Server-internal routing (unavailable to public CLI callers)",
+          "line": 11
+        },
+        {
+          "signature": "analyze",
+          "description": "Analyze query intent and suggest optimizations",
+          "line": 29
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "dspy_analyze",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/duckdb.ts",
+      "commands": [
+        {
+          "signature": "duckdb",
+          "description": "Legacy server-internal database administration (unavailable with public user keys)",
+          "line": 7
+        },
+        {
+          "signature": "serve",
+          "description": "Start DuckDB MCP server for external access",
+          "line": 12
+        },
+        {
+          "signature": "connect",
+          "description": "Connect to external DuckDB instance",
+          "line": 40
+        },
+        {
+          "signature": "federate",
+          "description": "Execute federated query across multiple DuckDB instances",
+          "line": 68
+        },
+        {
+          "signature": "expose",
+          "description": "Expose local DuckDB database via MCP",
+          "line": 98
+        },
+        {
+          "signature": "query",
+          "description": "Execute query via DuckDB MCP protocol",
+          "line": 126
+        },
+        {
+          "signature": "status",
+          "description": "Get DuckDB MCP server status",
+          "line": 154
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "duckdb_connect",
+          "access": "internal-only"
+        },
+        {
+          "name": "duckdb_expose",
+          "access": "internal-only"
+        },
+        {
+          "name": "duckdb_federate",
+          "access": "internal-only"
+        },
+        {
+          "name": "duckdb_mcp_status",
+          "access": "internal-only"
+        },
+        {
+          "name": "duckdb_query_mcp",
+          "access": "internal-only"
+        },
+        {
+          "name": "duckdb_serve",
+          "access": "internal-only"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/evaluate.ts",
+      "commands": [
+        {
+          "signature": "evaluate",
+          "description": "Evaluation metrics, dashboards, and feedback",
+          "line": 12
+        },
+        {
+          "signature": "metrics",
+          "description": "Get evaluation metrics for user query history",
+          "line": 17
+        },
+        {
+          "signature": "dashboard",
+          "description": "Generate evaluation dashboard with visualizations",
+          "line": 47
+        },
+        {
+          "signature": "feedback",
+          "description": "Submit feedback for query quality improvement",
+          "line": 78
+        },
+        {
+          "signature": "code",
+          "description": "Execute and evaluate code in sandboxed environment",
+          "line": 115
+        },
+        {
+          "signature": "graph",
+          "description": "Generate graph visualization and quality metrics",
+          "line": 149
+        },
+        {
+          "signature": "quality",
+          "description": "Assess code quality with test cases",
+          "line": 180
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "eval_dashboard",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "eval_feedback",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "eval_metrics",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "evaluate_code",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "evaluate_graph",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "evaluate_quality",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/files.ts",
+      "commands": [
+        {
+          "signature": "files",
+          "description": "Manage documents and files (list, show, check, rm)",
+          "line": 8
+        },
+        {
+          "signature": "list",
+          "description": "List your uploads, or accessible documents in an explicit space",
+          "line": 13
+        },
+        {
+          "signature": "show",
+          "description": "Show details of a specific document by ID",
+          "line": 53
+        },
+        {
+          "signature": "check",
+          "description": "Show document integrity summary (status, indexation, pages)",
+          "line": 81
+        },
+        {
+          "signature": "rm",
+          "description": "Delete a document by ID",
+          "line": 114
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/graph.ts",
+      "commands": [
+        {
+          "signature": "graph",
+          "description": "Graph analysis and queries",
+          "line": 12
+        },
+        {
+          "signature": "search",
+          "description": "Search entities by pattern in graph",
+          "line": 15
+        },
+        {
+          "signature": "analyze",
+          "description": "Cluster and centrality analysis",
+          "line": 46
+        },
+        {
+          "signature": "path",
+          "description": "Find optimal path between two entities",
+          "line": 75
+        },
+        {
+          "signature": "multihop",
+          "description": "Multi-hop queries with Kleene+ patterns",
+          "line": 106
+        },
+        {
+          "signature": "variable-path",
+          "description": "Variable-length path finding (1..n hops)",
+          "line": 149
+        },
+        {
+          "signature": "khop",
+          "description": "K-hop neighborhood analysis",
+          "line": 186
+        },
+        {
+          "signature": "components",
+          "description": "Find strongly connected components",
+          "line": 219
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "graph_analyze",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "graph_components",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "graph_khop",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "graph_multihop",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "graph_path",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "graph_search",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "graph_variable_path",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/health.ts",
+      "commands": [
+        {
+          "signature": "health",
+          "description": "Check Deposium API and services health",
+          "line": 14
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "system_health",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/intelligence.ts",
+      "commands": [
+        {
+          "signature": "intelligence",
+          "description": "AI-powered query analysis, suggestions, and summaries",
+          "line": 12
+        },
+        {
+          "signature": "analyze",
+          "description": "Analyze query intent and optimize search parameters",
+          "line": 17
+        },
+        {
+          "signature": "suggest",
+          "description": "Generate intelligent query suggestions and auto-completions",
+          "line": 41
+        },
+        {
+          "signature": "summarize",
+          "description": "Generate intelligent summaries of search results",
+          "line": 72
+        },
+        {
+          "signature": "elicit",
+          "description": "Detect if query needs clarification and generate questions",
+          "line": 114
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "smart_analyze",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "smart_elicit",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "smart_suggest",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "smart_summarize",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/leanrag.ts",
+      "commands": [
+        {
+          "signature": "leanrag",
+          "description": "Optimized LeanRAG retrieval and analysis",
+          "line": 12
+        },
+        {
+          "signature": "retrieve",
+          "description": "Optimized LeanRAG retrieval with ranking",
+          "line": 17
+        },
+        {
+          "signature": "aggregate",
+          "description": "Aggregate and rank LeanRAG results",
+          "line": 52
+        },
+        {
+          "signature": "analyze",
+          "description": "Analyze query using LeanRAG method",
+          "line": 91
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "leanrag_aggregate",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "leanrag_analyze",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "leanrag_retrieve",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/logs.ts",
+      "commands": [
+        {
+          "signature": "logs",
+          "description": "View, search, and analyze MCP server logs",
+          "line": 7
+        },
+        {
+          "signature": "view",
+          "description": "View recent MCP server logs (snapshot)",
+          "line": 12
+        },
+        {
+          "signature": "stats",
+          "description": "Get log statistics and summaries",
+          "line": 40
+        },
+        {
+          "signature": "clear",
+          "description": "Clear MCP server logs",
+          "line": 66
+        },
+        {
+          "signature": "search",
+          "description": "Search logs by pattern",
+          "line": 95
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "clear_logs",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "search_logs",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "view_logs",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/mermaid.ts",
+      "commands": [
+        {
+          "signature": "mermaid",
+          "description": "Extract, generate, and query Mermaid diagrams",
+          "line": 12
+        },
+        {
+          "signature": "parse",
+          "description": "Extract Mermaid diagrams from documents",
+          "line": 17
+        },
+        {
+          "signature": "generate",
+          "description": "Generate Mermaid diagram from data",
+          "line": 48
+        },
+        {
+          "signature": "query",
+          "description": "Query documents by diagram content",
+          "line": 80
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "mermaid_generate",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "mermaid_parse",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "mermaid_query",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/query-history.ts",
+      "commands": [
+        {
+          "signature": "query-history",
+          "description": "Query history tracking and analytics",
+          "line": 7
+        },
+        {
+          "signature": "log",
+          "description": "Log a query to history",
+          "line": 12
+        },
+        {
+          "signature": "export",
+          "description": "Export query history to file",
+          "line": 46
+        },
+        {
+          "signature": "retrieve",
+          "description": "Retrieve query history",
+          "line": 77
+        },
+        {
+          "signature": "stats",
+          "description": "Get query history statistics",
+          "line": 109
+        },
+        {
+          "signature": "cleanup",
+          "description": "Server-internal query retention (unavailable to public CLI callers)",
+          "line": 139
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "query_cleanup",
+          "access": "internal-only"
+        },
+        {
+          "name": "query_export",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "query_log",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "query_retrieve",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "query_stats",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/search.ts",
+      "commands": [
+        {
+          "signature": "search",
+          "description": "Search documents using DuckDB VSS, FTS, or fuzzy matching",
+          "line": 7
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "search_bm25_ranked",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "search_hub",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/space.ts",
+      "commands": [
+        {
+          "signature": "space",
+          "description": "Manage workspaces (list, show, create)",
+          "line": 6
+        },
+        {
+          "signature": "list",
+          "description": "List all spaces accessible to your API key",
+          "line": 11
+        },
+        {
+          "signature": "show",
+          "description": "Show details of a specific space by ID",
+          "line": 44
+        },
+        {
+          "signature": "create",
+          "description": "Create a new space",
+          "line": 83
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/temporal-assertion.ts",
+      "commands": [
+        {
+          "signature": "temporal-assertion",
+          "description": "Oracle for the temporal-assertion/v1 register: recompute checksums, chain verdicts and snapshots",
+          "line": 441
+        },
+        {
+          "signature": "verify",
+          "description": "Recompute every ledger under <dir>/scenarios and every case under <dir>/cases with the CLI implementation, and compare with what the cases expect",
+          "line": 445
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/tools.ts",
+      "commands": [
+        {
+          "signature": "tools",
+          "description": "List and explore available MCP tools",
+          "line": 7
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/ui.ts",
+      "commands": [
+        {
+          "signature": "ui",
+          "description": "Fetch MCP app resources for a compatible UI host (not a terminal dashboard)",
+          "line": 7
+        },
+        {
+          "signature": "dashboard",
+          "description": "Fetch the HTML dashboard resource (requires an MCP app host)",
+          "line": 12
+        },
+        {
+          "signature": "search-ui",
+          "description": "Fetch the visual search resource (requires an MCP app host)",
+          "line": 36
+        },
+        {
+          "signature": "health-monitor",
+          "description": "Fetch the health monitor resource (requires an MCP app host)",
+          "line": 60
+        },
+        {
+          "signature": "tools-explorer",
+          "description": "Fetch the tools explorer resource (requires an MCP app host)",
+          "line": 88
+        },
+        {
+          "signature": "embeddings-monitor",
+          "description": "Open embeddings queue monitor",
+          "line": 112
+        }
+      ],
+      "mcp_tools": [
+        {
+          "name": "ui_show_dashboard",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "ui_show_embeddings",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "ui_show_health",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "ui_show_search",
+          "access": "requires authenticated server authorization"
+        },
+        {
+          "name": "ui_show_tools",
+          "access": "requires authenticated server authorization"
+        }
+      ],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/upload-batch.ts",
+      "commands": [
+        {
+          "signature": "upload-batch",
+          "description": "Upload multiple files to Deposium",
+          "line": 190
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/validate.ts",
+      "commands": [
+        {
+          "signature": "validate",
+          "description": "Validate a dossier (N1 per-thematic + N2 cross-document)",
+          "line": 155
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/cli.ts",
+      "commands": [
+        {
+          "signature": "interactive",
+          "description": "Start interactive mode (REPL)",
+          "line": 135
+        },
+        {
+          "signature": "chat",
+          "description": "Start AI chat mode (continuous conversation)",
+          "line": 148
+        }
+      ],
+      "mcp_tools": [],
+      "dynamic_calls": [],
+      "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    }
+  ]
+}

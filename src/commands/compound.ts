@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
 import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { ChatHistory } from '../utils/chat-history';
+import { runCompoundAnalysis } from '../utils/compound-analysis';
 
 // Module-scope chat history. In the standalone `compound analyze` CLI
 // command this resets every invocation (one-shot process); inside the
@@ -23,27 +24,8 @@ export const compoundCommand = new Command('compound')
         withErrorHandling(async (query, options) => {
           const { client } = await initializeCommand();
 
-          // Add user message to history
-          globalChatHistory.addUserMessage(query);
-
-          // Get conversation context as a string
-          const context = globalChatHistory.getContext(6);
-
           console.log(chalk.bold('\n🤖 Analyzing with Compound AI...\n'));
-
-          const content = await runMcpTool(
-            client,
-            'compound_analyze',
-            {
-              query,
-              context, // Pass context as string directly
-            },
-            { label: 'Analysis' }
-          );
-
-          // Add AI response to history
-          const responseText = typeof content === 'string' ? content : JSON.stringify(content);
-          globalChatHistory.addAssistantMessage(responseText);
+          const content = await runCompoundAnalysis(client, globalChatHistory, query);
 
           formatOutput(content, options.format);
 

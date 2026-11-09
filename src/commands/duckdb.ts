@@ -6,7 +6,9 @@ import { parseIntOrThrow } from '../utils/parsers';
 
 export const duckdbCommand = new Command('duckdb')
   .alias('db')
-  .description('DuckDB MCP server integration and federation');
+  .description(
+    'Legacy server-internal database administration (unavailable with public user keys)'
+  );
 
 // duckdb.serve - Start DuckDB MCP server
 duckdbCommand

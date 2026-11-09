@@ -90,4 +90,14 @@ describe('corpus command', () => {
     expect(consoleErrorSpy).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
+  it('stats JSON remains parseable without a progress banner', async () => {
+    mockCallTool.mockResolvedValue({ content: { total_documents: 126 }, isError: false });
+    await corpusCommand.parseAsync(['node', 'test', 'stats', '--format', 'JSON']);
+    const calls = vi.mocked(console.log).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(String(calls[0]?.[0]))).toEqual({ total_documents: 126 });
+    expect(mockCallTool).toHaveBeenCalledWith('corpus_stats', expect.any(Object), {
+      spinner: false,
+    });
+  });
 });
