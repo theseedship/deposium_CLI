@@ -7,11 +7,13 @@ import type {
   ChatStreamOptions,
   SSECitation,
   SSEChatPrompt,
+  SSEVerification,
 } from './client/mcp-client';
 import { getConfig, getEdgeUrl, getMcpDirectUrl } from './utils/config';
 import { createTitleBox } from './utils/formatter';
 import { ChatHistory } from './utils/chat-history';
 import { getErrorMessage, initializeCommand } from './utils/command-helpers';
+import { printChatSources, printChatVerification } from './utils/chat-output';
 
 /**
  * `--on-ambiguous` policy — what the CLI does when the server emits a
@@ -23,6 +25,8 @@ import { getErrorMessage, initializeCommand } from './utils/command-helpers';
 export type OnAmbiguousMode = 'prompt' | 'fail' | 'dump' | 'pick-first';
 
 export interface ChatOptions {
+  /** Show every verification diagnostic rather than a compact summary. */
+  verbose?: boolean;
   /** Bypass Edge Runtime and connect directly to MCP server (dev only) */
   direct?: boolean;
   /**
@@ -121,6 +125,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
         message: trimmedMessage,
         conversationHistory: chatHistory.toConversationHistory(6),
         onAmbiguous,
+        verbose: options.verbose,
       });
 
       chatHistory.addAssistantMessage(fullResponse);
@@ -141,6 +146,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 // ============================================================================
 
 export interface RunChatTurnArgs {
+  verbose?: boolean;
   client: MCPClient;
   /** Base URL the SSE stream + resume both target. Edge Runtime by
    *  default; direct MCP only when `directMcp=true`. */
@@ -155,6 +161,7 @@ export interface RunChatTurnArgs {
 
 export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const citations: SSECitation[] = [];
+  const verifications: SSEVerification[] = [];
   let fullResponse = '';
   // Suppressed = true when the backend blocked the answer via Guardian
   // (`answer_blocked` or `verification.action === 'blocked'`). Callers
@@ -216,24 +223,9 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       process.stdout.write(chalk.green('AI: ') + data.final_answer);
     },
     onVerification: (v) => {
+      verifications.push(v);
       if (v.action === 'blocked') {
         suppressResponse = true;
-      }
-      if (v.issues && v.issues.length > 0) {
-        // Print issues below the answer so users see the trust signal.
-        // `verification` with `human_review` keeps the answer but flags
-        // what the verifier caught — the CLI should not silently drop
-        // that signal (v1.4.3 did).
-        const label = v.action === 'blocked' ? '🚫 Blocked' : '⚠️  Verification issues';
-        console.log(chalk.yellow(`\n${label}:`));
-        for (const iss of v.issues) {
-          const sev = iss.severity ? chalk.gray(`[${iss.severity}] `) : '';
-          const msg = iss.message ?? JSON.stringify(iss);
-          console.log(`  ${sev}${msg}`);
-        }
-        if (v.recommendation) {
-          console.log(chalk.gray(`  → ${v.recommendation}`));
-        }
       }
     },
     onAnswerBlocked: (data) => {
@@ -307,13 +299,8 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
 
   process.stdout.write('\n');
 
-  if (citations.length > 0) {
-    console.log(chalk.gray('\n📎 Sources:'));
-    for (const c of citations) {
-      const page = c.page ? ` p.${c.page}` : '';
-      console.log(chalk.gray(`   - ${c.document_name}${page}`));
-    }
-  }
+  printChatSources(citations);
+  printChatVerification(verifications, args.verbose);
 
   // If Guardian blocked without offering a fallback, return empty so
   // the caller drops the assistant slot from history rather than

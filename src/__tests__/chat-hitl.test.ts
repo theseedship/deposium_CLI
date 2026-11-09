@@ -871,6 +871,48 @@ describe('runChatTurn', () => {
     expect(logs).toContain('p.12');
   });
 
+  test('verification is deferred until after the final answer and sources', async () => {
+    const { runChatTurn } = await import('../chat');
+    const order: string[] = [];
+    stdoutSpy.mockImplementation((chunk: unknown) => {
+      order.push(String(chunk));
+      return true;
+    });
+    consoleLogSpy.mockImplementation((chunk: unknown) => {
+      order.push(String(chunk));
+    });
+    const client = makeFakeClient([
+      [
+        {
+          kind: 'verification',
+          data: {
+            validated: true,
+            passed: true,
+            action: 'passed',
+            issues: [{ severity: 'info', description: 'Limited coverage.' }],
+          },
+        },
+        { kind: 'token', data: 'Draft.' },
+        { kind: 'citation', data: { file_id: 1, file_name: 'guide.pdf', page_number: 2 } },
+        { kind: 'answer_replace', data: { id: 'a1', final_answer: 'Final answer.' } },
+      ],
+    ]);
+    const result = await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      onAmbiguous: 'fail',
+    });
+    const output = order.join('\n');
+    expect(result).toBe('Final answer.');
+    expect(output.indexOf('Final answer.')).toBeLessThan(output.indexOf('Sources'));
+    expect(output.indexOf('Sources')).toBeLessThan(output.indexOf('Verification:'));
+    expect(output).toContain('guide.pdf p.2');
+    expect(output).not.toContain('"description"');
+  });
+
   test('passes directMcp flag and streamUrl through to chatStream', async () => {
     const { runChatTurn } = await import('../chat');
     const client = makeFakeClient([[{ kind: 'token', data: 'ok' }]]);

@@ -26,6 +26,7 @@ deposium chat
 
 Options:
 
+- `--verbose` — Show every verification note after the answer. By default, repeated notes are grouped into one compact summary; review and blocking decisions remain visible.
 - `--direct` — Bypass Edge Runtime, connect directly to MCP server (dev only)
 - `--on-ambiguous <mode>` — HITL policy when the server pauses for input. One of `prompt` | `fail` | `dump` | `pick-first`. Defaults to `prompt` in a TTY, `fail` otherwise. See [docs/guides/on-ambiguous-flag.md](../guides/on-ambiguous-flag.md) for full semantics (note: `pick-first` now returns the server's safe default and no longer auto-approves confirm gates).
 
@@ -35,6 +36,11 @@ This opens a continuous chat interface where you can:
 - Use `/exit` to quit
 - Use `/clear` to clear conversation history
 - Use `/history` to view past messages
+
+Sources are grouped by document with their cited pages. Both `document_name`/`page`
+and `file_name`/`page_number` source events are accepted; unavailable names use an
+explicit fallback. Verification notes appear after the answer and sources, rather
+than interrupting the streamed text. Use `deposium chat --verbose` for full details.
 
 ### Edge Runtime Routing
 
