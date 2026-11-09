@@ -8,13 +8,14 @@ const state = vi.hoisted(() => ({
   exists: vi.fn(),
   read: vi.fn(),
   linked: vi.fn(),
+  realpath: vi.fn(),
 }));
 vi.mock('node:child_process', () => ({ execFile: state.exec, spawn: state.spawn }));
 vi.mock('node:fs', () => ({
   existsSync: state.exists,
   readFileSync: state.read,
   lstatSync: () => ({ isSymbolicLink: state.linked }),
-  realpathSync: (value: string) => value,
+  realpathSync: state.realpath,
 }));
 vi.mock('inquirer', () => ({ default: { prompt: state.prompt } }));
 
@@ -42,6 +43,7 @@ describe('interactive startup updates', () => {
     vi.clearAllMocks();
     state.exists.mockImplementation((candidate) => candidate === npm);
     state.linked.mockReturnValue(false);
+    state.realpath.mockImplementation((value) => value);
     state.exec.mockImplementation((_file, _args, _options, callback) => callback(null, prefix));
     state.read.mockReturnValue(JSON.stringify({ name: '@deposium/cli', version: '1.6.0' }));
     state.prompt.mockResolvedValue({ update: true });
@@ -281,6 +283,24 @@ describe('interactive startup updates', () => {
   it('uses the same global-prefix contract on Linux', async () => {
     expect(await offerStartupUpdate('1.5.3', ['chat'], { ...runtime, platform: 'linux' })).toBe(0);
     expect(state.spawn.mock.calls[1]?.[1]).toEqual([entry, 'chat']);
+  });
+
+  it('finds separately packaged npm through its PATH symlink on Debian/Ubuntu', async () => {
+    const npmEntry = '/usr/share/nodejs/npm/bin/npm-cli.js';
+    state.exists.mockImplementation((candidate) => candidate === '/usr/bin/npm');
+    state.realpath.mockImplementation((value) => (value === '/usr/bin/npm' ? npmEntry : value));
+    state.exec.mockImplementation((_file, _args, _options, callback) =>
+      callback(null, '/usr/local')
+    );
+    const linuxRuntime: UpdateRuntime = {
+      ...runtime,
+      nodePath: '/usr/bin/node',
+      platform: 'linux',
+      env: { PATH: '/usr/bin' },
+      entryPoint: '/usr/local/lib/node_modules/@deposium/cli/dist/cli.js',
+    };
+    expect(await offerStartupUpdate('1.5.3', ['chat'], linuxRuntime)).toBe(0);
+    expect(state.spawn.mock.calls[0]?.[1]).toContain(npmEntry);
   });
 
   it('does not restart after a spawned installer error', async () => {

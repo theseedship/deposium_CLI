@@ -82,7 +82,7 @@ function shouldCheck(args: string[], runtime: UpdateRuntime): boolean {
   );
 }
 
-async function globalInstallation(runtime: UpdateRuntime) {
+function findNpmCli(runtime: UpdateRuntime): string | undefined {
   const paths = runtime.platform === 'win32' ? path.win32 : path;
   const nodeDirectory = paths.dirname(runtime.nodePath);
   const candidates = [
@@ -90,6 +90,26 @@ async function globalInstallation(runtime: UpdateRuntime) {
     paths.resolve(nodeDirectory, 'node_modules/npm/bin/npm-cli.js'),
   ];
   const npmCli = candidates.find((candidate) => existsSync(candidate));
+  if (npmCli) return npmCli;
+  const searchPath = runtime.env.PATH ?? runtime.env.Path ?? '';
+  for (const directory of searchPath.split(runtime.platform === 'win32' ? ';' : ':')) {
+    if (!paths.isAbsolute(directory)) continue;
+    const adjacent = paths.join(directory, 'node_modules/npm/bin/npm-cli.js');
+    if (existsSync(adjacent)) return adjacent;
+    const executable = paths.join(directory, 'npm');
+    if (!existsSync(executable)) continue;
+    try {
+      const target = realpathSync(executable);
+      if (paths.basename(target) === 'npm-cli.js') return target;
+    } catch {
+      /* Broken or inaccessible PATH entry: try the next one. */
+    }
+  }
+}
+
+async function globalInstallation(runtime: UpdateRuntime) {
+  const paths = runtime.platform === 'win32' ? path.win32 : path;
+  const npmCli = findNpmCli(runtime);
   if (!npmCli) return;
   const prefix = await new Promise<string>((resolve, reject) => {
     execFile(
