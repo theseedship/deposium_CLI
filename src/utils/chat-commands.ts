@@ -2,12 +2,15 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import type { MCPClient } from '../client/mcp-client';
 import { ChatHistory } from './chat-history';
+import type { ChatTurnDetails } from './chat-output';
+import { executeReferenceCommand } from './chat-reference-commands';
 import { CHAT_HELP, ChatScope, sameChatScope, selectChatScope } from './chat-scope';
 
 interface CommandContext {
   client: Pick<MCPClient, 'listSpaces'>;
   history: ChatHistory;
   scope: ChatScope;
+  details?: ChatTurnDetails;
 }
 
 async function changeSpace(argument: string, context: CommandContext): Promise<ChatScope> {
@@ -16,6 +19,10 @@ async function changeSpace(argument: string, context: CommandContext): Promise<C
   });
   if (!sameChatScope(context.scope, next)) {
     context.history.clear();
+    if (context.details) {
+      context.details.citations = [];
+      context.details.verifications = [];
+    }
     console.log(chalk.gray('Conversation history cleared for the new space.'));
   }
   console.log(chalk.cyan(`Space: ${next.label}\n`));
@@ -37,6 +44,9 @@ export async function executeChatCommand(
         choices: [
           { name: 'Choose space', value: 'space' },
           { name: 'List spaces', value: 'spaces' },
+          { name: 'Sources for the last answer', value: 'sources' },
+          { name: 'Read a cited passage', value: 'source' },
+          { name: 'Verification details', value: 'verify' },
           { name: 'Show help', value: 'help' },
           { name: 'Show history', value: 'history' },
           { name: 'Clear history', value: 'clear' },
@@ -47,8 +57,12 @@ export async function executeChatCommand(
     command = choice.command;
   }
   const result = { scope: context.scope, exit: false };
-  if (local.argument && command !== 'space') {
+  if (local.argument && command !== 'space' && command !== 'source') {
     console.log(chalk.yellow('Unexpected command argument. Use /help.'));
+    return result;
+  }
+  if (['sources', 'source', 'verify'].includes(command)) {
+    await executeReferenceCommand(command, local.argument, context.details);
     return result;
   }
   switch (command) {
@@ -61,6 +75,10 @@ export async function executeChatCommand(
       break;
     case 'clear':
       context.history.clear();
+      if (context.details) {
+        context.details.citations = [];
+        context.details.verifications = [];
+      }
       console.log(chalk.yellow('🗑️  Conversation history cleared\n'));
       break;
     case 'history':

@@ -55,6 +55,7 @@ When an operation fails, check the selected space, credentials and required
 permissions. Returning to the menu does not log you out. Chat history exists only
 in the running process; a new chat or a real space change starts fresh context.
 
-The current terminal interface remains English. A unified FR/EN setting,
-Health preference display, chat activity indicators and completion while typing
-`/` are subsequent roadmap milestones; they are not delivered by 1.6.1.
+The current terminal interface remains English. CLI 1.7.0 adds chat activity,
+source inspection and grouped verification notes; see the [chat guide](../commands/chat.md#activity-and-source-inspection-cli-170).
+A unified FR/EN setting, Health preference display and live `/` completion remain
+separate roadmap milestones.
