@@ -118,9 +118,9 @@ test('clearing logs without confirmation fails before authentication or backend 
   expect(exit).toHaveBeenCalledWith(1);
 });
 
-test.each([[], ['--confirm']])(
+test.each([{ confirmation: [] }, { confirmation: ['--confirm'] }])(
   'internal cleanup refuses explicitly before auth, including %j',
-  async (confirmation) => {
+  async ({ confirmation }) => {
     resetOptions(queryHistoryCommand);
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const output = vi.spyOn(console, 'log').mockImplementation(() => {});
