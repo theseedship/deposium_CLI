@@ -116,4 +116,24 @@ describe('tools command', () => {
     const calls = consoleSpy.mock.calls.flat().join(' ');
     expect(calls).toContain('3');
   });
+
+  it('JSON output is parseable without progress or summary text', async () => {
+    const tools = [{ name: 'deposium_search', description: 'Search' }];
+    mockListTools.mockResolvedValue(tools);
+    await toolsCommand.parseAsync(['node', 'test', '--json']);
+    expect(JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'))).toEqual(tools);
+  });
+
+  it('an empty JSON catalogue remains an empty array', async () => {
+    mockListTools.mockResolvedValue([]);
+    await toolsCommand.parseAsync(['node', 'test', '--json']);
+    expect(JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'))).toEqual([]);
+  });
+
+  it('category filtering accepts current facade names', async () => {
+    const search = { name: 'deposium_search', description: 'Search' };
+    mockListTools.mockResolvedValue([search, { name: 'deposium_graph', description: 'Graph' }]);
+    await toolsCommand.parseAsync(['node', 'test', '--category', 'search', '--json']);
+    expect(JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'))).toEqual([search]);
+  });
 });

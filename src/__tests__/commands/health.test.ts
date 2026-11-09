@@ -55,6 +55,22 @@ describe('health command', () => {
     expect(optionNames).toContain('--format');
   });
 
+  it('JSON mode emits only the actual health response', async () => {
+    const health = { status: 'healthy', services: [] };
+    mockHealth.mockResolvedValue(health);
+    await healthCommand.parseAsync(['node', 'test', '--format', 'json']);
+    expect(JSON.parse(consoleSpy.mock.calls.map((c) => String(c[0])).join('\n'))).toEqual(health);
+    expect(mockCallTool).not.toHaveBeenCalled();
+  });
+
+  it('JSON mode keeps failures on stderr and returns nonzero', async () => {
+    mockHealth.mockRejectedValue(new Error('Connection refused'));
+    await healthCommand.parseAsync(['node', 'test', '--format', 'json']);
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
   it('should display health status for healthy services', async () => {
     mockHealth.mockResolvedValue({
       status: 'healthy',

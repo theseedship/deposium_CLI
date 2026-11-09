@@ -1,4 +1,4 @@
-> Revision: 15/02/2025
+> Revision: 2026-11-09
 
 # Tools Command
 
@@ -19,3 +19,9 @@ deposium tools [options]
 ## Output
 
 The command displays a categorized table of tools with their descriptions.
+
+`--json` writes only the result array to stdout, including `[]` for an empty
+catalogue. Category filters recognize both legacy names such as `search_hub`
+and the current facade name `deposium_search`.
+JSON mode never prompts for credentials; use `deposium auth login` separately if
+authentication is required. Authentication diagnostics go to stderr.

@@ -16,20 +16,25 @@ export const healthCommand = new Command('health')
   .option('-v, --verbose', 'Show detailed health information')
   .option('-f, --format <type>', 'Output format (json|table)', 'table')
   .action(async (options) => {
-    const { client, baseUrl } = await initializeCommand();
-
     try {
-      console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
+      const format = options.format.toLowerCase();
+      const machineOutput = format === 'json';
+      const { client, baseUrl } = await initializeCommand({ machineReadable: machineOutput });
+      if (!machineOutput) console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
 
       // First check server connectivity
       const health = await client.health();
+      if (machineOutput && !options.verbose) {
+        formatOutput(health, 'json');
+        return;
+      }
 
       if (options.verbose) {
         // Call system_health tool for detailed info
         const detailedHealth = await client.callTool(
           'system_health',
           { verbose: true },
-          { spinner: true }
+          { spinner: !machineOutput }
         );
 
         if (detailedHealth.isError) {
@@ -37,7 +42,7 @@ export const healthCommand = new Command('health')
           process.exit(1);
         }
 
-        formatOutput(detailedHealth.content, options.format);
+        formatOutput(detailedHealth.content, format);
       } else {
         // Enhanced health display
         console.log(createTitleBox('HEALTH CHECK', 'Deposium API Status'));
@@ -84,8 +89,10 @@ export const healthCommand = new Command('health')
       }
     } catch (error: unknown) {
       console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-      console.log(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is reachable.');
-      console.log(chalk.gray('  Verify DEPOSIUM_URL and that the API responds at /api/cli/mcp.\n'));
+      console.error(chalk.yellow('\n💡 Tip:'), 'Make sure the Deposium server is reachable.');
+      console.error(
+        chalk.gray('  Verify DEPOSIUM_URL and that the API responds at /api/cli/mcp.\n')
+      );
       process.exit(1);
     }
   });

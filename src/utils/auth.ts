@@ -135,10 +135,14 @@ export function isNetworkDownError(error: unknown): boolean {
  *   1. `DEPOSIUM_API_KEY` env var (returned as-is, no server validation —
  *      consistent with config resolution and friendly to CI/CD pipelines).
  *   2. Stored credential — validated against the server, with retry-prompt
- *      fallback on invalidation.
+ *      fallback on invalidation (unless machine-readable output is requested).
  *   3. Interactive prompt loop (max 3 attempts) that saves on success.
  */
-export async function ensureAuthenticated(baseUrl: string): Promise<string> {
+export async function ensureAuthenticated(
+  baseUrl: string,
+  options: { machineReadable?: boolean } = {}
+): Promise<string> {
+  const log = options.machineReadable ? console.error : console.log;
   // Env var takes priority — if set, use it directly (no server validation).
   // Matches getConfig().apiKey resolution order; CI/CD usage stays zero-prompt.
   const envKey = process.env.DEPOSIUM_API_KEY?.trim();
@@ -159,7 +163,7 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
       }
 
       // If key is invalid, notify user and continue to re-authentication
-      console.log(chalk.yellow('\n⚠️  Stored API key is no longer valid\n'));
+      log(chalk.yellow('\n⚠️  Stored API key is no longer valid\n'));
     } catch (error: unknown) {
       // Fall back to the stored key ONLY when the server is truly
       // unreachable — a 5xx, timeout-with-response, or unknown error
@@ -167,18 +171,23 @@ export async function ensureAuthenticated(baseUrl: string): Promise<string> {
       // may already be revoked behind it. Re-prompt in that case
       // instead of silently trusting the cache.
       if (isNetworkDownError(error)) {
-        console.log(chalk.yellow('\n⚠️  Could not reach Deposium API: ' + getErrorMessage(error)));
-        console.log(chalk.gray('Proceeding with the stored key (offline-friendly).\n'));
+        log(chalk.yellow('\n⚠️  Could not reach Deposium API: ' + getErrorMessage(error)));
+        log(chalk.gray('Proceeding with the stored key (offline-friendly).\n'));
         return existingKey;
       }
-      console.log(
+      log(
         chalk.yellow(
           '\n⚠️  Could not validate stored API key (server responded with an error): ' +
             getErrorMessage(error)
         )
       );
-      console.log(chalk.gray('Please re-authenticate.\n'));
+      log(chalk.gray('Please re-authenticate.\n'));
     }
+  }
+
+  // JSON pipelines must neither prompt nor mix authentication text into stdout.
+  if (options.machineReadable) {
+    throw new Error('Authentication required. Run deposium auth login.');
   }
 
   // No valid key stored, need to authenticate
