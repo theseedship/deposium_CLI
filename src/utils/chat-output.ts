@@ -1,16 +1,10 @@
 import chalk from 'chalk';
-import { stripVTControlCharacters } from 'node:util';
 import type { SSECitation, SSEVerification } from '../client/types';
+import { terminalText as safeText } from './terminal-text';
 
 export interface ChatTurnDetails {
   citations: SSECitation[];
   verifications: SSEVerification[];
-}
-
-function safeText(value: string): string {
-  // Strip terminal controls from untrusted filenames and excerpts.
-  // eslint-disable-next-line no-control-regex
-  return stripVTControlCharacters(value).replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '');
 }
 
 function citationNumber(citation: SSECitation): number | undefined {

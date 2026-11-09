@@ -10,14 +10,14 @@ stored key is reused. No tenant or space UUID needs to be memorized for the menu
 
 ## Choose an operation
 
-| Operation         | Purpose                                                                   | What to expect                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chat              | Ask questions about documents in an accessible space.                     | A conversation, answer, citations and verification notices.                                                                                                                     |
-| Search            | Find passages in an accessible space.                                     | Search results, not a generated answer.                                                                                                                                         |
-| Corpus statistics | Inspect the selected space's indexed corpus.                              | Counts reported by the server, including documents, pages and graph data when available. Counts are not a content-quality score or proof that every document finished indexing. |
-| Health            | Inspect the connected service's health response.                          | Reported status, including degraded/unknown states; a successful HTTP request is not proof that all services are healthy.                                                       |
-| Tools             | Inspect the server's tool catalogue.                                      | Names and descriptions; a failed catalogue request is an error, not an empty catalogue.                                                                                         |
-| Advanced          | Access reasoning, query diagnostics, graph exploration and MCP resources. | An explanation before each operation; see below.                                                                                                                                |
+| Operation         | Purpose                                                                   | What to expect                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat              | Ask questions about documents in an accessible space.                     | A conversation, answer, citations and verification notices.                                                                                                                                     |
+| Search            | Find passages in an accessible space.                                     | Search results, not a generated answer.                                                                                                                                                         |
+| Corpus statistics | Inspect the selected space's indexed corpus.                              | Counts reported by the server, including documents, pages and graph data when available. Counts are not a content-quality score or proof that every document finished indexing.                 |
+| Health            | Inspect the connected service's health response.                          | Reported status, including degraded/unknown states; a successful HTTP request is not proof that all services are healthy.                                                                       |
+| Tools             | Inspect the server's tool catalogue.                                      | CLI 1.7.1+: select a tool to read its complete description and input parameters, then inspect another or go back. Inspection does not execute the tool. A failed catalogue request is an error. |
+| Advanced          | Access reasoning, query diagnostics, graph exploration and MCP resources. | An explanation before each operation; see below.                                                                                                                                                |
 
 For scoped operations, select an accessible space by **name**. A configured default
 is preselected if it remains accessible; you can choose another space. If the
@@ -59,3 +59,5 @@ The current terminal interface remains English. CLI 1.7.0 adds chat activity,
 source inspection and grouped verification notes; see the [chat guide](../commands/chat.md#activity-and-source-inspection-cli-170).
 A unified FR/EN setting, Health preference display and live `/` completion remain
 separate roadmap milestones.
+
+For complete tool reference and raw input schemas, see the [Tools guide](../commands/tools.md).
