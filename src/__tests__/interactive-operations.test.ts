@@ -91,4 +91,26 @@ describe('public interactive operations', () => {
     ).rejects.toThrow('server-internal');
     expect(callTool).not.toHaveBeenCalled();
   });
+  test.each(['space-a', 'revoked-space'])(
+    'a configured %s is a preference, not a forced scope',
+    async (defaultSpace) => {
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(inquirer.prompt).mockResolvedValueOnce({ space: 'space-b' });
+      const client = {
+        listSpaces: vi.fn().mockResolvedValue([
+          { id: 'space-a', name: 'First' },
+          { id: 'space-b', name: 'Second' },
+        ]),
+      };
+      expect(await interactiveScope(client as unknown as MCPClient, { defaultSpace })).toEqual({
+        space_id: 'space-b',
+      });
+      expect(inquirer.prompt).toHaveBeenCalledWith([
+        expect.objectContaining({
+          default: defaultSpace === 'space-a' ? 'space-a' : undefined,
+        }),
+      ]);
+    }
+  );
 });

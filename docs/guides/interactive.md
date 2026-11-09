@@ -20,7 +20,8 @@ stored key is reused. No tenant or space UUID needs to be memorized for the menu
 | Advanced          | Access reasoning, query diagnostics, graph exploration and MCP resources. | An explanation before each operation; see below.                                                                                                                                |
 
 For scoped operations, select an accessible space by **name**. A configured default
-is used only if it remains in the authenticated catalogue. The server resolves and
+is preselected if it remains accessible; you can choose another space. If the
+default is no longer accessible, you must explicitly select an available space. The server resolves and
 authorizes its tenant. An empty or unavailable catalogue never becomes an all-space
 query. Ambiguous duplicate names include the space ID for identification.
 

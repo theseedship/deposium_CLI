@@ -25,7 +25,7 @@ export async function interactiveScope(client: MCPClient, config: DeposiumConfig
   const selected = await selectChatScope(
     client,
     {
-      space: config.defaultSpace === 'default' ? undefined : config.defaultSpace,
+      initialSpace: config.defaultSpace === 'default' ? undefined : config.defaultSpace,
       promptMessage: 'Choose an accessible space:',
     },
     true
