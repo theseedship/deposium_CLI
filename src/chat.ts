@@ -14,6 +14,8 @@ import { createTitleBox } from './utils/formatter';
 import { ChatHistory } from './utils/chat-history';
 import { getErrorMessage, initializeCommand } from './utils/command-helpers';
 import { printChatSources, printChatVerification } from './utils/chat-output';
+import { parseChatCommand, selectChatScope } from './utils/chat-scope';
+import { executeChatCommand } from './utils/chat-commands';
 
 /**
  * `--on-ambiguous` policy — what the CLI does when the server emits a
@@ -25,6 +27,7 @@ import { printChatSources, printChatVerification } from './utils/chat-output';
 export type OnAmbiguousMode = 'prompt' | 'fail' | 'dump' | 'pick-first';
 
 export interface ChatOptions {
+  space?: string;
   /** Show every verification diagnostic rather than a compact summary. */
   verbose?: boolean;
   /** Bypass Edge Runtime and connect directly to MCP server (dev only) */
@@ -47,7 +50,7 @@ export function resolveOnAmbiguousMode(explicit?: OnAmbiguousMode): OnAmbiguousM
 
 export async function startChat(options: ChatOptions = {}): Promise<void> {
   console.log(createTitleBox('AI CHAT', 'Streaming conversation with Deposium AI'));
-  console.log(chalk.gray('Commands: /exit (quit) | /clear (reset) | /history (view)\n'));
+  console.log(chalk.gray('Commands: /help | /space | /clear | /history | /exit\n'));
 
   // Resolve URLs + print mode banner FIRST, BEFORE any prompt that
   // could come out of initializeCommand → ensureAuthenticated. If the
@@ -81,6 +84,11 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   // know what they're authenticating against.
   const { client } = await initializeCommand();
 
+  let scope = await selectChatScope(client, {
+    space: options.space ?? config.defaultSpace,
+  });
+  console.log(chalk.cyan(`Space: ${scope.label}\n`));
+
   const chatHistory = new ChatHistory(10);
 
   while (true) {
@@ -94,20 +102,15 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 
     const trimmedMessage = message.trim();
 
-    // Handle commands
-    if (trimmedMessage === '/exit') {
-      console.log(chalk.green('\n👋 Goodbye!\n'));
-      break;
-    }
-
-    if (trimmedMessage === '/clear') {
-      chatHistory.clear();
-      console.log(chalk.yellow('🗑️  Conversation history cleared\n'));
-      continue;
-    }
-
-    if (trimmedMessage === '/history') {
-      chatHistory.display();
+    const local = parseChatCommand(trimmedMessage);
+    if (local) {
+      try {
+        const result = await executeChatCommand(local, { client, history: chatHistory, scope });
+        scope = result.scope;
+        if (result.exit) break;
+      } catch (error: unknown) {
+        console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
+      }
       continue;
     }
 
@@ -115,6 +118,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
       continue;
     }
 
+    const conversationHistory = chatHistory.toConversationHistory(6);
     chatHistory.addUserMessage(trimmedMessage);
 
     try {
@@ -123,11 +127,16 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
         streamUrl,
         directMcp,
         message: trimmedMessage,
-        conversationHistory: chatHistory.toConversationHistory(6),
+        conversationHistory,
+        spaceIds: scope.spaceIds,
         onAmbiguous,
         verbose: options.verbose,
       });
 
+      if (!fullResponse) {
+        chatHistory.removeLastMessage();
+        continue;
+      }
       chatHistory.addAssistantMessage(fullResponse);
 
       const exchanges = Math.floor(chatHistory.getMessages().length / 2);
@@ -146,6 +155,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 // ============================================================================
 
 export interface RunChatTurnArgs {
+  spaceIds?: string[];
   verbose?: boolean;
   client: MCPClient;
   /** Base URL the SSE stream + resume both target. Edge Runtime by
@@ -173,6 +183,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const pendingPrompts: SSEChatPrompt[] = [];
 
   const streamOpts: ChatStreamOptions = {
+    spaceIds: args.spaceIds,
     conversationHistory: args.conversationHistory,
     language: 'fr',
     onToken: (token) => {

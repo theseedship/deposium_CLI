@@ -997,6 +997,30 @@ describe('runChatTurn', () => {
     expect(opts.language).toBe('fr');
   });
 
+  test('keeps the selected space on inline clarification and agent resume', async () => {
+    const { runChatTurn } = await import('../chat');
+    const client = makeFakeClient([
+      [{ kind: 'chat_prompt', data: makeChoicePrompt({ correlation_id: undefined }) }],
+      [{ kind: 'chat_prompt', data: makeChoicePrompt() }],
+      [{ kind: 'token', data: 'Scoped answer.' }],
+    ]);
+    await runChatTurn({
+      client: client as unknown as import('../client/mcp-client').MCPClient,
+      streamUrl: 'http://edge:9000',
+      directMcp: false,
+      message: 'Q',
+      conversationHistory: [],
+      spaceIds: ['selected-space'],
+      onAmbiguous: 'pick-first',
+    });
+    expect(client.calls).toHaveLength(3);
+    for (const call of client.calls) {
+      expect(call.args[call.args.length - 1]).toEqual(
+        expect.objectContaining({ spaceIds: ['selected-space'] })
+      );
+    }
+  });
+
   test('onError callback writes to console.error without aborting', async () => {
     const { runChatTurn } = await import('../chat');
     const client = makeFakeClient([
