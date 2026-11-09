@@ -22,7 +22,7 @@ export const MAIN_OPERATIONS = [
   { name: 'Search — find passages in one space', value: 'search', icon: '🔎' },
   { name: 'Corpus statistics — document, page and graph counts', value: 'corpus', icon: '📊' },
   { name: 'Health — check the connected service', value: 'health', icon: '🩺' },
-  { name: 'Tools — inspect the server catalogue', value: 'tools', icon: '🧰' },
+  { name: 'Tools — reference for MCP clients and API integrations', value: 'tools', icon: '🧰' },
   { name: 'Settings — language and default space', value: 'settings', icon: '⚙️' },
   {
     name: 'Advanced — reasoning, query diagnostics and MCP resources',
