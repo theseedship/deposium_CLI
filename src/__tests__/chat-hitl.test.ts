@@ -671,6 +671,70 @@ describe('runChatTurn', () => {
     expect(client.resumeAgent).not.toHaveBeenCalled();
   });
 
+  test.each(['human_review', 'blocked'] as const)(
+    'flushes %s warnings and preserves the error after a stream disconnects',
+    async (action) => {
+      const { runChatTurn } = await import('../chat');
+      const failure = new Error('Connection lost');
+      const client = {
+        chatStream: vi.fn(async (_url: string, _message: string, opts: any) => {
+          opts.onToken('Partial draft.');
+          opts.onVerification({
+            validated: true,
+            passed: false,
+            action,
+            issues: [{ severity: 'high', description: 'Unsupported amount.' }],
+            recommendation: 'Check the source.',
+          });
+          throw failure;
+        }),
+      };
+      await expect(
+        runChatTurn({
+          client: client as unknown as import('../client/mcp-client').MCPClient,
+          streamUrl: 'http://edge:9000',
+          directMcp: false,
+          message: 'Q',
+          conversationHistory: [],
+          onAmbiguous: 'fail',
+        })
+      ).rejects.toBe(failure);
+      const output = consoleLogSpy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(output).toContain(action === 'blocked' ? 'response blocked' : 'response needs review');
+      expect(output).toContain('Unsupported amount.');
+      expect(output).toContain('Check the source.');
+      expect(output.split('Verification:').length - 1).toBe(1);
+    }
+  );
+
+  test('flushes warnings if the resumed stream disconnects', async () => {
+    const { runChatTurn } = await import('../chat');
+    const failure = new Error('Resume disconnected');
+    const client = makeFakeClient([[{ kind: 'chat_prompt', data: makeChoicePrompt() }]]);
+    client.resumeAgent.mockImplementationOnce(async (_url, _id, _decision, opts: any) => {
+      opts.onVerification({
+        validated: true,
+        passed: false,
+        action: 'human_review',
+        issues: [{ severity: 'high', message: 'Check this claim.' }],
+      });
+      throw failure;
+    });
+    await expect(
+      runChatTurn({
+        client: client as unknown as import('../client/mcp-client').MCPClient,
+        streamUrl: 'http://edge:9000',
+        directMcp: false,
+        message: 'Q',
+        conversationHistory: [],
+        onAmbiguous: 'pick-first',
+      })
+    ).rejects.toBe(failure);
+    expect(consoleLogSpy.mock.calls.map((c) => String(c[0])).join('\n')).toContain(
+      'Check this claim.'
+    );
+  });
+
   test('one chat_prompt → handle then resume once', async () => {
     const { runChatTurn } = await import('../chat');
     const choicePrompt = makeChoicePrompt();
