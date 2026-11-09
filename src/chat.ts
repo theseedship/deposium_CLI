@@ -7,11 +7,13 @@ import type {
   ChatStreamOptions,
   SSECitation,
   SSEChatPrompt,
+  SSEVerification,
 } from './client/mcp-client';
 import { getConfig, getEdgeUrl, getMcpDirectUrl } from './utils/config';
 import { createTitleBox } from './utils/formatter';
 import { ChatHistory } from './utils/chat-history';
 import { getErrorMessage, initializeCommand } from './utils/command-helpers';
+import { printChatSources, printChatVerification } from './utils/chat-output';
 
 /**
  * `--on-ambiguous` policy — what the CLI does when the server emits a
@@ -23,6 +25,8 @@ import { getErrorMessage, initializeCommand } from './utils/command-helpers';
 export type OnAmbiguousMode = 'prompt' | 'fail' | 'dump' | 'pick-first';
 
 export interface ChatOptions {
+  /** Show every verification diagnostic rather than a compact summary. */
+  verbose?: boolean;
   /** Bypass Edge Runtime and connect directly to MCP server (dev only) */
   direct?: boolean;
   /**
@@ -121,6 +125,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
         message: trimmedMessage,
         conversationHistory: chatHistory.toConversationHistory(6),
         onAmbiguous,
+        verbose: options.verbose,
       });
 
       chatHistory.addAssistantMessage(fullResponse);
@@ -141,6 +146,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
 // ============================================================================
 
 export interface RunChatTurnArgs {
+  verbose?: boolean;
   client: MCPClient;
   /** Base URL the SSE stream + resume both target. Edge Runtime by
    *  default; direct MCP only when `directMcp=true`. */
@@ -155,6 +161,7 @@ export interface RunChatTurnArgs {
 
 export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const citations: SSECitation[] = [];
+  const verifications: SSEVerification[] = [];
   let fullResponse = '';
   // Suppressed = true when the backend blocked the answer via Guardian
   // (`answer_blocked` or `verification.action === 'blocked'`). Callers
@@ -216,24 +223,9 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       process.stdout.write(chalk.green('AI: ') + data.final_answer);
     },
     onVerification: (v) => {
+      verifications.push(v);
       if (v.action === 'blocked') {
         suppressResponse = true;
-      }
-      if (v.issues && v.issues.length > 0) {
-        // Print issues below the answer so users see the trust signal.
-        // `verification` with `human_review` keeps the answer but flags
-        // what the verifier caught — the CLI should not silently drop
-        // that signal (v1.4.3 did).
-        const label = v.action === 'blocked' ? '🚫 Blocked' : '⚠️  Verification issues';
-        console.log(chalk.yellow(`\n${label}:`));
-        for (const iss of v.issues) {
-          const sev = iss.severity ? chalk.gray(`[${iss.severity}] `) : '';
-          const msg = iss.message ?? JSON.stringify(iss);
-          console.log(`  ${sev}${msg}`);
-        }
-        if (v.recommendation) {
-          console.log(chalk.gray(`  → ${v.recommendation}`));
-        }
       }
     },
     onAnswerBlocked: (data) => {
@@ -258,68 +250,67 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
 
   process.stdout.write(chalk.green('\nAI: '));
 
-  await args.client.chatStream(args.streamUrl, args.message, {
-    directMcp: args.directMcp,
-    ...streamOpts,
-  });
+  try {
+    await args.client.chatStream(args.streamUrl, args.message, {
+      directMcp: args.directMcp,
+      ...streamOpts,
+    });
 
-  // Resume loop — server may emit multiple chat_prompts in sequence
-  // (e.g. disambiguate → confirm step action → done). Branch on whether
-  // the gate carries a `correlation_id`:
-  //
-  //   present → agent-step gate (intent-disambiguate). Resume via
-  //             POST /api/agent-resume { correlation_id, response }.
-  //   absent  → inline chat gate (scope, source, exhaustive-confirm,
-  //             clarification, S4, S5). Resume by re-POSTing the SAME
-  //             message to /chat-stream with `chatPromptContext`, which
-  //             the backend parses to continue the paused pipeline.
-  //
-  // The resume URL matches the stream URL: in non-`--direct` mode this
-  // is Edge Runtime so the gateway's auth + rate-limiting apply on
-  // resume too.
-  while (pendingPrompts.length > 0) {
-    const prompt = pendingPrompts.shift() as SSEChatPrompt;
+    // Resume loop — server may emit multiple chat_prompts in sequence
+    // (e.g. disambiguate → confirm step action → done). Branch on whether
+    // the gate carries a `correlation_id`:
+    //
+    //   present → agent-step gate (intent-disambiguate). Resume via
+    //             POST /api/agent-resume { correlation_id, response }.
+    //   absent  → inline chat gate (scope, source, exhaustive-confirm,
+    //             clarification, S4, S5). Resume by re-POSTing the SAME
+    //             message to /chat-stream with `chatPromptContext`, which
+    //             the backend parses to continue the paused pipeline.
+    //
+    // The resume URL matches the stream URL: in non-`--direct` mode this
+    // is Edge Runtime so the gateway's auth + rate-limiting apply on
+    // resume too.
+    while (pendingPrompts.length > 0) {
+      const prompt = pendingPrompts.shift() as SSEChatPrompt;
+
+      process.stdout.write('\n');
+      const decision = await handleChatPrompt(prompt, args.onAmbiguous, args.prompter);
+
+      process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
+      process.stdout.write(chalk.green('AI: '));
+
+      if (prompt.correlation_id) {
+        await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
+      } else {
+        const context: ChatPromptContext = {
+          original_query: args.message,
+          selected_value: decision.value ?? decision.values ?? '',
+          prompt_type: prompt.type,
+        };
+        await args.client.chatStream(args.streamUrl, args.message, {
+          directMcp: args.directMcp,
+          ...streamOpts,
+          chatPromptContext: context,
+          // Honor a decline of the inline exhaustive-confirm gate — see
+          // resolveAnalysisEffort. undefined for every other inline gate.
+          analysisEffort: resolveAnalysisEffort(prompt, decision),
+        });
+      }
+    }
 
     process.stdout.write('\n');
-    const decision = await handleChatPrompt(prompt, args.onAmbiguous, args.prompter);
 
-    process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
-    process.stdout.write(chalk.green('AI: '));
+    printChatSources(citations);
 
-    if (prompt.correlation_id) {
-      await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
-    } else {
-      const context: ChatPromptContext = {
-        original_query: args.message,
-        selected_value: decision.value ?? decision.values ?? '',
-        prompt_type: prompt.type,
-      };
-      await args.client.chatStream(args.streamUrl, args.message, {
-        directMcp: args.directMcp,
-        ...streamOpts,
-        chatPromptContext: context,
-        // Honor a decline of the inline exhaustive-confirm gate — see
-        // resolveAnalysisEffort. undefined for every other inline gate.
-        analysisEffort: resolveAnalysisEffort(prompt, decision),
-      });
-    }
+    // If Guardian blocked without offering a fallback, return empty so
+    // the caller drops the assistant slot from history rather than
+    // persisting an unverified draft. `startChat` treats empty as "no
+    // answer" and calls `removeLastMessage` implicitly via the try/catch.
+    return suppressResponse ? '' : fullResponse;
+  } finally {
+    // Verification signals must survive a stream or HITL-resume failure.
+    printChatVerification(verifications, args.verbose);
   }
-
-  process.stdout.write('\n');
-
-  if (citations.length > 0) {
-    console.log(chalk.gray('\n📎 Sources:'));
-    for (const c of citations) {
-      const page = c.page ? ` p.${c.page}` : '';
-      console.log(chalk.gray(`   - ${c.document_name}${page}`));
-    }
-  }
-
-  // If Guardian blocked without offering a fallback, return empty so
-  // the caller drops the assistant slot from history rather than
-  // persisting an unverified draft. `startChat` treats empty as "no
-  // answer" and calls `removeLastMessage` implicitly via the try/catch.
-  return suppressResponse ? '' : fullResponse;
 }
 
 /**

@@ -145,13 +145,14 @@ type OnAmbiguousMode = (typeof VALID_ON_AMBIGUOUS)[number];
 program
   .command('chat')
   .description('Start AI chat mode (continuous conversation)')
+  .option('--verbose', 'Show all verification notes after the answer')
   .option('--direct', 'Bypass Edge Runtime, connect directly to MCP server (dev only)')
   .option(
     '--on-ambiguous <mode>',
     `HITL policy when the server pauses for input — one of: ${VALID_ON_AMBIGUOUS.join('|')}. ` +
       `Defaults to 'prompt' in a TTY, 'fail' otherwise.`
   )
-  .action(async (options: { direct?: boolean; onAmbiguous?: string }) => {
+  .action(async (options: { direct?: boolean; onAmbiguous?: string; verbose?: boolean }) => {
     let onAmbiguous: OnAmbiguousMode | undefined;
     if (options.onAmbiguous) {
       if (!VALID_ON_AMBIGUOUS.includes(options.onAmbiguous as OnAmbiguousMode)) {
@@ -167,7 +168,7 @@ program
     }
 
     const { startChat } = await import('./chat');
-    await startChat({ direct: options.direct, onAmbiguous });
+    await startChat({ direct: options.direct, onAmbiguous, verbose: options.verbose });
   });
 
 // Parse arguments

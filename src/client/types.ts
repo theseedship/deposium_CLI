@@ -101,10 +101,15 @@ export interface SSEToolCall {
  * response generation. Multiple citations may be emitted per turn.
  */
 export interface SSECitation {
-  document_id: string;
-  document_name: string;
+  citation_id?: number;
+  availability?: 'available' | 'unavailable';
+  document_id?: string;
+  document_name?: string;
+  file_id?: number | string;
+  file_name?: string;
   page?: number;
-  snippet: string;
+  page_number?: number;
+  snippet?: string;
   score?: number;
   full_content?: string;
 }
