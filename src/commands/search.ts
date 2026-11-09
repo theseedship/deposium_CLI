@@ -18,7 +18,8 @@ export const searchCommand = new Command('search')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { config, client } = await initializeCommand();
+      const format = options.format.toLowerCase();
+      const { config, client } = await initializeCommand({ machineReadable: format === 'json' });
       // The server resolves an omitted tenant from the authenticated API key.
       // A fabricated 'default' tenant is an explicit foreign identity, not a default.
       const tenantId =
@@ -30,7 +31,7 @@ export const searchCommand = new Command('search')
         );
       }
       const tenant = tenantId ? { tenant_id: tenantId } : {};
-      const progress = !options.silent && options.format !== 'json';
+      const progress = !options.silent && format !== 'json';
 
       if (progress) console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
 
@@ -73,6 +74,6 @@ export const searchCommand = new Command('search')
             { label: 'Search', spinner: progress }
           );
 
-      formatOutput(content, options.format);
+      formatOutput(content, format);
     })
   );

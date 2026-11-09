@@ -25,6 +25,8 @@ deposium search <query> [options]
 With `--format json`, stdout contains only the result JSON, including when progress
 was not explicitly silenced. Warnings and errors remain on stderr. An absent space
 fails explicitly instead of sending a fabricated `default` ID to the server.
+Format names are case-insensitive. JSON mode never prompts for credentials: if
+authentication is needed, run `deposium auth login` separately, then retry.
 
 ## Examples
 

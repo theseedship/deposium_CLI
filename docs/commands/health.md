@@ -18,6 +18,8 @@ deposium health [options]
 `--format json` writes only the health response to stdout in both standard and
 verbose mode. Progress and dashboard formatting are suppressed; failures go to
 stderr and return a nonzero exit code.
+Format names are case-insensitive. JSON mode never prompts for credentials; use
+`deposium auth login` separately if authentication is required.
 
 ## Description
 

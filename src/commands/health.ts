@@ -16,10 +16,10 @@ export const healthCommand = new Command('health')
   .option('-v, --verbose', 'Show detailed health information')
   .option('-f, --format <type>', 'Output format (json|table)', 'table')
   .action(async (options) => {
-    const { client, baseUrl } = await initializeCommand();
-
     try {
-      const machineOutput = options.format === 'json';
+      const format = options.format.toLowerCase();
+      const machineOutput = format === 'json';
+      const { client, baseUrl } = await initializeCommand({ machineReadable: machineOutput });
       if (!machineOutput) console.log(chalk.bold('\n🏥 Checking Deposium Health...\n'));
 
       // First check server connectivity
@@ -42,7 +42,7 @@ export const healthCommand = new Command('health')
           process.exit(1);
         }
 
-        formatOutput(detailedHealth.content, options.format);
+        formatOutput(detailedHealth.content, format);
       } else {
         // Enhanced health display
         console.log(createTitleBox('HEALTH CHECK', 'Deposium API Status'));

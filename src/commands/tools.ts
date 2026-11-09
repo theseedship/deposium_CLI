@@ -11,7 +11,7 @@ export const toolsCommand = new Command('tools')
   .option('--json', 'Output as JSON')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({ machineReadable: options.json === true });
 
       if (!options.json) console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
 

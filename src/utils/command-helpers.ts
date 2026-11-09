@@ -29,8 +29,7 @@ interface CommandContext {
   client: MCPClient;
 }
 
-// initializeCommand's options are forwarded verbatim to MCPClient.
-type InitializeOptions = MCPClientOptions;
+type InitializeOptions = MCPClientOptions & { machineReadable?: boolean };
 
 /**
  * Initialize a command with API client
@@ -39,10 +38,10 @@ type InitializeOptions = MCPClientOptions;
  * It handles:
  * - Loading configuration (with env var priority)
  * - Getting the base URL (with HTTPS validation)
- * - Ensuring authentication (prompts for API key if missing)
+ * - Ensuring authentication (JSON callers require an explicit auth login if missing)
  * - Creating an MCP client with retry logic
  *
- * @param options - Optional client configuration
+ * @param options - Optional client configuration and machine-readable authentication mode
  * @returns CommandContext with config, baseUrl, apiKey, and client
  *
  * @example
@@ -59,8 +58,11 @@ export async function initializeCommand(options: InitializeOptions = {}): Promis
     validateSecurity: true,
     insecure: isInsecureMode(),
   });
-  const apiKey = await ensureAuthenticated(baseUrl);
-  const client = new MCPClient(baseUrl, apiKey, options);
+  const { machineReadable, ...clientOptions } = options;
+  const apiKey = machineReadable
+    ? await ensureAuthenticated(baseUrl, { machineReadable: true })
+    : await ensureAuthenticated(baseUrl);
+  const client = new MCPClient(baseUrl, apiKey, clientOptions);
 
   return { config, baseUrl, apiKey, client };
 }
