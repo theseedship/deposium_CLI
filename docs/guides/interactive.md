@@ -29,7 +29,8 @@ query. Ambiguous duplicate names include the space ID for identification.
 
 - **Compound reasoning** uses server reasoning and may use web tools. It is not
   the space-scoped document chat; choose Chat for that purpose. Only successful
-  exchanges enter its in-memory context.
+  exchanges enter its in-memory context. Before another question, you can view
+  previous exchanges, start fresh, explicitly continue, or return without sending.
 - **Query intent** classifies the question and suggests parameters. It does not
   analyze or summarize document contents.
 - **Graph components/path** inspects relations in a chosen space. Path exploration

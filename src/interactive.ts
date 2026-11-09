@@ -21,6 +21,9 @@ export const MAIN_OPERATIONS = [
   { name: 'Exit', value: 'exit' },
 ];
 
+/** Select an authorized named space, using the configured default only as a picker preference.
+ * Throws on catalogue failure or an inaccessible explicit selection; never broadens scope.
+ */
 export async function interactiveScope(client: MCPClient, config: DeposiumConfig) {
   const selected = await selectChatScope(
     client,
@@ -64,6 +67,30 @@ export async function interactiveCompound(client: MCPClient, history: ChatHistor
   formatOutput(await runCompoundAnalysis(client, history, query), 'markdown');
 }
 
+/** Let the user inspect, clear or decline prior Compound context before another request. */
+export async function prepareCompoundHistory(history: ChatHistory): Promise<boolean> {
+  while (!history.isEmpty()) {
+    const { context } = await inquirer.prompt<{ context: string }>([
+      {
+        type: 'select',
+        name: 'context',
+        message: 'Compound conversation context:',
+        choices: [
+          { name: 'Start a new context (clear previous exchanges)', value: 'clear' },
+          { name: 'Continue with previous exchanges', value: 'continue' },
+          { name: 'View previous exchanges', value: 'view' },
+          { name: 'Back without sending a question', value: 'back' },
+        ],
+      },
+    ]);
+    if (context === 'back') return false;
+    if (context === 'continue') return true;
+    if (context === 'clear') history.clear();
+    else history.display();
+  }
+  return true;
+}
+
 async function advanced(client: MCPClient, config: DeposiumConfig, history: ChatHistory) {
   const { action } = await inquirer.prompt<{ action: string }>([
     {
@@ -92,6 +119,7 @@ async function advanced(client: MCPClient, config: DeposiumConfig, history: Chat
   ]);
   if (action === 'back') return;
   if (action === 'compound') {
+    if (!(await prepareCompoundHistory(history))) return;
     console.log(
       'This operation may use server reasoning and web tools. For questions scoped to your documents, choose Chat.'
     );

@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import inquirer from 'inquirer';
 import type { MCPClient } from '../client/mcp-client';
-import { interactiveCompound, interactiveScope, MAIN_OPERATIONS } from '../interactive';
+import {
+  interactiveCompound,
+  interactiveScope,
+  MAIN_OPERATIONS,
+  prepareCompoundHistory,
+} from '../interactive';
 import { ChatHistory } from '../utils/chat-history';
 import { resolveTenantSpace, runMcpTool } from '../utils/command-helpers';
 vi.mock('inquirer', () => ({ default: { prompt: vi.fn() } }));
@@ -113,4 +118,20 @@ describe('public interactive operations', () => {
       ]);
     }
   );
+  test('Compound context can be viewed, declined or cleared before another request', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const history = new ChatHistory(10);
+    history.addUserMessage('previous topic');
+    history.addAssistantMessage('previous answer');
+    vi.mocked(inquirer.prompt)
+      .mockResolvedValueOnce({ context: 'view' })
+      .mockResolvedValueOnce({ context: 'back' });
+    const display = vi.spyOn(history, 'display').mockImplementation(() => {});
+    expect(await prepareCompoundHistory(history)).toBe(false);
+    expect(display).toHaveBeenCalledOnce();
+    expect(history.isEmpty()).toBe(false);
+    vi.mocked(inquirer.prompt).mockResolvedValueOnce({ context: 'clear' });
+    expect(await prepareCompoundHistory(history)).toBe(true);
+    expect(history.isEmpty()).toBe(true);
+  });
 });

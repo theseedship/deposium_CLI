@@ -75,6 +75,9 @@ function visitEnvelope(
   }
 }
 
+/** Unwrap MCP-only envelopes, preserving business fields and separating non-executable resources.
+ * Throws for protocol errors, invalid resources, more than 1,000 visited nodes or depth above eight.
+ */
 export function decodeMcpContent(input: unknown): DecodedMcpContent {
   const output: DecodedMcpContent = { values: [], resources: [] };
   let visited = 0;
@@ -95,6 +98,7 @@ export function decodeMcpContent(input: unknown): DecodedMcpContent {
   return output;
 }
 
+/** Return an actionable message without dumping opaque response objects or stack traces. */
 export function mcpErrorMessage(input: unknown): string {
   if (record(input) && typeof input.message === 'string') return input.message;
   if (typeof input === 'string') return input;
