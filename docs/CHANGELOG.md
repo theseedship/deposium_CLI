@@ -7,6 +7,7 @@
 - General AI results distinguish received answers from verified document analysis; remove duplicate reasoning, confidence gauges and result logos.
 - Keep JSON stdout and authentication noninteractive across legacy command families; retain explicit mutation confirmation.
 - Reconcile user/developer documentation with actual commands, keyboard behavior, MCP resource boundaries and release/tag procedure.
+- Repair the documented UI demo, add `npm run demo:ui`, and check its imports and execution on both supported Node versions. Clarify that it requires the CLI source checkout and uses synthetic fixtures.
 
 
 ## 1.7.1 — Tool catalogue details

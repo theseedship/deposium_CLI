@@ -36,6 +36,9 @@ jobs:
       - name: Type checking
         run: npm run typecheck
 
+      - name: Run documented UI demo (synthetic fixtures only)
+        run: npm run demo:ui
+
       - name: Run tests with coverage
         run: npm run test:coverage
 

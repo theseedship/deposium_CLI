@@ -64,6 +64,42 @@ browser, bind a port or create a live dashboard. A returned HTTP response is not
 proof that every backend service is healthy. Metric bars are for actual numeric
 measurements; the helper's existence is not evidence those metrics were observed.
 
-Retain `createTitleBox`, `createInfoBox`, `displayStatus`, `divider` and metric/tree
+Retain `createTitleBox`, `createInfoBox`, `displayStatus`, `divider` and metric
 helpers where useful, but keep decorative output out of scripts. Test the actual
 rendered output and transitions, not merely that `console.log` was called.
+
+## Testing
+
+These are **CLI development** commands. Open a terminal in the `deposium_CLI`
+checkout, the directory containing `package.json` and `demo-ui.ts`; this is not
+`deposium_desktop`. From a sibling Desktop checkout, use `cd ../deposium_CLI`.
+A global npm installation contains the compiled CLI, not this development demo.
+
+```bash
+npm ci
+npm run demo:ui
+```
+
+The demo uses synthetic examples. It makes no API/model calls
+and does not check your real services or reproduce genuine model streaming.
+`typecheck` also checks the demo and its imported helpers. CI runs the demo on
+both supported Node versions. `demo:ui` uses the local pinned `tsx` dependency;
+it does not ask npx to download an unrelated latest version.
+
+Update the CLI source checkout to the 1.7.2 release or later first. Earlier
+checkouts contain a stale demo that imports removed helpers; changing folders
+alone does not repair those versions.
+
+For actual development checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+node dist/cli.js --help
+```
+
+Interactive startup: run `node dist/cli.js --no-update` in a normal terminal;
+it should show the wordmark, menu and clean exit. Test fixture results separately
+from the authorized read-only service recipe in the qualification guide.
