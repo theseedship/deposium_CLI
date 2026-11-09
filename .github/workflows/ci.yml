@@ -39,48 +39,24 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      # Keep compilation in each quality matrix leg: no duplicate npm ci or
+      # dependent matrix expansion, while retaining both runtime versions.
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Verify compiled entrypoints
+        run: |
+          test -f dist/cli.js
+          test -f dist/index.js
+          node dist/cli.js --version
+          node dist/cli.js --help > /dev/null
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
           fail_ci_if_error: false
         continue-on-error: true
-
-  build:
-    name: Build Check (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
-    needs: quality
-    strategy:
-      matrix:
-        node-version: ['22.13.0', '24.x']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Verify build artifacts
-        run: |
-          if [ ! -d "dist" ]; then
-            echo "Build failed: dist directory not created"
-            exit 1
-          fi
-          if [ ! -f "dist/cli.js" ]; then
-            echo "Build failed: cli.js not created"
-            exit 1
-          fi
-          echo "✅ Build artifacts verified"
 
   security:
     name: Security Audit
