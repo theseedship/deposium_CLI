@@ -2,7 +2,9 @@
 
 # Settings — language and default space (CLI 1.8.0+)
 
-Open **Settings** in the main menu, or run `deposium settings`. Language settings
+Open **Settings** in the main menu, or run `deposium settings`. The main menu
+and local Settings can open before login; only an API-backed operation asks for
+authentication. Language settings
 and the settings view work offline; choosing a default space needs your account's
 fresh authorized catalogue. These settings use the existing encrypted configuration;
 they do not change your saved API key or server permissions.

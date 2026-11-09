@@ -9,7 +9,7 @@ import { initializeCommand, getErrorMessage } from './utils/command-helpers';
 import { selectChatScope } from './utils/chat-scope';
 import { mcpErrorMessage } from './utils/mcp-content';
 import { runCompoundAnalysis } from './utils/compound-analysis';
-import { getConfig, type DeposiumConfig } from './utils/config';
+import type { DeposiumConfig } from './utils/config';
 import { openSettings } from './utils/settings';
 import { verifiedCliContext, printCliContext } from './utils/preferences';
 import { browseToolCatalogue } from './utils/tool-catalogue';
@@ -97,7 +97,7 @@ export async function prepareCompoundHistory(history: ChatHistory): Promise<bool
   return true;
 }
 
-async function advanced(client: MCPClient, config: DeposiumConfig, history: ChatHistory) {
+async function advanced(history: ChatHistory) {
   const { action } = await inquirer.prompt<{ action: string }>([
     {
       type: 'select',
@@ -126,6 +126,15 @@ async function advanced(client: MCPClient, config: DeposiumConfig, history: Chat
     },
   ]);
   if (action === 'back') return;
+  if (action === 'reference') {
+    console.log(tr('Run deposium <command> --help for arguments and prerequisites.'));
+    console.log('https://docs.deposium.ai/cli/');
+    console.log(
+      tr('Server-internal routers and database administration are not public terminal operations.')
+    );
+    return;
+  }
+  const { client, config } = await initializeCommand();
   if (action === 'compound') {
     if (!(await prepareCompoundHistory(history))) return;
     console.log(
@@ -160,21 +169,13 @@ async function advanced(client: MCPClient, config: DeposiumConfig, history: Chat
       },
     ]);
     await showTool(client, resource, {});
-  } else if (action === 'reference') {
-    console.log(tr('Run deposium <command> --help for arguments and prerequisites.'));
-    console.log('https://docs.deposium.ai/cli/');
-    console.log(
-      tr('Server-internal routers and database administration are not public terminal operations.')
-    );
   }
 }
 
 export async function startInteractive(): Promise<void> {
   console.log(createWelcomeBanner());
-  const { client } = await initializeCommand();
   const history = new ChatHistory(10);
   while (true) {
-    const config = getConfig();
     const { command } = await inquirer.prompt<{ command: string }>([
       {
         type: 'select',
@@ -185,8 +186,20 @@ export async function startInteractive(): Promise<void> {
     ]);
     if (command === 'exit') return;
     try {
-      if (command === 'chat') await startChat();
-      else if (command === 'search') {
+      if (command === 'settings') {
+        await openSettings();
+        continue;
+      }
+      if (command === 'chat') {
+        await startChat();
+        continue;
+      }
+      if (command === 'advanced') {
+        await advanced(history);
+        continue;
+      }
+      const { client, config } = await initializeCommand();
+      if (command === 'search') {
         const scope = await interactiveScope(client, config);
         await showTool(client, 'search_hub', {
           ...scope,
@@ -202,11 +215,9 @@ export async function startInteractive(): Promise<void> {
         // A returned HTTP response is not evidence that every service is healthy.
         formatOutput(await client.health(), 'table');
         printCliContext(await verifiedCliContext(client, config));
-      } else if (command === 'settings') {
-        await openSettings();
       } else if (command === 'tools') {
         await browseToolCatalogue(client);
-      } else if (command === 'advanced') await advanced(client, config, history);
+      }
     } catch (error) {
       console.error(chalk.red(tr('Operation failed:')), getErrorMessage(error));
       console.error(

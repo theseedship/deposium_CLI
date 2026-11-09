@@ -70,7 +70,7 @@ records retain their original dates and test counts; they are not current releas
 
 ## Preferences qualification — CLI 1.8.0
 
-**914 tests / 61 files** pass on Node 22.13 and 24, including the existing
+**919 tests / 62 files** pass on Node 22.13 and 24, including the existing
 credential, JSON, HITL and canonical-answer tests. A real terminal recipe verifies
 French startup → Settings → Back → clean exit without changing the user's
 preferences. An ordinary-key read-only probe observes 22 authorized spaces and
@@ -85,7 +85,9 @@ local file target. This is distinct from executing every backend operation.
 Language priority, locale precedence, automatic mode and invocation-only overrides
 are checked independently. Process tests use isolated temporary homes to verify
 persistence across launches, encrypted storage and unchanged synthetic credentials.
-They exercise real command parsing, offline settings, translated help and clean
+The main menu also tests offline Settings, help/back/exit without authentication,
+API-only client initialization and avoiding duplicate Chat authentication.
+Process tests exercise real command parsing, offline settings, translated help and clean
 JSON, including invalid flags and conflicting scope options. No real user
 preferences are modified by those tests.
 

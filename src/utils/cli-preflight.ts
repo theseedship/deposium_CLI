@@ -20,6 +20,8 @@ import { getConfig, getBaseUrl } from './config';
 export const NO_API_COMMANDS: readonly string[] = [
   'config',
   'settings',
+  'interactive',
+  'i',
   'auth',
   'temporal-assertion',
 ];
