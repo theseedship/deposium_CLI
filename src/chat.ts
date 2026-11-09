@@ -16,6 +16,9 @@ import { getErrorMessage, initializeCommand } from './utils/command-helpers';
 import { printChatSources, printChatVerification } from './utils/chat-output';
 import { parseChatCommand, selectChatScope } from './utils/chat-scope';
 import { executeChatCommand } from './utils/chat-commands';
+import { createChatActivity, type ChatActivity } from './utils/chat-activity';
+import { createChatRenderer } from './utils/chat-renderer';
+import type { ChatTurnDetails } from './utils/chat-output';
 
 /**
  * `--on-ambiguous` policy — what the CLI does when the server emits a
@@ -90,6 +93,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   console.log(chalk.cyan(`Space: ${scope.label}\n`));
 
   const chatHistory = new ChatHistory(10);
+  const details: ChatTurnDetails = { citations: [], verifications: [] };
 
   while (true) {
     const { message } = await inquirer.prompt([
@@ -105,7 +109,12 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
     const local = parseChatCommand(trimmedMessage);
     if (local) {
       try {
-        const result = await executeChatCommand(local, { client, history: chatHistory, scope });
+        const result = await executeChatCommand(local, {
+          client,
+          history: chatHistory,
+          scope,
+          details,
+        });
         scope = result.scope;
         if (result.exit) break;
       } catch (error: unknown) {
@@ -118,6 +127,8 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
       continue;
     }
 
+    details.citations = [];
+    details.verifications = [];
     const conversationHistory = chatHistory.toConversationHistory(6);
     chatHistory.addUserMessage(trimmedMessage);
 
@@ -131,6 +142,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
         spaceIds: scope.spaceIds,
         onAmbiguous,
         verbose: options.verbose,
+        onDetails: (result) => Object.assign(details, result),
       });
 
       if (!fullResponse) {
@@ -167,12 +179,20 @@ export interface RunChatTurnArgs {
   onAmbiguous: OnAmbiguousMode;
   /** Override inquirer for tests. */
   prompter?: (prompt: SSEChatPrompt) => Promise<AgentResumePayload>;
+  activity?: ChatActivity;
+  onDetails?: (details: ChatTurnDetails) => void;
 }
 
+/** Drive one turn with HITL, canonical answer handling, activity cleanup and scoped inspection data. */
 export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
   const citations: SSECitation[] = [];
   const verifications: SSEVerification[] = [];
   let fullResponse = '';
+  let completed = false;
+  let hadStreamError = false;
+  let streamDone = false;
+  const activity = args.activity ?? createChatActivity();
+  const screen = createChatRenderer(activity);
   // Suppressed = true when the backend blocked the answer via Guardian
   // (`answer_blocked` or `verification.action === 'blocked'`). Callers
   // must NOT persist the streamed draft to chat history in that case;
@@ -187,11 +207,18 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     conversationHistory: args.conversationHistory,
     language: 'fr',
     onToken: (token) => {
-      process.stdout.write(token);
+      if (typeof token !== 'string' || !token) return;
+      screen.token(token);
       fullResponse += token;
     },
+    onMetadata: () => screen.phase('Processing request'),
+    onToolCall: () => screen.phase('Working with tools'),
     onCitation: (c) => citations.push(c),
+    onDone: () => {
+      streamDone = true;
+    },
     onChatPrompt: (prompt) => {
+      activity.stop();
       pendingPrompts.push(prompt);
     },
     // The cleaned final answer arrived (chart-JSON stripped, mermaid
@@ -201,37 +228,8 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     // authoritative. This is what stops chart-JSON dumps and un-swapped
     // Guardian text from being displayed and fed back next turn.
     onAnswerReplace: (data) => {
-      // Erase the MULTI-line streamed draft on screen before reprinting.
-      // A `\r\x1b[K` alone only clears the current terminal line, so a
-      // chart / mermaid / table draft that spanned multiple lines
-      // would leave the earlier lines visible above the canonical
-      // answer (which is the whole bug this event is meant to fix).
-      //
-      // The draft with N newlines occupies N+1 rows: the "AI: " row
-      // (row 0) plus one row per `\n`, with the cursor now sitting on
-      // the bottom row (row N). Clear the CURRENT (bottom) row first,
-      // THEN move up + clear once per newline (`\x1b[F` = cursor up to
-      // line start, `\x1b[K` = erase to end of line), landing back on
-      // row 0. That erases all N+1 rows; the reprint then owns the
-      // screen. (Doing the up-loop first would clear rows N-1..0 and
-      // leave the bottom row N un-erased — an off-by-one that leaked
-      // the last draft line below the canonical answer.)
-      //
-      // Not perfectly wrap-safe on very narrow TTYs (a single very
-      // long line the terminal soft-wrapped into multiple screen rows
-      // only counts as one `\n`). That's a graceful degradation — the
-      // canonical answer still renders; at worst the user sees a
-      // partial artifact of the wrapped draft. Prior state was that
-      // the entire draft persisted.
-      const linesToClear = (fullResponse.match(/\n/g) ?? []).length;
-      // Clear the current (bottom / partial-last) row first.
-      process.stdout.write('\r\x1b[K');
-      // Then walk up + clear one row per streamed newline, back to row 0.
-      for (let i = 0; i < linesToClear; i++) {
-        process.stdout.write('\x1b[F\x1b[K');
-      }
+      screen.replace(fullResponse, data.final_answer);
       fullResponse = data.final_answer;
-      process.stdout.write(chalk.green('AI: ') + data.final_answer);
     },
     onVerification: (v) => {
       verifications.push(v);
@@ -240,6 +238,7 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       }
     },
     onAnswerBlocked: (data) => {
+      activity.stop();
       suppressResponse = true;
       console.log(chalk.red(`\n🚫 Answer blocked: ${data.reason}`));
       if (data.fallback_answer) {
@@ -255,13 +254,14 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       }
     },
     onError: (err) => {
+      hadStreamError = true;
+      activity.stop();
       console.error(chalk.red('\n❌ ' + (err.message ?? err.error ?? 'Stream error')));
     },
   };
 
-  process.stdout.write(chalk.green('\nAI: '));
-
   try {
+    screen.waiting();
     await args.client.chatStream(args.streamUrl, args.message, {
       directMcp: args.directMcp,
       ...streamOpts,
@@ -285,10 +285,14 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       const prompt = pendingPrompts.shift() as SSEChatPrompt;
 
       process.stdout.write('\n');
+      activity.stop();
       const decision = await handleChatPrompt(prompt, args.onAmbiguous, args.prompter);
 
       process.stdout.write(chalk.gray(`↪ Resuming (${describeDecision(decision)})\n`));
-      process.stdout.write(chalk.green('AI: '));
+      screen.waiting('Resuming request');
+      // Each resume is a new stream; an earlier gate stream cannot attest
+      // completion of its successor. EOF alone is not an answer receipt.
+      streamDone = false;
 
       if (prompt.correlation_id) {
         await args.client.resumeAgent(args.streamUrl, prompt.correlation_id, decision, streamOpts);
@@ -309,9 +313,11 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
       }
     }
 
+    activity.stop();
     process.stdout.write('\n');
 
-    printChatSources(citations);
+    completed = streamDone && !hadStreamError;
+    if (completed) printChatSources(citations);
 
     // If Guardian blocked without offering a fallback, return empty so
     // the caller drops the assistant slot from history rather than
@@ -319,8 +325,10 @@ export async function runChatTurn(args: RunChatTurnArgs): Promise<string> {
     // answer" and calls `removeLastMessage` implicitly via the try/catch.
     return suppressResponse ? '' : fullResponse;
   } finally {
+    activity.stop();
     // Verification signals must survive a stream or HITL-resume failure.
     printChatVerification(verifications, args.verbose);
+    args.onDetails?.({ citations: completed && !suppressResponse ? citations : [], verifications });
   }
 }
 

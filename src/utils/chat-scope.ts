@@ -69,6 +69,9 @@ export const CHAT_HELP = [
   '/space <id> Choose an accessible space by ID',
   '/clear      Clear conversation history',
   '/history    View conversation history',
+  '/sources    List sources received for the last answer',
+  '/source <n> Read an emitted citation (or choose with /source)',
+  '/verify     Inspect verification details for the last answer',
   '/exit       Return to the terminal or menu',
 ].join('\n');
 

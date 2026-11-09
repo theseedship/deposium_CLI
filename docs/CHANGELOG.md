@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-09
+
+### Added
+
+- Interactive chat shows elapsed waiting activity and phases derived from received events. Activity stops before tokens, prompts or errors and its timer is released on failure. Noninteractive/CI/dumb terminals stay unanimated.
+- `/sources`, `/source <citation number>` and `/verify` make emitted source passages and detailed checks inspectable locally. Unknown/unavailable citations are not fabricated, later unavailable references supersede earlier metadata, and terminal controls are stripped from excerpts/names.
+- References remain tied to the last completed answer and are cleared on a new question, history reset or actual space change. Failed turns do not expose partial citation metadata.
+
+### Changed
+
+- Known verification types are grouped into readable categories. Amount/grounding warnings and review/block decisions remain visible; full descriptions and recommendations are available through `/verify` or `--verbose`.
+- Source lists retain the server's citation numbers instead of only listing filenames and pages.
+
+### Scope
+
+- A single authorized SaaS timing probe received 93 token fragments in about 1 ms after 12.4 s, while metadata/tool events arrived earlier. This identifies burst delivery at the client boundary, not a CLI token buffer or a general performance benchmark. No artificial typewriter effect or server streaming improvement is claimed.
+- The CLI source view displays emitted passages; PDF/browser opening, unified FR/EN settings and live slash completion remain separate work.
+
 ## [1.6.1] - 2026-11-09
 
 ### Fixed

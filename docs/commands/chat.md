@@ -21,6 +21,34 @@ Conversation history is different: it exists only while the chat process runs.
 Starting `deposium chat` again starts a new conversation. `/clear` or a real
 space change also clears that in-memory history.
 
+## Activity and source inspection (CLI 1.7.0+)
+
+Interactive terminals show an elapsed-time indicator while waiting for the server.
+It stops before answer text, user prompts and errors. The client writes token
+fragments as they arrive; some server paths deliver a completed answer in a burst.
+The indicator does not promise faster generation or invent a completion percentage.
+Scripts, CI and dumb terminals do not receive an animated indicator.
+
+After an answer:
+
+- `/sources` lists received document/page references and their citation numbers.
+- `/source 7` reads the passage emitted for citation 7. `/source` offers a picker.
+- `/verify` shows detailed verification notes and recommendations on request.
+
+The source view uses cached passages from the last answer. It does not fetch a
+new document, open a browser or download a whole PDF. An unavailable reference
+stays unavailable. Changing space, clearing history or starting another question
+clears old reference details. Failed streams or EOF without the final `done` receipt do not expose partial
+source details. A receipt before an interactive gate cannot certify its resumed
+stream.
+
+By default, familiar verification codes are grouped into understandable categories,
+such as amounts requiring a source check or names not linked in the graph.
+An unmatched graph name alone is not proof of an invented fact. Review/block
+verdicts and important unknown checks remain visible; `/verify` or `--verbose`
+provides the original diagnostic detail. Neither grouping nor an activity indicator
+changes the server's verdict or authorizes a blocked answer.
+
 ## How It Works
 
 The chat system maintains a conversation history and provides context from recent
@@ -117,12 +145,16 @@ Chat with AI continuously. Commands:
 
 ### Interactive Mode (Menu-based)
 
-When using `deposium interactive` and selecting **Compound AI**:
+In CLI 1.6.1+, open `deposium interactive` → **Advanced operations** →
+**Compound reasoning**. This is multi-tool reasoning, not a space-scoped document
+chat; use **Chat with documents** for that. Compound may use external tools.
 
-1. **First prompt**: Just ask your question normally
-2. **Subsequent prompts**: The AI will have context from previous messages
-3. **View history**: When prompted, choose "Yes" to view conversation history
-4. **Clear history**: Choose "Yes" when asked if you want to clear history to start fresh
+When returning to Compound during the same interactive session:
+
+1. **First prompt**: Ask your question.
+2. **Continue with previous exchanges**: Reuse successful earlier exchanges as context.
+3. **View previous exchanges**: Inspect that context before continuing.
+4. **Start fresh**: Clear Compound history. **Back** leaves without another request.
 
 Example flow:
 
