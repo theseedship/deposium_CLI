@@ -60,6 +60,21 @@ function visitBlock(
   output.values.push(`[${String(block.type)} content requires a compatible MCP client]`);
 }
 
+function visitEnvelope(
+  envelope: Record<string, unknown> & { content?: unknown[] },
+  visit: (value: unknown, depth: number) => void,
+  depth: number
+): void {
+  if (envelope.structuredContent === undefined) {
+    visit(envelope.content, depth + 1);
+    return;
+  }
+  visit(envelope.structuredContent, depth + 1);
+  for (const block of envelope.content ?? []) {
+    if (isBlock(block) && block.type !== 'text') visit(block, depth + 1);
+  }
+}
+
 export function decodeMcpContent(input: unknown): DecodedMcpContent {
   const output: DecodedMcpContent = { values: [], resources: [] };
   let visited = 0;
@@ -72,14 +87,8 @@ export function decodeMcpContent(input: unknown): DecodedMcpContent {
     }
     if (Array.isArray(value) && value.length > 0 && value.every(isBlock)) {
       for (const block of value) visit(block, depth + 1);
-    } else if (isEnvelope(value)) {
-      if (value.structuredContent !== undefined) {
-        visit(value.structuredContent, depth + 1);
-        for (const block of value.content ?? []) {
-          if (isBlock(block) && block.type !== 'text') visit(block, depth + 1);
-        }
-      } else visit(value.content, depth + 1);
-    } else if (isBlock(value)) visitBlock(value, output, visit, depth);
+    } else if (isEnvelope(value)) visitEnvelope(value, visit, depth);
+    else if (isBlock(value)) visitBlock(value, output, visit, depth);
     else output.values.push(value);
   }
   visit(input, 0);
