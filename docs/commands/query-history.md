@@ -2,6 +2,8 @@
 
 # Query History Command
 
+Query-retention `cleanup` is server-internal and unavailable with a public CLI user key. From CLI 1.6.1 it is hidden from help and refused locally; read/export commands retain their own server permission checks.
+
 The `query-history` (or `qh`) command group tracks and analyzes user query performance and history.
 
 ## Usage

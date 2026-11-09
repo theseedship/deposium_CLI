@@ -19,10 +19,12 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const format = options.format.toLowerCase();
+          const progress = format !== 'json';
+          const { config, client } = await initializeCommand({ machineReadable: !progress });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
+          if (progress) console.log(chalk.bold('\n📊 Fetching Corpus Statistics...\n'));
 
           const content = await runMcpTool(
             client,
@@ -31,7 +33,7 @@ export const corpusCommand = new Command('corpus')
               tenant_id: tenantId,
               space_id: spaceId,
             },
-            { label: 'Stats' }
+            { label: 'Stats', spinner: progress }
           );
 
           formatOutput(content, options.format);

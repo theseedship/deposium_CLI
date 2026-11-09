@@ -137,8 +137,8 @@ queryHistoryCommand
 
 // query.cleanup - Cleanup old queries
 queryHistoryCommand
-  .command('cleanup')
-  .description('Cleanup old query history')
+  .command('cleanup', { hidden: true })
+  .description('Server-internal query retention (unavailable to public CLI callers)')
   .option('--older-than <days>', 'Delete queries older than N days', '90')
   .option('--confirm', 'Skip confirmation prompt')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')

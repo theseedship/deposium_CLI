@@ -284,7 +284,10 @@ benchmarkCommand
       if (options.format !== 'table') {
         formatOutput(content, options.format);
       } else {
-        displayCorpusEvalResults(data, { tenant: tenantId, space: spaceId });
+        displayCorpusEvalResults(data, {
+          tenant: tenantId ?? 'resolved by server',
+          space: spaceId,
+        });
       }
     })
   );

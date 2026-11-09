@@ -1,568 +1,202 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { MCPClient, MCPTool } from './client/mcp-client';
+import { MCPClient } from './client/mcp-client';
 import { formatOutput, createTitleBox } from './utils/formatter';
 import { ChatHistory } from './utils/chat-history';
 import { startChat } from './chat';
 import { initializeCommand, getErrorMessage } from './utils/command-helpers';
+import { selectChatScope } from './utils/chat-scope';
+import { mcpErrorMessage } from './utils/mcp-content';
+import { runCompoundAnalysis } from './utils/compound-analysis';
 import type { DeposiumConfig } from './utils/config';
 
-/** Prompt for tenant and space IDs with defaults from config */
-async function promptTenantSpace(
-  config: DeposiumConfig
-): Promise<{ tenant: string; space: string }> {
-  return inquirer.prompt([
+/** Public terminal operations. Internal routers and database administration are not menu actions. */
+export const MAIN_OPERATIONS = [
+  { name: 'Chat — ask questions about documents in one space', value: 'chat' },
+  { name: 'Search — find passages in one space', value: 'search' },
+  { name: 'Corpus statistics — document, page and graph counts', value: 'corpus' },
+  { name: 'Health — check the connected service', value: 'health' },
+  { name: 'Tools — inspect the server catalogue', value: 'tools' },
+  { name: 'Advanced — reasoning, query diagnostics and MCP resources', value: 'advanced' },
+  { name: 'Exit', value: 'exit' },
+];
+
+/** Select an authorized named space, using the configured default only as a picker preference.
+ * Throws on catalogue failure or an inaccessible explicit selection; never broadens scope.
+ */
+export async function interactiveScope(client: MCPClient, config: DeposiumConfig) {
+  const selected = await selectChatScope(
+    client,
     {
-      type: 'input',
-      name: 'tenant',
-      message: 'Tenant ID:',
-      default: config.defaultTenant ?? 'default',
+      initialSpace: config.defaultSpace === 'default' ? undefined : config.defaultSpace,
+      promptMessage: 'Choose an accessible space:',
     },
+    true
+  );
+  console.log(chalk.cyan(`Space: ${selected.label}`));
+  // The authenticated server resolves the tenant; an ID is never fabricated here.
+  return { space_id: selected.spaceIds[0] };
+}
+
+async function input(message: string): Promise<string> {
+  const answer = await inquirer.prompt<{ value: string }>([
     {
       type: 'input',
-      name: 'space',
-      message: 'Space ID:',
-      default: config.defaultSpace ?? 'default',
+      name: 'value',
+      message,
+      validate: (value: string) => value.trim().length > 0 || 'Enter a value.',
     },
   ]);
+  return answer.value;
+}
+
+async function showTool(
+  client: MCPClient,
+  tool: string,
+  args: Record<string, unknown>,
+  format = 'table'
+) {
+  const result = await client.callTool(tool, args, { spinner: true });
+  if (result.isError) throw new Error(mcpErrorMessage(result.content));
+  formatOutput(result.content, format);
+  return result.content;
+}
+
+/** Keep only successful exchanges and send previous conversation as optional text. */
+export async function interactiveCompound(client: MCPClient, history: ChatHistory, query: string) {
+  formatOutput(await runCompoundAnalysis(client, history, query), 'markdown');
+}
+
+/** Let the user inspect, clear or decline prior Compound context before another request. */
+export async function prepareCompoundHistory(history: ChatHistory): Promise<boolean> {
+  while (!history.isEmpty()) {
+    const { context } = await inquirer.prompt<{ context: string }>([
+      {
+        type: 'select',
+        name: 'context',
+        message: 'Compound conversation context:',
+        choices: [
+          { name: 'Start a new context (clear previous exchanges)', value: 'clear' },
+          { name: 'Continue with previous exchanges', value: 'continue' },
+          { name: 'View previous exchanges', value: 'view' },
+          { name: 'Back without sending a question', value: 'back' },
+        ],
+      },
+    ]);
+    if (context === 'back') return false;
+    if (context === 'continue') return true;
+    if (context === 'clear') history.clear();
+    else history.display();
+  }
+  return true;
+}
+
+async function advanced(client: MCPClient, config: DeposiumConfig, history: ChatHistory) {
+  const { action } = await inquirer.prompt<{ action: string }>([
+    {
+      type: 'select',
+      name: 'action',
+      message: 'Advanced operation:',
+      choices: [
+        {
+          name: 'Compound reasoning — multi-tool reasoning, not a scoped document chat',
+          value: 'compound',
+        },
+        {
+          name: 'Query intent — inspect how a question would be classified (does not analyze documents)',
+          value: 'intent',
+        },
+        { name: 'Graph components — connected groups in one space', value: 'components' },
+        { name: 'Graph path — explore relations from an entity ID', value: 'path' },
+        { name: 'MCP app resources — requires a compatible UI host', value: 'resources' },
+        {
+          name: 'Command reference — purpose and requirements of other commands',
+          value: 'reference',
+        },
+        { name: 'Back', value: 'back' },
+      ],
+    },
+  ]);
+  if (action === 'back') return;
+  if (action === 'compound') {
+    if (!(await prepareCompoundHistory(history))) return;
+    console.log(
+      'This operation may use server reasoning and web tools. For questions scoped to your documents, choose Chat.'
+    );
+    await interactiveCompound(client, history, await input('Question:'));
+  } else if (action === 'intent') {
+    console.log(
+      'Classifies your question and suggests search parameters; it does not summarize your documents.'
+    );
+    await showTool(client, 'smart_analyze', { query_text: await input('Question to classify:') });
+  } else if (action === 'components' || action === 'path') {
+    const scope = await interactiveScope(client, config);
+    const args =
+      action === 'path' ? { ...scope, source_id: await input('Source entity ID:') } : scope;
+    await showTool(client, action === 'path' ? 'graph_variable_path' : 'graph_components', args);
+  } else if (action === 'resources') {
+    const { resource } = await inquirer.prompt<{ resource: string }>([
+      {
+        type: 'select',
+        name: 'resource',
+        message: 'Resource to inspect (no browser is opened):',
+        choices: [
+          { name: 'Dashboard resource', value: 'ui_show_dashboard' },
+          { name: 'Health resource', value: 'ui_show_health' },
+          { name: 'Tools explorer resource', value: 'ui_show_tools' },
+        ],
+      },
+    ]);
+    await showTool(client, resource, {});
+  } else if (action === 'reference') {
+    console.log('Run deposium <command> --help for arguments and prerequisites.');
+    console.log('https://docs.deposium.ai/cli/');
+    console.log(
+      'Server-internal routers and database administration are not public terminal operations.'
+    );
+  }
 }
 
 export async function startInteractive(): Promise<void> {
-  console.log(createTitleBox('INTERACTIVE MODE', 'Menu-driven access to all Deposium features'));
-
+  console.log(createTitleBox('DEPOSIUM', 'Document search, chat and service diagnostics'));
   const { config, client } = await initializeCommand();
-
-  // Initialize chat history for Compound AI
-  const compoundChatHistory = new ChatHistory(10);
-
+  const history = new ChatHistory(10);
   while (true) {
-    const { command } = await inquirer.prompt([
+    const { command } = await inquirer.prompt<{ command: string }>([
       {
         type: 'select',
         name: 'command',
-        message: chalk.bold.cyan('Select an operation:'),
-        choices: [
-          new inquirer.Separator(chalk.gray('─── AI Operations ───')),
-          { name: '💬  AI Chat ' + chalk.gray('(continuous conversation)'), value: 'chat' },
-          {
-            name: '🤖  Compound AI ' + chalk.gray('(single query with context)'),
-            value: 'compound',
-          },
-          {
-            name: '🧠  Intelligence ' + chalk.gray('(smart query analysis)'),
-            value: 'intelligence',
-          },
-          { name: '🧭  DSPy Router ' + chalk.gray('(intelligent routing)'), value: 'dspy' },
-          new inquirer.Separator(chalk.gray('─── Search & Retrieval ───')),
-          { name: '🔍  Search ' + chalk.gray('(find documents)'), value: 'search' },
-          { name: '🎯  LeanRAG ' + chalk.gray('(optimized retrieval)'), value: 'leanrag' },
-          new inquirer.Separator(chalk.gray('─── Graph & Analysis ───')),
-          { name: '🔗  Graph Analysis ' + chalk.gray('(explore connections)'), value: 'graph' },
-          { name: '📐  Mermaid ' + chalk.gray('(diagram tools)'), value: 'mermaid' },
-          new inquirer.Separator(chalk.gray('─── Corpus & Quality ───')),
-          { name: '📊  Corpus Stats ' + chalk.gray('(view metrics)'), value: 'corpus' },
-          { name: '📈  Evaluate ' + chalk.gray('(quality metrics)'), value: 'evaluate' },
-          new inquirer.Separator(chalk.gray('─── Management ───')),
-          { name: '📝  Query History ' + chalk.gray('(track queries)'), value: 'queryhistory' },
-          { name: '📜  Logs ' + chalk.gray('(view server logs)'), value: 'logs' },
-          { name: '🦆  DuckDB ' + chalk.gray('(database federation)'), value: 'duckdb' },
-          new inquirer.Separator(chalk.gray('─── UI & Tools ───')),
-          { name: '🎨  UI Dashboards ' + chalk.gray('(interactive interfaces)'), value: 'ui' },
-          { name: '🛠️  List Tools ' + chalk.gray('(see all available tools)'), value: 'tools' },
-          new inquirer.Separator(chalk.gray('─── System ───')),
-          { name: '🏥  Health Check ' + chalk.gray('(service status)'), value: 'health' },
-          new inquirer.Separator(),
-          { name: chalk.red('🚪  Exit'), value: 'exit' },
-        ],
-        pageSize: 25,
+        message: 'Select an operation:',
+        choices: MAIN_OPERATIONS,
       },
     ]);
-
-    if (command === 'exit') {
-      console.log(chalk.green('\n👋 Goodbye!\n'));
-      break;
-    }
-
-    const handlers: Record<string, () => Promise<void>> = {
-      chat: () => startChat(),
-      search: () => handleSearch(client, config),
-      graph: () => handleGraph(client, config),
-      corpus: () => handleCorpus(client, config),
-      compound: () => handleCompound(client, compoundChatHistory),
-      health: () => handleHealth(client),
-      intelligence: () => handleIntelligence(client, config),
-      dspy: () => handleDSPy(client),
-      leanrag: () => handleLeanRAG(client, config),
-      mermaid: () => handleMermaid(client, config),
-      evaluate: () => handleEvaluate(client),
-      queryhistory: () => handleQueryHistory(client),
-      logs: () => handleLogs(client),
-      duckdb: () => handleDuckDB(client),
-      ui: () => handleUI(client),
-      tools: () => handleTools(client),
-    };
-
+    if (command === 'exit') return;
     try {
-      await handlers[command]?.();
-    } catch (error: unknown) {
-      console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
-    }
-
-    console.log(''); // Empty line for spacing
-  }
-}
-
-async function handleSearch(client: MCPClient, config: DeposiumConfig): Promise<void> {
-  const { query } = await inquirer.prompt([
-    { type: 'input', name: 'query', message: 'Enter search query:' },
-  ]);
-  const answers = { query, ...(await promptTenantSpace(config)) };
-
-  const result = await client.callTool(
-    'search_hub',
-    {
-      tenant_id: answers.tenant,
-      space_id: answers.space,
-      query_text: answers.query,
-    },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Search failed:'), result.content);
-  }
-}
-
-async function handleGraph(client: MCPClient, config: DeposiumConfig): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'Graph operation:',
-      choices: ['analyze', 'components', 'path'],
-    },
-  ]);
-
-  const answers = await promptTenantSpace(config);
-
-  // Map action names to MCP tool names
-  const toolMap: Record<string, string> = {
-    analyze: 'graph_multihop',
-    components: 'graph_components',
-    path: 'graph_variable_path',
-  };
-
-  const result = await client.callTool(
-    toolMap[action] || `graph_${action}`,
-    {
-      tenant_id: answers.tenant,
-      space_id: answers.space,
-    },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Graph operation failed:'), result.content);
-  }
-}
-
-async function handleCorpus(client: MCPClient, config: DeposiumConfig): Promise<void> {
-  const answers = await promptTenantSpace(config);
-
-  const result = await client.callTool(
-    'corpus_stats',
-    {
-      tenant_id: answers.tenant,
-      space_id: answers.space,
-    },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Corpus stats failed:'), result.content);
-  }
-}
-
-async function handleCompound(client: MCPClient, chatHistory: ChatHistory): Promise<void> {
-  // Show conversation history if it exists
-  if (!chatHistory.isEmpty()) {
-    const { showHistory } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'showHistory',
-        message: 'View conversation history?',
-        default: false,
-      },
-    ]);
-
-    if (showHistory) {
-      chatHistory.display();
+      if (command === 'chat') await startChat();
+      else if (command === 'search') {
+        const scope = await interactiveScope(client, config);
+        await showTool(client, 'search_hub', { ...scope, query_text: await input('Search for:') });
+      } else if (command === 'corpus') {
+        const scope = await interactiveScope(client, config);
+        console.log('Counts for the selected space; missing metrics are not assumed to be zero.');
+        await showTool(client, 'corpus_stats', scope);
+      } else if (command === 'health') {
+        // A returned HTTP response is not evidence that every service is healthy.
+        formatOutput(await client.health(), 'table');
+      } else if (command === 'tools') {
+        const tools = await client.listTools();
+        if (!tools.length) console.log('The server returned an empty tool catalogue.');
+        else
+          formatOutput(
+            tools.map(({ name, description }) => ({ name, description })),
+            'table'
+          );
+      } else if (command === 'advanced') await advanced(client, config, history);
+    } catch (error) {
+      console.error(chalk.red('Operation failed:'), getErrorMessage(error));
+      console.error(
+        'Check the selected space, authentication and permissions. Use deposium <command> --help for requirements.'
+      );
     }
   }
-
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'query',
-      message: 'Enter your question:',
-    },
-    {
-      type: 'confirm',
-      name: 'clearHistory',
-      message: 'Clear conversation history?',
-      default: false,
-      when: () => !chatHistory.isEmpty(),
-    },
-  ]);
-
-  // Clear history if requested
-  if (answers.clearHistory) {
-    chatHistory.clear();
-    console.log(chalk.yellow('\n🗑️  Conversation history cleared\n'));
-  }
-
-  // Add user message to history
-  chatHistory.addUserMessage(answers.query);
-
-  // Get conversation context
-  const conversationContext = chatHistory.getContext(6);
-
-  // Build context object - only add conversation_history if it exists
-  const context: { conversation_history?: string } = {};
-  if (conversationContext) {
-    context.conversation_history = conversationContext;
-  }
-
-  const result = await client.callTool(
-    'compound_analyze',
-    {
-      query: answers.query,
-      context,
-    },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    // Add AI response to history
-    const responseText =
-      typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
-    chatHistory.addAssistantMessage(responseText);
-
-    formatOutput(result.content, 'markdown');
-
-    // Show brief history indicator
-    console.log(chalk.gray(`\n💬 ${chatHistory.getMessages().length} messages in conversation\n`));
-  } else {
-    console.error(chalk.red('Compound AI failed:'), result.content);
-  }
-}
-
-async function handleHealth(client: MCPClient): Promise<void> {
-  const health = await client.health();
-  console.log(chalk.green('\n✅ MCP Server: Healthy\n'));
-  formatOutput(health, 'table');
-}
-
-async function handleIntelligence(client: MCPClient, config: DeposiumConfig): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'Intelligence operation:',
-      choices: ['analyze', 'suggest', 'summarize', 'elicit'],
-    },
-  ]);
-
-  const { query } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'query',
-      message: action === 'suggest' ? 'Enter partial query:' : 'Enter query:',
-    },
-  ]);
-
-  const toolMap: Record<string, string> = {
-    analyze: 'smart_analyze',
-    suggest: 'smart_suggest',
-    summarize: 'smart_summarize',
-    elicit: 'smart_elicit',
-  };
-
-  let toolArgs: Record<string, unknown>;
-  if (action === 'suggest') {
-    // suggest needs a scope — prompt for the same tenant/space as
-    // the rest of the menu instead of hardcoding 'default'.
-    const scope = await promptTenantSpace(config);
-    toolArgs = {
-      partial_query: query,
-      tenant_id: scope.tenant,
-      space_id: scope.space,
-    };
-  } else {
-    toolArgs = { query_text: query };
-  }
-
-  const result = await client.callTool(toolMap[action], toolArgs, { spinner: true });
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Intelligence operation failed:'), result.content);
-  }
-}
-
-async function handleDSPy(client: MCPClient): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'DSPy operation:',
-      choices: ['route', 'analyze'],
-    },
-  ]);
-
-  const { query } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'query',
-      message: 'Enter query:',
-    },
-  ]);
-
-  const result = await client.callTool(
-    action === 'route' ? 'dspy_route' : 'dspy_analyze',
-    { query },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('DSPy operation failed:'), result.content);
-  }
-}
-
-async function handleLeanRAG(client: MCPClient, config: DeposiumConfig): Promise<void> {
-  const { query } = await inquirer.prompt([
-    { type: 'input', name: 'query', message: 'Enter search query:' },
-  ]);
-  const answers = { query, ...(await promptTenantSpace(config)) };
-
-  const result = await client.callTool(
-    'leanrag_retrieve',
-    {
-      tenant_id: answers.tenant,
-      space_id: answers.space,
-      query_text: answers.query,
-      top_k: 10,
-    },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('LeanRAG retrieval failed:'), result.content);
-  }
-}
-
-async function handleMermaid(client: MCPClient, config: DeposiumConfig): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'Mermaid operation:',
-      choices: ['parse', 'query'],
-    },
-  ]);
-
-  const answers = await promptTenantSpace(config);
-
-  const result = await client.callTool(
-    action === 'parse' ? 'mermaid_parse' : 'mermaid_query',
-    {
-      tenant_id: answers.tenant,
-      space_id: answers.space,
-    },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'markdown');
-  } else {
-    console.error(chalk.red('Mermaid operation failed:'), result.content);
-  }
-}
-
-async function handleEvaluate(client: MCPClient): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'Evaluation operation:',
-      choices: ['metrics', 'dashboard', 'feedback'],
-    },
-  ]);
-
-  let toolArgs: Record<string, unknown> = {};
-  if (action === 'feedback') {
-    // Prompt for the actual fields instead of submitting demo data.
-    const answers = await inquirer.prompt([
-      { type: 'input', name: 'query_id', message: 'Query ID:' },
-      { type: 'input', name: 'user_id', message: 'User ID:' },
-      {
-        type: 'input',
-        name: 'score',
-        message: 'Quality score (0..1):',
-        validate: (input: string) => {
-          const n = Number.parseFloat(input);
-          if (Number.isNaN(n) || n < 0 || n > 1) return 'Enter a number between 0 and 1.';
-          return true;
-        },
-      },
-      { type: 'input', name: 'feedback', message: 'Feedback (optional):' },
-    ]);
-    toolArgs = {
-      query_id: answers.query_id,
-      user_id: answers.user_id,
-      score: Number.parseFloat(answers.score),
-      // Empty string from inquirer → drop the field so the server sees
-      // "no feedback text" rather than an explicit empty.
-      feedback: answers.feedback === '' ? undefined : answers.feedback,
-    };
-  }
-
-  const result = await client.callTool(`eval_${action}`, toolArgs, { spinner: true });
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Evaluation operation failed:'), result.content);
-  }
-}
-
-async function handleQueryHistory(client: MCPClient): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'Query history operation:',
-      choices: ['retrieve', 'stats'],
-    },
-  ]);
-
-  const result = await client.callTool(`query_${action}`, { limit: 50 }, { spinner: true });
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Query history operation failed:'), result.content);
-  }
-}
-
-async function handleLogs(client: MCPClient): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'Logs operation:',
-      choices: ['view', 'stats'],
-    },
-  ]);
-
-  const result = await client.callTool(
-    action === 'view' ? 'view_logs' : 'get_log_stats',
-    { limit: 100 },
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('Logs operation failed:'), result.content);
-  }
-}
-
-async function handleDuckDB(client: MCPClient): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'DuckDB operation:',
-      choices: ['status', 'list tables'],
-    },
-  ]);
-
-  const result = await client.callTool(
-    action === 'status' ? 'duckdb_mcp_status' : 'list_tables',
-    {},
-    { spinner: true }
-  );
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('DuckDB operation failed:'), result.content);
-  }
-}
-
-async function handleUI(client: MCPClient): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'action',
-      message: 'UI operation:',
-      choices: ['dashboard', 'health monitor', 'tools explorer'],
-    },
-  ]);
-
-  const toolMap: Record<string, string> = {
-    dashboard: 'ui_show_dashboard',
-    'health monitor': 'ui_show_health',
-    'tools explorer': 'ui_show_tools',
-  };
-
-  const result = await client.callTool(toolMap[action], { port: 8080 }, { spinner: true });
-
-  if (!result.isError) {
-    formatOutput(result.content, 'table');
-  } else {
-    console.error(chalk.red('UI operation failed:'), result.content);
-  }
-}
-
-async function handleTools(client: MCPClient): Promise<void> {
-  console.log(chalk.bold('\n🛠️  Fetching Available MCP Tools...\n'));
-
-  const tools = await client.listTools();
-
-  if (tools?.length === 0) {
-    console.log(chalk.yellow('⚠️  No tools found'));
-    return;
-  }
-
-  console.log(chalk.bold.cyan(`📊 Found ${tools.length} tools\n`));
-
-  // Group by category
-  const categories = new Map<string, MCPTool[]>();
-  tools.forEach((tool) => {
-    const category = tool.name.split('_')[0] ?? 'other';
-    if (!categories.has(category)) {
-      categories.set(category, []);
-    }
-    categories.get(category)?.push(tool);
-  });
-
-  // Display summary
-  for (const [category, categoryTools] of Array.from(categories.entries()).sort()) {
-    console.log(chalk.green(`${category}: `) + chalk.white(`${categoryTools.length} tools`));
-  }
-
-  console.log(chalk.gray('\n💡 Use "deposium tools" command for detailed view\n'));
 }

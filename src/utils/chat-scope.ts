@@ -8,6 +8,8 @@ export interface ChatScope {
 
 export interface ChatScopeOptions {
   space?: string;
+  promptMessage?: string;
+  initialSpace?: string;
 }
 
 /** Resolve only from the authenticated catalogue; the server rechecks each call. */
@@ -22,13 +24,27 @@ export async function selectChatScope(
   let selected = options.space;
   if (!selected) {
     if (!interactive) throw new Error('Choose an explicit scope with --space <id>.');
+    const preferred = spaces.find(
+      (space) => space.id.toLowerCase() === options.initialSpace?.toLowerCase()
+    );
+    if (options.initialSpace && !preferred)
+      console.warn(
+        'The configured default space is no longer accessible. Choose an available space.'
+      );
     const answer = await inquirer.prompt<{ space: string }>([
       {
         type: 'select',
         name: 'space',
-        message: 'Chat in which space?',
+        default: preferred?.id,
+        message: options.promptMessage ?? 'Chat in which space?',
         choices: [
-          ...spaces.map((space) => ({ name: `${space.name} (${space.id})`, value: space.id })),
+          ...spaces.map((space) => ({
+            name:
+              spaces.filter((candidate) => candidate.name === space.name).length > 1
+                ? `${space.name} (${space.id})`
+                : space.name,
+            value: space.id,
+          })),
         ],
       },
     ]);

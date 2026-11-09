@@ -516,7 +516,7 @@ describe('MCPClient', () => {
       );
     });
 
-    test('should return empty array on error', async () => {
+    test('rejects a failed catalogue rather than reporting an empty one', async () => {
       const mockAxios = {
         post: vi.fn(() =>
           Promise.resolve({
@@ -533,9 +533,7 @@ describe('MCPClient', () => {
       );
 
       const client = new MCPClient('http://localhost:3000', 'api-key');
-      const tools = await client.listTools();
-
-      expect(tools).toEqual([]);
+      await expect(client.listTools()).rejects.toThrow('Error');
       consoleSpy.mockRestore();
     });
   });
@@ -1330,5 +1328,39 @@ describe('handleSSEChunk catch scope (client/sse-stream)', () => {
         onToken: vi.fn(),
       } as unknown as ChatStreamOptions)
     ).not.toThrow();
+  });
+});
+
+describe('truthful MCP outcomes', () => {
+  afterEach(() => vi.restoreAllMocks());
+  function response(data: unknown) {
+    const post = vi.fn().mockResolvedValue({ data });
+    vi.spyOn(axios, 'create').mockReturnValue({
+      post,
+      defaults: { headers: { common: {} } },
+    } as unknown as ReturnType<typeof axios.create>);
+    return new MCPClient('http://localhost:3000', 'test-key', { maxRetries: 0 });
+  }
+  test('a failed nested tool cannot show transport success', async () => {
+    const client = response({
+      result: [
+        {
+          type: 'text',
+          text: JSON.stringify({ isError: true, content: [{ type: 'text', text: 'failed' }] }),
+        },
+      ],
+    });
+    const result = await client.callTool('corpus_stats', {});
+    expect(result.isError).toBe(true);
+  });
+  test('missing result is an invalid response, not success with undefined', async () => {
+    expect((await response({}).callTool('corpus_stats', {})).isError).toBe(true);
+  });
+  test('an empty catalogue is valid but malformed or missing catalogues are failures', async () => {
+    await expect(response({ result: { tools: [] } }).listTools()).resolves.toEqual([]);
+    await expect(response({ result: { tools: 'invalid' } }).listTools()).rejects.toThrow(
+      'Invalid MCP'
+    );
+    await expect(response({}).listTools()).rejects.toThrow('Invalid MCP');
   });
 });

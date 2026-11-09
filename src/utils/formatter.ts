@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
 import boxen from 'boxen';
 import gradient from 'gradient-string';
+import { decodeMcpContent } from './mcp-content';
 
 /** Text block from compound AI response */
 interface TextBlock {
@@ -39,18 +40,23 @@ function ensureMarkedConfigured() {
 }
 
 export function formatOutput(data: unknown, format: string = 'table'): void {
-  switch (format.toLowerCase()) {
-    case 'json':
-      formatJSON(data);
-      break;
-    case 'table':
-      formatTable(data);
-      break;
-    case 'markdown':
-      formatMarkdown(data);
-      break;
-    default:
-      formatTable(data);
+  if (format.toLowerCase() === 'json') {
+    formatJSON(data); // Explicit technical output retains the original response.
+    return;
+  }
+  const decoded = decodeMcpContent(data);
+  for (const value of decoded.values) {
+    if (format.toLowerCase() === 'markdown') formatMarkdown(value);
+    else formatTable(value);
+  }
+  for (const resource of new Map(
+    decoded.resources.map((resource) => [resource.uri, resource])
+  ).values()) {
+    console.log(`\nMCP resource: ${resource.uri}`);
+    if (resource.mimeType) console.log(`Type: ${resource.mimeType}`);
+    console.log(
+      'This resource requires a compatible MCP app host; no dashboard was opened in this terminal.'
+    );
   }
 }
 
@@ -59,6 +65,22 @@ function formatJSON(data: unknown): void {
 }
 
 function formatTable(data: unknown): void {
+  if (data && typeof data === 'object' && !Array.isArray(data) && 'total_documents' in data) {
+    const labels: Record<string, string> = {
+      total_documents: 'Documents',
+      total_pages: 'Pages',
+      total_folders: 'Folders',
+      total_embeddings: 'Embedding vectors',
+      total_entities: 'Entities',
+      unique_entities: 'Unique entities',
+      total_relations: 'Relations',
+      total_clusters: 'Clusters',
+      has_embeddings: 'Has embedding vectors',
+    };
+    data = Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [labels[key] ?? key, value])
+    );
+  }
   // Handle different data types
   if (Array.isArray(data)) {
     if (data.length === 0) {

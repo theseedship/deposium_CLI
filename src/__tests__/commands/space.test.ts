@@ -199,4 +199,10 @@ describe('space command', () => {
       expect(mockCallTool).toHaveBeenCalled();
     });
   });
+  it('JSON list needs no --silent and an empty catalogue is a JSON array', async () => {
+    mockListSpaces.mockResolvedValue([]);
+    await spaceCommand.parseAsync(['node', 'test', 'list', '--format', 'JSON']);
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(consoleLogSpy.mock.calls[0]?.[0]))).toEqual([]);
+  });
 });

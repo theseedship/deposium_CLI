@@ -53,7 +53,12 @@ describe('duckdb command', () => {
   it('status subcommand calls duckdb_mcp_status with no args', async () => {
     mockCallTool.mockResolvedValue({ content: { running: true }, isError: false });
     await duckdbCommand.parseAsync(['node', 'test', 'status', '--silent']);
-    expect(mockCallTool).toHaveBeenCalledWith('duckdb_mcp_status', {}, expect.any(Object));
+    expect(mockCallTool).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('server-internal')
+    );
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
   it('handles isError gracefully', async () => {

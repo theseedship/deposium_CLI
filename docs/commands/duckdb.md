@@ -2,6 +2,8 @@
 
 # DuckDB Command
 
+These database administration operations are server-internal and unavailable with a public CLI user key. From CLI 1.6.1 they are hidden from root help and refused locally. The legacy reference below describes parameters, not an available SaaS user feature.
+
 The `duckdb` (or `db`) command group integrates with the DuckDB MCP server for SQL querying, federation, and database management.
 
 ## Usage

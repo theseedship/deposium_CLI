@@ -2,6 +2,8 @@
 
 # UI Command
 
+These commands fetch MCP app resources for a compatible UI host. They do not open a dashboard in the terminal or start a local browser/server. Human-readable output in CLI 1.6.1 explains this requirement; JSON mode preserves the resource payload.
+
 The `ui` command group provides access to interactive dashboards and visualizations powered by the Deposium MCP server.
 
 ## Usage

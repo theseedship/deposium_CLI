@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-09
+
+### Fixed
+
+- Rebuild the public interactive menu around document chat, named-space search, corpus statistics and diagnostics. Move technical operations to an explained advanced menu and stop offering server-internal routing/database administration as user actions.
+- Send optional textual prior context to Compound AI and retain only successful exchanges.
+- Decode bounded nested MCP envelopes for terminal output, show business metrics and describe UI resources without executing HTML or counting response blocks as documents. Explicit JSON keeps raw tool content.
+- Remove fabricated tenant/space defaults from shared command scope; omit an unspecified tenant for server resolution and require a real space. Interactive selection uses the authorized named catalogue.
+- Reject failed/malformed tool catalogues and nested protocol errors instead of reporting success or an empty list. Correct the success spinner ordering.
+- Keep space and corpus-statistics JSON stdout free of progress banners, including an empty space catalogue.
+
+### Scope
+
+- This is the first U1 reliability lot. Unified language/settings, activity indicators, live slash completion and full direct-command qualification remain separate milestones.
+- No MCP authorization restriction was weakened. The normal-user production corpus read returned the reported 126 documents without a tenant override; no production mutations or model benchmarks were launched.
+
 ## [1.6.0] - 2026-11-09
 
 ### Added
