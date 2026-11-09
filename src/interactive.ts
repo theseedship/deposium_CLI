@@ -1,3 +1,4 @@
+import { tr } from './utils/i18n';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { MCPClient } from './client/mcp-client';
@@ -9,6 +10,8 @@ import { selectChatScope } from './utils/chat-scope';
 import { mcpErrorMessage } from './utils/mcp-content';
 import { runCompoundAnalysis } from './utils/compound-analysis';
 import type { DeposiumConfig } from './utils/config';
+import { openSettings } from './utils/settings';
+import { verifiedCliContext, printCliContext } from './utils/preferences';
 import { browseToolCatalogue } from './utils/tool-catalogue';
 import { createWelcomeBanner } from './utils/branding';
 
@@ -19,6 +22,7 @@ export const MAIN_OPERATIONS = [
   { name: 'Corpus statistics — document, page and graph counts', value: 'corpus' },
   { name: 'Health — check the connected service', value: 'health' },
   { name: 'Tools — inspect the server catalogue', value: 'tools' },
+  { name: 'Settings — language and default space', value: 'settings' },
   { name: 'Advanced — reasoning, query diagnostics and MCP resources', value: 'advanced' },
   { name: 'Exit', value: 'exit' },
 ];
@@ -35,7 +39,7 @@ export async function interactiveScope(client: MCPClient, config: DeposiumConfig
     },
     true
   );
-  console.log(chalk.cyan(`Space: ${selected.label}`));
+  console.log(chalk.cyan(tr('Space: {0}', selected.label)));
   // The authenticated server resolves the tenant; an ID is never fabricated here.
   return { space_id: selected.spaceIds[0] };
 }
@@ -46,7 +50,7 @@ async function input(message: string): Promise<string> {
       type: 'input',
       name: 'value',
       message,
-      validate: (value: string) => value.trim().length > 0 || 'Enter a value.',
+      validate: (value: string) => value.trim().length > 0 || tr('Enter a value.'),
     },
   ]);
   return answer.value;
@@ -76,12 +80,12 @@ export async function prepareCompoundHistory(history: ChatHistory): Promise<bool
       {
         type: 'select',
         name: 'context',
-        message: 'Compound conversation context:',
+        message: tr('Compound conversation context:'),
         choices: [
-          { name: 'Start a new context (clear previous exchanges)', value: 'clear' },
-          { name: 'Continue with previous exchanges', value: 'continue' },
-          { name: 'View previous exchanges', value: 'view' },
-          { name: 'Back without sending a question', value: 'back' },
+          { name: tr('Start a new context (clear previous exchanges)'), value: 'clear' },
+          { name: tr('Continue with previous exchanges'), value: 'continue' },
+          { name: tr('View previous exchanges'), value: 'view' },
+          { name: tr('Back without sending a question'), value: 'back' },
         ],
       },
     ]);
@@ -93,105 +97,133 @@ export async function prepareCompoundHistory(history: ChatHistory): Promise<bool
   return true;
 }
 
-async function advanced(client: MCPClient, config: DeposiumConfig, history: ChatHistory) {
+async function advanced(history: ChatHistory) {
   const { action } = await inquirer.prompt<{ action: string }>([
     {
       type: 'select',
       name: 'action',
-      message: 'Advanced operation:',
+      message: tr('Advanced operation:'),
       choices: [
         {
-          name: 'General AI (Compound) — no document space selected',
+          name: tr('General AI (Compound) — no document space selected'),
           value: 'compound',
         },
         {
-          name: 'Query intent — inspect how a question would be classified (does not analyze documents)',
+          name: tr(
+            'Query intent — inspect how a question would be classified (does not analyze documents)'
+          ),
           value: 'intent',
         },
-        { name: 'Graph components — connected groups in one space', value: 'components' },
-        { name: 'Graph path — explore relations from an entity ID', value: 'path' },
-        { name: 'MCP app resources — requires a compatible UI host', value: 'resources' },
+        { name: tr('Graph components — connected groups in one space'), value: 'components' },
+        { name: tr('Graph path — explore relations from an entity ID'), value: 'path' },
+        { name: tr('MCP app resources — requires a compatible UI host'), value: 'resources' },
         {
-          name: 'Command reference — purpose and requirements of other commands',
+          name: tr('Command reference — purpose and requirements of other commands'),
           value: 'reference',
         },
-        { name: 'Back', value: 'back' },
+        { name: tr('Back'), value: 'back' },
       ],
     },
   ]);
   if (action === 'back') return;
+  if (action === 'reference') {
+    console.log(tr('Run deposium <command> --help for arguments and prerequisites.'));
+    console.log('https://docs.deposium.ai/cli/');
+    console.log(
+      tr('Server-internal routers and database administration are not public terminal operations.')
+    );
+    return;
+  }
+  const { client, config } = await initializeCommand();
   if (action === 'compound') {
     if (!(await prepareCompoundHistory(history))) return;
     console.log(
-      'This operation does not select or search one of your document spaces. To summarize your files, return to Chat. General AI may use server reasoning and web tools.'
+      tr(
+        'This operation does not select or search one of your document spaces. To summarize your files, return to Chat. General AI may use server reasoning and web tools.'
+      )
     );
-    await interactiveCompound(client, history, await input('Question:'));
+    await interactiveCompound(client, history, await input(tr('Question:')));
   } else if (action === 'intent') {
     console.log(
-      'Classifies your question and suggests search parameters; it does not summarize your documents.'
+      tr(
+        'Classifies your question and suggests search parameters; it does not summarize your documents.'
+      )
     );
     await showTool(client, 'smart_analyze', { query_text: await input('Question to classify:') });
   } else if (action === 'components' || action === 'path') {
     const scope = await interactiveScope(client, config);
     const args =
-      action === 'path' ? { ...scope, source_id: await input('Source entity ID:') } : scope;
+      action === 'path' ? { ...scope, source_id: await input(tr('Source entity ID:')) } : scope;
     await showTool(client, action === 'path' ? 'graph_variable_path' : 'graph_components', args);
   } else if (action === 'resources') {
     const { resource } = await inquirer.prompt<{ resource: string }>([
       {
         type: 'select',
         name: 'resource',
-        message: 'Resource to inspect (no browser is opened):',
+        message: tr('Resource to inspect (no browser is opened):'),
         choices: [
-          { name: 'Dashboard resource', value: 'ui_show_dashboard' },
-          { name: 'Health resource', value: 'ui_show_health' },
-          { name: 'Tools explorer resource', value: 'ui_show_tools' },
+          { name: tr('Dashboard resource'), value: 'ui_show_dashboard' },
+          { name: tr('Health resource'), value: 'ui_show_health' },
+          { name: tr('Tools explorer resource'), value: 'ui_show_tools' },
         ],
       },
     ]);
     await showTool(client, resource, {});
-  } else if (action === 'reference') {
-    console.log('Run deposium <command> --help for arguments and prerequisites.');
-    console.log('https://docs.deposium.ai/cli/');
-    console.log(
-      'Server-internal routers and database administration are not public terminal operations.'
-    );
   }
 }
 
 export async function startInteractive(): Promise<void> {
   console.log(createWelcomeBanner());
-  const { config, client } = await initializeCommand();
   const history = new ChatHistory(10);
   while (true) {
     const { command } = await inquirer.prompt<{ command: string }>([
       {
         type: 'select',
         name: 'command',
-        message: 'Select an operation:',
-        choices: MAIN_OPERATIONS,
+        message: tr('Select an operation:'),
+        choices: MAIN_OPERATIONS.map((choice) => ({ ...choice, name: tr(choice.name) })),
       },
     ]);
     if (command === 'exit') return;
     try {
-      if (command === 'chat') await startChat();
-      else if (command === 'search') {
+      if (command === 'settings') {
+        await openSettings();
+        continue;
+      }
+      if (command === 'chat') {
+        await startChat();
+        continue;
+      }
+      if (command === 'advanced') {
+        await advanced(history);
+        continue;
+      }
+      const { client, config } = await initializeCommand();
+      if (command === 'search') {
         const scope = await interactiveScope(client, config);
-        await showTool(client, 'search_hub', { ...scope, query_text: await input('Search for:') });
+        await showTool(client, 'search_hub', {
+          ...scope,
+          query_text: await input(tr('Search for:')),
+        });
       } else if (command === 'corpus') {
         const scope = await interactiveScope(client, config);
-        console.log('Counts for the selected space; missing metrics are not assumed to be zero.');
+        console.log(
+          tr('Counts for the selected space; missing metrics are not assumed to be zero.')
+        );
         await showTool(client, 'corpus_stats', scope);
       } else if (command === 'health') {
         // A returned HTTP response is not evidence that every service is healthy.
         formatOutput(await client.health(), 'table');
+        printCliContext(await verifiedCliContext(client, config));
       } else if (command === 'tools') {
         await browseToolCatalogue(client);
-      } else if (command === 'advanced') await advanced(client, config, history);
+      }
     } catch (error) {
-      console.error(chalk.red('Operation failed:'), getErrorMessage(error));
+      console.error(chalk.red(tr('Operation failed:')), getErrorMessage(error));
       console.error(
-        'Check the selected space, authentication and permissions. Use deposium <command> --help for requirements.'
+        tr(
+          'Check the selected space, authentication and permissions. Use deposium <command> --help for requirements.'
+        )
       );
     }
   }

@@ -11,6 +11,7 @@ that every operation is enabled for a public user key.
 
 - **[api-keys](api-keys.md)**: Manage server-side API keys (list/create/delete/rotate/usage).
 - **[auth](auth.md)**: Authenticate the CLI (local credentials store).
+- **[settings](settings.md)**: Language and an authorized default space (CLI 1.8.0+).
 - **[config](config.md)**: Manage local configuration settings.
 - **[health](health.md)**: Check connectivity and status of Deposium services.
 - **[logs](logs.md)**: View and search MCP server logs.

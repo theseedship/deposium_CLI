@@ -1532,6 +1532,7 @@ describe('cli preflight', () => {
     expect(usesApi('temporal-assertion')).toBe(false);
     expect(usesApi('config')).toBe(false);
     expect(usesApi('auth')).toBe(false);
+    for (const command of ['settings', 'interactive', 'i']) expect(usesApi(command)).toBe(false);
     expect(usesApi(undefined)).toBe(false);
     expect(usesApi('search')).toBe(true);
   });
@@ -1552,6 +1553,8 @@ describe('cli preflight', () => {
     expect(() => runPreflight('search', {})).toThrow(/Insecure HTTP connection refused/);
     expect(() => runPreflight('temporal-assertion', {})).not.toThrow();
     expect(() => runPreflight('config', {})).not.toThrow();
+    for (const command of ['settings', 'interactive', 'i'])
+      expect(() => runPreflight(command, {})).not.toThrow();
   });
 
   test('--insecure reaches the environment before the no-API list is consulted', () => {

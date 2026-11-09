@@ -1,3 +1,4 @@
+import { tr } from '../utils/i18n';
 /**
  * MCP Client Module
  *
@@ -239,7 +240,9 @@ export class MCPClient {
     args: Record<string, unknown>,
     options: { silent?: boolean; spinner?: boolean } = {}
   ): Promise<MCPToolResult> {
-    const spinner = options.spinner ? ora(`Calling ${chalk.cyan(toolName)}...`).start() : null;
+    const spinner = options.spinner
+      ? ora(tr('Calling {0}...', chalk.cyan(toolName))).start()
+      : null;
     const requestId = generateRequestId();
 
     try {

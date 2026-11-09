@@ -6,6 +6,13 @@ Complete reference for configuring Deposium CLI.
 
 For Deposium SaaS with CLI `1.5.2` or newer, no URL configuration is needed. Create a personal user API key in the [Deposium app's Billing page](https://app.deposium.ai/billing) under **API Keys**, then run `deposium auth login`.
 
+## Language and default space
+
+CLI 1.8.0+ has [Settings](../commands/settings.md) for saved FR/EN/automatic
+language and a default space chosen from your authorized catalogue. `--lang fr|en`
+overrides this invocation only. Use `deposium health --context` to inspect the
+effective language, safe service origins and the configured space's access state.
+
 ## Which URL does the CLI use?
 
 The CLI uses the Deposium app API for login, search, and other commands. Chat streaming uses the Edge gateway. Both addresses are built in for SaaS; you do not need to enter either one. An MCP integration URL for another client is a separate endpoint and is not a value for `DEPOSIUM_URL`. See the [auth command](../commands/auth.md) for login and the [chat command](../commands/chat.md) for chat modes.

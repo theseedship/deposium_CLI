@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import chalk from 'chalk';
 
 export interface ChatMessage {
@@ -107,14 +108,14 @@ export class ChatHistory {
     const messagesToDisplay = count ? this.messages.slice(-count) : this.messages;
 
     if (messagesToDisplay.length === 0) {
-      console.log(chalk.gray('\n📝 No conversation history yet.\n'));
+      console.log(chalk.gray(tr('\n📝 No conversation history yet.\n')));
       return;
     }
 
-    console.log(chalk.bold('\n📜 Conversation History:\n'));
+    console.log(chalk.bold(tr('\n📜 Conversation History:\n')));
     messagesToDisplay.forEach((msg, idx) => {
       const roleColor = msg.role === 'user' ? chalk.cyan : chalk.green;
-      const roleLabel = msg.role === 'user' ? '👤 You' : '🤖 AI';
+      const roleLabel = msg.role === 'user' ? tr('👤 You') : tr('🤖 AI');
 
       console.log(roleColor(`${roleLabel}:`));
       console.log(chalk.gray(msg.content));

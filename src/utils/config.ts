@@ -155,6 +155,7 @@ export function migrateIfPlaintext(filePath: string): Record<string, unknown> | 
 // ============================================================================
 
 export interface DeposiumConfig {
+  language?: 'fr' | 'en' | 'auto';
   deposiumUrl?: string; // Unified URL for Deposium API (SolidStart server)
   edgeUrl?: string; // Edge Runtime gateway URL (auth, rate-limiting, SSE proxy)
   mcpUrl?: string; // @deprecated - Use deposiumUrl instead. Kept for backward compatibility.
@@ -223,6 +224,7 @@ if (legacyApiKey && !credentials.get('apiKey')) {
 export function getConfig(): DeposiumConfig {
   // Priority: Environment variables > Config file > Defaults
   return {
+    language: config.get('language'),
     deposiumUrl: process.env.DEPOSIUM_URL ?? config.get('deposiumUrl'),
     edgeUrl: process.env.DEPOSIUM_EDGE_URL ?? config.get('edgeUrl'),
     mcpUrl: process.env.DEPOSIUM_MCP_URL ?? config.get('mcpUrl'), // @deprecated
@@ -231,6 +233,11 @@ export function getConfig(): DeposiumConfig {
     defaultTenant: process.env.DEPOSIUM_TENANT ?? config.get('defaultTenant'),
     defaultSpace: process.env.DEPOSIUM_SPACE ?? config.get('defaultSpace'),
   };
+}
+
+/** Read presentation preferences only, without environment overrides or credentials. */
+export function getSavedPreferences(): Pick<DeposiumConfig, 'language' | 'defaultSpace'> {
+  return { language: config.get('language'), defaultSpace: config.get('defaultSpace') };
 }
 
 /**

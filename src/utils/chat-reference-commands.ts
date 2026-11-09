@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import inquirer from 'inquirer';
 import {
   chatSourceChoices,
@@ -15,16 +16,16 @@ async function readCitation(
   if (!reference) {
     const choices = chatSourceChoices(citations);
     if (!choices.length) {
-      console.log('No inspectable citation received for this answer.');
+      console.log(tr('No inspectable citation received for this answer.'));
       return;
     }
     const answer = await inquirer.prompt<{ citation: string }>([
-      { type: 'select', name: 'citation', message: 'Read which citation?', choices },
+      { type: 'select', name: 'citation', message: tr('Read which citation?'), choices },
     ]);
     reference = answer.citation;
   }
   if (!/^[1-9]\d*$/.test(reference) || !Number.isSafeInteger(Number(reference)))
-    console.log('Use /source <citation number>.');
+    console.log(tr('Use /source <citation number>.'));
   else printChatSourceDetail(citations, Number(reference));
 }
 
@@ -37,14 +38,14 @@ export async function executeReferenceCommand(
   switch (command) {
     case 'sources':
       if (details?.citations.length) printChatSources(details.citations);
-      else console.log('No sources received for the current answer.');
+      else console.log(tr('No sources received for the current answer.'));
       break;
     case 'source':
       await readCitation(argument, details?.citations ?? []);
       break;
     case 'verify':
       if (details?.verifications.length) printChatVerification(details.verifications, true);
-      else console.log('No verification details received for the current answer.');
+      else console.log(tr('No verification details received for the current answer.'));
       break;
   }
 }

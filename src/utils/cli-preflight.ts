@@ -17,7 +17,14 @@
 import { getConfig, getBaseUrl } from './config';
 
 /** Commands that run without the API: nothing about the server URL is resolved for them. */
-export const NO_API_COMMANDS: readonly string[] = ['config', 'auth', 'temporal-assertion'];
+export const NO_API_COMMANDS: readonly string[] = [
+  'config',
+  'settings',
+  'interactive',
+  'i',
+  'auth',
+  'temporal-assertion',
+];
 
 /** Whether the preflight has any reason to read the configuration for this command. */
 export function usesApi(currentCommand: string | undefined): boolean {

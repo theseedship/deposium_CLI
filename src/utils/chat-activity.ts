@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import ora from 'ora';
 
 export interface ChatActivity {
@@ -18,7 +19,7 @@ export function createChatActivity(
 ): ChatActivity {
   let spinner: ReturnType<typeof ora> | undefined;
   let timer: ReturnType<typeof setInterval> | undefined;
-  let label = 'Waiting for server';
+  let label = tr('Waiting for server');
   let started = 0;
   const stop = () => {
     if (timer) clearInterval(timer);
@@ -30,7 +31,7 @@ export function createChatActivity(
     if (spinner) spinner.text = `${label}… ${Math.floor((performance.now() - started) / 1000)}s`;
   };
   return {
-    start(phase = 'Waiting for server') {
+    start(phase = tr('Waiting for server')) {
       stop();
       if (!enabled) return;
       label = phase;

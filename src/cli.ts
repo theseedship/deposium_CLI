@@ -31,6 +31,10 @@ import { getErrorMessage } from './utils/command-helpers';
 import pkg from '../package.json';
 import { forwardStartupUpdateSignal, offerStartupUpdate } from './utils/startup-update';
 import { configureDefaultAction } from './utils/cli-default-action';
+import { settingsCommand } from './commands/settings';
+import { getSavedPreferences } from './utils/config';
+import { initializeLanguage, readLanguageOption, tr } from './utils/i18n';
+import { configureLanguageHelp } from './utils/cli-language-help';
 
 // ============================================================================
 // Graceful Shutdown Handlers
@@ -46,16 +50,16 @@ function handleShutdown(signal: NodeJS.Signals): void {
   if (forwardStartupUpdateSignal(signal)) return;
   if (isShuttingDown) {
     // Force exit if already shutting down (user pressed Ctrl+C twice)
-    console.log(chalk.red('\nForce exit...'));
+    console.log(chalk.red(tr('\nForce exit...')));
     process.exit(1);
   }
 
   isShuttingDown = true;
-  console.log(chalk.yellow(`\n\n🛑 Received ${signal}, shutting down gracefully...`));
+  console.log(chalk.yellow(tr('\n\n🛑 Received {0}, shutting down gracefully...', signal)));
 
   // Give a short time for cleanup, then exit
   setTimeout(() => {
-    console.log(chalk.gray('Cleanup complete. Goodbye!'));
+    console.log(chalk.gray(tr('Cleanup complete. Goodbye!')));
     process.exit(0);
   }, 100);
 }
@@ -66,7 +70,7 @@ process.on('SIGINT', () => handleShutdown('SIGINT'));
 
 // Handle uncaught errors gracefully
 process.on('uncaughtException', (error: Error) => {
-  console.error(chalk.red('\n❌ Unexpected error:'), getErrorMessage(error));
+  console.error(chalk.red(tr('\n❌ Unexpected error:')), getErrorMessage(error));
   if (process.env.DEBUG) {
     console.error(chalk.gray(error.stack ?? ''));
   }
@@ -75,7 +79,7 @@ process.on('uncaughtException', (error: Error) => {
 
 process.on('unhandledRejection', (reason: unknown) => {
   const message = reason instanceof Error ? reason.message : String(reason);
-  console.error(chalk.red('\n❌ Unhandled promise rejection:'), message);
+  console.error(chalk.red(tr('\n❌ Unhandled promise rejection:')), message);
   if (process.env.DEBUG && reason instanceof Error) {
     console.error(chalk.gray(reason.stack ?? ''));
   }
@@ -90,12 +94,9 @@ const program = new Command();
 
 program
   .name('deposium')
-  .description(
-    chalk.bold('🚀 Deposium CLI') +
-      '\n' +
-      chalk.gray('Document search, graph queries, and AI workflows via Deposium API')
-  )
+  .description('🚀 Deposium CLI\nDocument search, graph queries, and AI workflows via Deposium API')
   .version(pkg.version)
+  .option('--lang <language>', 'Use fr or en for this invocation without saving it')
   .option('--no-update', 'Skip the interactive startup update check')
   .option('--insecure', 'Allow insecure HTTP connections to non-localhost servers')
   .hook('preAction', async () => {
@@ -114,6 +115,7 @@ program.addCommand(graphCommand);
 program.addCommand(corpusCommand);
 program.addCommand(compoundCommand);
 program.addCommand(configCommand);
+program.addCommand(settingsCommand);
 program.addCommand(healthCommand);
 program.addCommand(intelligenceCommand);
 program.addCommand(leanragCommand);
@@ -191,7 +193,7 @@ program
           space: options.space,
         });
       } catch (error: unknown) {
-        console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
+        console.error(chalk.red(tr('\n❌ Error:')), getErrorMessage(error));
         process.exitCode = 1;
       }
     }
@@ -199,6 +201,13 @@ program
 
 async function runCli(): Promise<void> {
   const args = process.argv.slice(2);
+  initializeLanguage(getSavedPreferences().language);
+  try {
+    initializeLanguage(getSavedPreferences().language, readLanguageOption(args));
+  } catch (error) {
+    program.error(error instanceof Error ? error.message : tr('Unknown error'), { exitCode: 2 });
+  }
+  configureLanguageHelp(program);
   const updatedExitCode = await offerStartupUpdate(pkg.version, args);
   if (updatedExitCode !== undefined) {
     process.exitCode = updatedExitCode;

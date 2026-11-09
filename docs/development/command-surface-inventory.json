@@ -2,7 +2,7 @@
   "schema_version": 1,
   "observed_at": "2026-11-09",
   "cli_base": "53ab964feb96fa69ed512d357d204c4f45bc09ff",
-  "method": "TypeScript AST command declarations, literal tool references and dynamic call expressions; no execution, no credentials. Commands nested under a parent retain that file parent context. Dynamic mappings need manual review.",
+  "method": "TypeScript AST command declarations, literal tool references and dynamic call expressions; no execution, no credentials. Commands nested under a parent retain that file parent context. Dynamic mappings need manual review. Settings language/scope family is an additive 1.8.0 source inventory; original command declarations retain their historical base.",
   "groups": [
     {
       "file": "src/commands/api-keys.ts",
@@ -971,6 +971,27 @@
       "mcp_tools": [],
       "dynamic_calls": [],
       "qualification": "static inventory; see command disposition matrix; not a live qualification of every operation"
+    },
+    {
+      "file": "src/commands/settings.ts",
+      "commands": [
+        {
+          "signature": "settings",
+          "description": "Manage language and default-space preferences"
+        },
+        {
+          "signature": "show",
+          "description": "Show effective settings without credentials or network calls"
+        },
+        {
+          "signature": "language <language>",
+          "description": "Save the UI and default chat language (fr|en|auto)"
+        },
+        {
+          "signature": "space [id]",
+          "description": "Save an authorized default space or clear the saved preference"
+        }
+      ]
     }
   ]
 }
