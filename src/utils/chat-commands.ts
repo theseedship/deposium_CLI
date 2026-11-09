@@ -12,8 +12,7 @@ interface CommandContext {
 
 async function changeSpace(argument: string, context: CommandContext): Promise<ChatScope> {
   const next = await selectChatScope(context.client, {
-    space: argument && argument !== 'all' ? argument : undefined,
-    allSpaces: argument === 'all',
+    space: argument || undefined,
   });
   if (!sameChatScope(context.scope, next)) {
     context.history.clear();

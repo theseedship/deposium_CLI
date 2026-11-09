@@ -25,14 +25,10 @@ describe('authorized chat scope', () => {
   test('a noninteractive session requires explicit scope instead of silently searching all', async () => {
     await expect(selectChatScope(client(), {}, false)).rejects.toThrow('--space');
   });
-  test('the all-spaces choice sends explicit authorized IDs, never an unscoped request', async () => {
-    expect((await selectChatScope(client(), { allSpaces: true }, false)).spaceIds).toEqual([
-      'first',
-      'second',
-    ]);
-    await expect(
-      selectChatScope(client(), { space: 'first', allSpaces: true }, false)
-    ).rejects.toThrow('not both');
+  test('all is not treated as an implicit expansion to every listed space', async () => {
+    await expect(selectChatScope(client(), { space: 'all' }, false)).rejects.toThrow(
+      'accessible catalogue'
+    );
   });
   test('interactive selection uses accessible space choices', async () => {
     vi.mocked(inquirer.prompt).mockResolvedValueOnce({ space: 'second' });
@@ -46,7 +42,7 @@ describe('authorized chat scope', () => {
   });
   test('an empty or failed catalogue never becomes an all-spaces request', async () => {
     await expect(
-      selectChatScope({ listSpaces: vi.fn().mockResolvedValue([]) }, { allSpaces: true }, false)
+      selectChatScope({ listSpaces: vi.fn().mockResolvedValue([]) }, { space: 'first' }, false)
     ).rejects.toThrow('No accessible spaces');
     const error = new Error('Catalogue unavailable');
     await expect(

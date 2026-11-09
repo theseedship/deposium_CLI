@@ -27,7 +27,6 @@ deposium chat
 Options:
 
 - `--space <id>` — Chat in an accessible space. Without this option, a configured `defaultSpace` is used; otherwise the terminal prompts for a space before the first question.
-- `--all-spaces` — Explicitly select all spaces returned by your authenticated catalogue. This sends their IDs, rather than an unscoped request. The server still enforces access on every call.
 - `--verbose` — Show every verification note after the answer. By default, repeated notes are grouped into one compact summary; review and blocking decisions remain visible.
 - `--direct` — Bypass Edge Runtime, connect directly to MCP server (dev only)
 - `--on-ambiguous <mode>` — HITL policy when the server pauses for input. One of `prompt` | `fail` | `dump` | `pick-first`. Defaults to `prompt` in a TTY, `fail` otherwise. See [docs/guides/on-ambiguous-flag.md](../guides/on-ambiguous-flag.md) for full semantics (note: `pick-first` now returns the server's safe default and no longer auto-approves confirm gates).
@@ -40,7 +39,7 @@ This opens a continuous chat interface where you can:
 - Use `/history` to view past messages
 - Use `/help` to list commands, or enter `/` then press Enter to open a command menu
 - Use `/spaces` to list accessible spaces and `/space` to choose another
-- Use `/space <id>` or `/space all` for an explicit scope change
+- Use `/space <id>` for an explicit scope change
 
 The current space is shown when chat starts and whenever it changes. Changing
 the space clears conversation history so context from another space is not sent
@@ -49,9 +48,10 @@ leaves the current scope and history intact. Commands such as `/help` and unknow
 slash commands are handled locally and never sent as model questions. The `/`
 menu currently opens after Enter; it is not live completion while typing.
 
-Noninteractive callers must provide `--space <id>`, a configured `defaultSpace`,
-or `--all-spaces`; an absent scope fails explicitly. `--space` and `--all-spaces`
-cannot be combined. Selecting a space is a client convenience, not an authority
+Noninteractive callers must provide `--space <id>` or a configured `defaultSpace`;
+an absent scope fails explicitly. This chat picker currently selects one space;
+cross-space retrieval remains a separate server compatibility issue, not a
+qualified option. Selecting a space is a client convenience, not an authority
 grant: the authenticated server remains responsible for every document read.
 
 Sources are grouped by document with their cited pages. Both `document_name`/`page`

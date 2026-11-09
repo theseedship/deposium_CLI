@@ -28,7 +28,6 @@ export type OnAmbiguousMode = 'prompt' | 'fail' | 'dump' | 'pick-first';
 
 export interface ChatOptions {
   space?: string;
-  allSpaces?: boolean;
   /** Show every verification diagnostic rather than a compact summary. */
   verbose?: boolean;
   /** Bypass Edge Runtime and connect directly to MCP server (dev only) */
@@ -86,8 +85,7 @@ export async function startChat(options: ChatOptions = {}): Promise<void> {
   const { client } = await initializeCommand();
 
   let scope = await selectChatScope(client, {
-    space: options.space ?? (options.allSpaces ? undefined : config.defaultSpace),
-    allSpaces: options.allSpaces,
+    space: options.space ?? config.defaultSpace,
   });
   console.log(chalk.cyan(`Space: ${scope.label}\n`));
 

@@ -146,7 +146,6 @@ program
   .command('chat')
   .description('Start AI chat mode (continuous conversation)')
   .option('-s, --space <id>', 'Chat in one accessible space')
-  .option('--all-spaces', 'Explicitly chat across all accessible spaces')
   .option('--verbose', 'Show all verification notes after the answer')
   .option('--direct', 'Bypass Edge Runtime, connect directly to MCP server (dev only)')
   .option(
@@ -160,7 +159,6 @@ program
       onAmbiguous?: string;
       verbose?: boolean;
       space?: string;
-      allSpaces?: boolean;
     }) => {
       let onAmbiguous: OnAmbiguousMode | undefined;
       if (options.onAmbiguous) {
@@ -183,7 +181,6 @@ program
           onAmbiguous,
           verbose: options.verbose,
           space: options.space,
-          allSpaces: options.allSpaces,
         });
       } catch (error: unknown) {
         console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
