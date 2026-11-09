@@ -1,12 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import {
-  initializeCommand,
-  withErrorHandling,
-  resolveTenantSpace,
-  runMcpTool,
-} from '../utils/command-helpers';
+import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const searchCommand = new Command('search')
@@ -24,9 +19,20 @@ export const searchCommand = new Command('search')
   .action(
     withErrorHandling(async (query: string, options) => {
       const { config, client } = await initializeCommand();
-      const { tenantId, spaceId } = resolveTenantSpace(options, config);
+      // The server resolves an omitted tenant from the authenticated API key.
+      // A fabricated 'default' tenant is an explicit foreign identity, not a default.
+      const tenantId =
+        options.tenant ?? (config.defaultTenant === 'default' ? undefined : config.defaultTenant);
+      const spaceId = options.space ?? config.defaultSpace;
+      if (!spaceId || spaceId === 'default') {
+        throw new Error(
+          'Choose a space with --space <id> or configure defaultSpace. Use deposium space list.'
+        );
+      }
+      const tenant = tenantId ? { tenant_id: tenantId } : {};
+      const progress = !options.silent && options.format !== 'json';
 
-      console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
+      if (progress) console.log(chalk.bold('\n🔍 Searching Deposium...\n'));
 
       const topK = parseIntOrThrow(options.topK, '--top-k');
 
@@ -46,25 +52,25 @@ export const searchCommand = new Command('search')
             client,
             'search_bm25_ranked',
             {
-              tenant_id: tenantId,
+              ...tenant,
               space_id: spaceId,
               query,
               top_k: topK,
             },
-            { label: 'BM25 search', spinner: !options.silent }
+            { label: 'BM25 search', spinner: progress }
           )
         : await runMcpTool(
             client,
             'search_hub',
             {
-              tenant_id: tenantId,
+              ...tenant,
               space_id: spaceId,
               query_text: query,
               use_vector_rel: options.vector !== undefined ? options.vector : true,
               use_graph: options.graph ?? false,
               top_k: topK,
             },
-            { label: 'Search', spinner: !options.silent }
+            { label: 'Search', spinner: progress }
           );
 
       formatOutput(content, options.format);

@@ -29,6 +29,7 @@ vi.mock('../../utils/config', () => ({
 }));
 
 import { searchCommand } from '../../commands/search';
+import { getConfig } from '../../utils/config';
 
 describe('search command', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -41,6 +42,10 @@ describe('search command', () => {
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     mockCallTool.mockClear();
     mockHealth.mockClear();
+    vi.mocked(getConfig).mockReturnValue({
+      defaultTenant: 'test-tenant',
+      defaultSpace: 'test-space',
+    });
   });
 
   afterEach(() => {
@@ -195,5 +200,37 @@ describe('search command', () => {
       }),
       expect.any(Object)
     );
+  });
+
+  it('omits an unconfigured tenant and lets the authenticated server resolve it', async () => {
+    vi.mocked(getConfig).mockReturnValue({ defaultSpace: 'test-space' });
+    mockCallTool.mockResolvedValue({ content: [], isError: false });
+    await searchCommand.parseAsync(['node', 'test', 'budget', '--silent']);
+    const args = mockCallTool.mock.calls[0][1];
+    expect(args).not.toHaveProperty('tenant_id');
+    expect(args.space_id).toBe('test-space');
+  });
+
+  it('omits a legacy configured default placeholder for both search strategies', async () => {
+    vi.mocked(getConfig).mockReturnValue({ defaultTenant: 'default', defaultSpace: 'test-space' });
+    mockCallTool.mockResolvedValue({ content: [], isError: false });
+    await searchCommand.parseAsync(['node', 'test', 'budget', '--fts', '--silent']);
+    expect(mockCallTool.mock.calls[0][0]).toBe('search_bm25_ranked');
+    expect(mockCallTool.mock.calls[0][1]).not.toHaveProperty('tenant_id');
+  });
+
+  it('rejects missing space before a tool call rather than widening scope', async () => {
+    vi.mocked(getConfig).mockReturnValue({});
+    await searchCommand.parseAsync(['node', 'test', 'budget', '--silent']);
+    expect(mockCallTool).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('JSON mode emits parseable result JSON without a progress banner or spinner', async () => {
+    mockCallTool.mockResolvedValue({ content: [{ file_name: 'guide.pdf' }], isError: false });
+    await searchCommand.parseAsync(['node', 'test', 'budget', '--format', 'json']);
+    const stdout = consoleSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(JSON.parse(stdout)).toEqual([{ file_name: 'guide.pdf' }]);
+    expect(mockCallTool.mock.calls[0][2]).toEqual({ spinner: false });
   });
 });
