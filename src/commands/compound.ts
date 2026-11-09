@@ -14,7 +14,7 @@ import { runCompoundAnalysis } from '../utils/compound-analysis';
 const globalChatHistory = new ChatHistory(10);
 
 export const compoundCommand = new Command('compound')
-  .description('Compound AI operations with Groq')
+  .description('General server AI reasoning and optional web research (no selected document space)')
   .addCommand(
     new Command('analyze')
       .description('Deep reasoning with multi-tool orchestration')
@@ -22,17 +22,23 @@ export const compoundCommand = new Command('compound')
       .option('-f, --format <type>', 'Output format (json|markdown)', 'markdown')
       .action(
         withErrorHandling(async (query, options) => {
-          const { client } = await initializeCommand();
+          const json = options.format.toLowerCase() === 'json';
+          const { client } = await initializeCommand({ machineReadable: json });
 
-          console.log(chalk.bold('\n🤖 Analyzing with Compound AI...\n'));
-          const content = await runCompoundAnalysis(client, globalChatHistory, query);
+          if (!json) console.log(chalk.bold('\nGeneral AI — no document space selected.\n'));
+          const content = await runCompoundAnalysis(client, globalChatHistory, query, {
+            spinner: !json,
+          });
 
           formatOutput(content, options.format);
 
           // Show message count
-          console.log(
-            chalk.gray(`\n💬 ${globalChatHistory.getMessages().length} messages in conversation\n`)
-          );
+          if (!json)
+            console.log(
+              chalk.gray(
+                `\n💬 ${globalChatHistory.getMessages().length} messages in conversation\n`
+              )
+            );
         })
       )
   )
@@ -43,9 +49,10 @@ export const compoundCommand = new Command('compound')
       .option('-f, --format <type>', 'Output format (json|markdown)', 'markdown')
       .action(
         withErrorHandling(async (topic, options) => {
-          const { client } = await initializeCommand();
+          const json = options.format.toLowerCase() === 'json';
+          const { client } = await initializeCommand({ machineReadable: json });
 
-          console.log(chalk.bold(`\n🔬 Researching: ${topic}...\n`));
+          if (!json) console.log(chalk.bold(`\n🔬 Researching: ${topic}...\n`));
 
           const content = await runMcpTool(
             client,
@@ -54,7 +61,7 @@ export const compoundCommand = new Command('compound')
               topic,
               depth: 'comprehensive',
             },
-            { label: 'Research' }
+            { label: 'Research', spinner: !json }
           );
 
           formatOutput(content, options.format);

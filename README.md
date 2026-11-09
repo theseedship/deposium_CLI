@@ -12,7 +12,7 @@ Deposium CLI is the terminal interface to the Deposium platform. It exposes:
 - 🔍 **Search**: DuckDB vector (VSS) and full-text (BM25) search
 - 🔗 **Graph**: Network analysis and path finding
 - 📊 **Corpus**: Statistics and quality evaluation
-- 🤖 **Compound AI**: Multi-tool reasoning with Groq
+- 🤖 **General AI (Compound)**: Server reasoning and optional web research, without a selected document space
 - 🎨 **Interactive mode**: REPL for exploration
 
 ## 📚 Documentation
@@ -74,7 +74,7 @@ deposium --version
 
 Use CLI version `1.5.2` or newer for automatic connection to Deposium SaaS. No server URL setup is needed. If your installed version is older, see the [configuration guide](docs/guides/configuration.md#older-cli-versions-and-local-development).
 
-CLI access is included in the [Pro, Teams, and Enterprise plans](https://deposium.ai/en/pricing).
+API access depends on the features enabled for your account and server permissions.
 
 1. In the [Deposium app's Billing page](https://app.deposium.ai/billing), open **API Keys**, create a personal user API key, and save it when shown.
 2. Run `deposium auth login` and paste that key at the masked prompt.
@@ -98,10 +98,11 @@ For URL questions, older versions, and local development, see the [configuration
 ### Choose how to use the CLI
 
 - `deposium search "a phrase from your document" --space YOUR_SPACE_ID` runs one command and returns to your shell. Your stored login remains available for the next command.
-- `deposium interactive` (or `deposium i`) opens the menu interface.
+- **`deposium` opens the menu in a terminal (CLI 1.7.2+).** `deposium interactive` and `deposium i` remain supported. Without a terminal, the bare command prints help.
 - `deposium chat --space YOUR_SPACE_ID` starts a continuous conversation. In CLI 1.6.0+, enter `/` then press Enter for the chat command menu. Chat history lasts only for the current process; closing chat does not log you out.
 
-For the 1.6.1+ menu, see the [interactive terminal guide](docs/guides/interactive.md).
+See the [interactive terminal guide](docs/guides/interactive.md) and the
+[qualification record](docs/guides/qualification.md) for version requirements and tested boundaries.
 
 ### Keep the CLI up to date
 

@@ -60,7 +60,7 @@ describe('logs command', () => {
 
   it('clear subcommand calls clear_logs', async () => {
     mockCallTool.mockResolvedValue({ content: 'ok', isError: false });
-    await logsCommand.parseAsync(['node', 'test', 'clear', '--silent']);
+    await logsCommand.parseAsync(['node', 'test', 'clear', '--confirm', '--silent']);
     expect(mockCallTool).toHaveBeenCalledWith('clear_logs', {}, expect.any(Object));
   });
 

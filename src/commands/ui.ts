@@ -1,7 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput } from '../utils/formatter';
-import { initializeCommand, withErrorHandling, runMcpTool } from '../utils/command-helpers';
+import {
+  commandProgress,
+  initializeCommand,
+  withErrorHandling,
+  runMcpTool,
+} from '../utils/command-helpers';
 import { parseIntOrThrow } from '../utils/parsers';
 
 export const uiCommand = new Command('ui').description(
@@ -17,15 +22,17 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🎨 Fetching dashboard...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🎨 Fetching dashboard...\n'));
 
       const content = await runMcpTool(
         client,
         'ui_show_dashboard',
         { port: parseIntOrThrow(options.port, '--port') },
-        { label: 'Dashboard', spinner: !options.silent }
+        { label: 'Dashboard', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -41,15 +48,17 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🔍 Fetching search interface...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔍 Fetching search interface...\n'));
 
       const content = await runMcpTool(
         client,
         'ui_show_search',
         { port: parseIntOrThrow(options.port, '--port') },
-        { label: 'Search UI', spinner: !options.silent }
+        { label: 'Search UI', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -66,9 +75,11 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n💚 Fetching health monitor...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n💚 Fetching health monitor...\n'));
 
       const content = await runMcpTool(
         client,
@@ -77,7 +88,7 @@ uiCommand
           port: parseIntOrThrow(options.port, '--port'),
           refresh_interval: parseIntOrThrow(options.refresh, '--refresh'),
         },
-        { label: 'Health monitor', spinner: !options.silent }
+        { label: 'Health monitor', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -93,15 +104,17 @@ uiCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🛠️  Fetching tools explorer...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🛠️  Fetching tools explorer...\n'));
 
       const content = await runMcpTool(
         client,
         'ui_show_tools',
         { port: parseIntOrThrow(options.port, '--port') },
-        { label: 'Tools explorer', spinner: !options.silent }
+        { label: 'Tools explorer', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -111,16 +124,19 @@ uiCommand
 // ui.show_embeddings - Embeddings queue monitor
 uiCommand
   .command('embeddings-monitor')
-  .description('Open embeddings queue monitor')
+  .description('Fetch the embeddings monitor resource (requires an MCP app host)')
   .option('--port <number>', 'Server port', '8084')
   .option('--refresh <seconds>', 'Refresh interval in seconds', '10')
   .option('-f, --format <type>', 'Output format (json|table|markdown)', 'table')
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n⚡ Fetching embeddings monitor...\n'));
+      if (commandProgress(options))
+        console.log(chalk.bold('\n⚡ Fetching embeddings monitor...\n'));
 
       const content = await runMcpTool(
         client,
@@ -129,7 +145,7 @@ uiCommand
           port: parseIntOrThrow(options.port, '--port'),
           refresh_interval: parseIntOrThrow(options.refresh, '--refresh'),
         },
-        { label: 'Embeddings monitor', spinner: !options.silent }
+        { label: 'Embeddings monitor', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

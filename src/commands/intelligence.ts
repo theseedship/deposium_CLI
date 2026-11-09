@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON, parseAPIResponse } from '../utils/formatter';
 import {
+  commandProgress,
   initializeCommand,
   withErrorHandling,
   resolveTenantSpace,
@@ -22,15 +23,17 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🧠 Analyzing query intent...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🧠 Analyzing query intent...\n'));
 
       const content = await runMcpTool(
         client,
         'smart_analyze',
         { query_text: query },
-        { label: 'Analysis', spinner: !options.silent }
+        { label: 'Analysis', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -48,10 +51,12 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (partial: string, options) => {
-      const { config, client } = await initializeCommand();
+      const { config, client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
       const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-      console.log(chalk.bold('\n💡 Generating suggestions...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n💡 Generating suggestions...\n'));
 
       const content = await runMcpTool(
         client,
@@ -61,7 +66,7 @@ intelligenceCommand
           tenant_id: tenantId,
           space_id: spaceId,
         },
-        { label: 'Suggestion', spinner: !options.silent }
+        { label: 'Suggestion', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -79,9 +84,11 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (results: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n📝 Summarizing results...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n📝 Summarizing results...\n'));
 
       // Parse results input. Stdin (`-`) is a planned feature that
       // never shipped — fail fast instead of silently mis-parsing.
@@ -103,7 +110,7 @@ intelligenceCommand
           max_tokens: parseIntOrThrow(options.maxTokens, '--max-tokens'),
           focus: options.focus,
         },
-        { label: 'Summarization', spinner: !options.silent }
+        { label: 'Summarization', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -121,9 +128,12 @@ intelligenceCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🤔 Checking for clarification needs...\n'));
+      if (commandProgress(options))
+        console.log(chalk.bold('\n🤔 Checking for clarification needs...\n'));
 
       const context = options.context
         ? safeParseJSON<Record<string, unknown>>(options.context, '--context')
@@ -137,7 +147,7 @@ intelligenceCommand
           search_results: parseIntOrThrow(options.searchResults, '--search-results'),
           context,
         },
-        { label: 'Elicitation', spinner: !options.silent }
+        { label: 'Elicitation', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

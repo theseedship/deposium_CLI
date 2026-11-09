@@ -42,12 +42,10 @@ deposium search "query" --top-k 50
 
 ```bash
 # Upload multiple files at once
-deposium upload-batch ./documents/*.pdf
+deposium upload-batch "./documents/*.pdf" --space-id "$SPACE_ID"
 
-# Instead of
-for file in ./documents/*.pdf; do
-  deposium upload "$file"  # Slower!
-done
+# For one file, use the same implemented command:
+deposium upload-batch "./documents/one.pdf" --space-id "$SPACE_ID"
 ```
 
 ### Use Silent Mode in Scripts
@@ -184,10 +182,11 @@ Notes:
 
 ```bash
 # Run before a long batch job to fail fast on misconfig
-deposium health --silent || exit 1
+deposium health --format json
+# Inspect the reported service state; HTTP success alone is not a healthy-stack verdict.
 deposium space list --silent --format json | jq 'length' || exit 1
 
-# Now safe to start the actual work
+# After checking the returned state and selected space, start the intended work
 deposium upload-batch "./big-corpus/*.pdf" --space-id "$SPACE_ID"
 ```
 
@@ -341,23 +340,17 @@ env:
 
 ## Interactive Mode Tips
 
-### Keyboard Shortcuts
+### Current keyboard behavior
 
-| Key       | Action                   |
-| --------- | ------------------------ |
-| `Tab`     | Autocomplete command     |
-| `Up/Down` | Navigate history         |
-| `Ctrl+C`  | Cancel current operation |
-| `Ctrl+D`  | Exit interactive mode    |
+Use Up/Down and Enter in selection menus. `deposium` opens the main menu in
+CLI 1.7.2+; choose **Exit** to return to the shell. In Chat, enter `/` then Enter
+for the local command menu. Live Tab/prefix completion is not implemented yet.
 
-### Quick Commands
-
-```
-> /help         # Show all commands
-> /config       # View current configuration
-> /clear        # Clear screen
-> /exit         # Exit interactive mode
-```
+Chat commands include `/help`, `/space`, `/spaces`, `/history`, `/clear`,
+`/sources`, `/source [number]`, `/verify` and `/exit`. `/clear` clears in-process
+history, not the terminal screen. `/config` is not a chat command; use
+`deposium config get` from the shell. Ctrl+C is a local interruption, not proof
+that a remote worker or tool stopped. No Ctrl+D exit guarantee is made here.
 
 ---
 

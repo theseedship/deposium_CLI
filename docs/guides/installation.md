@@ -33,6 +33,26 @@ Use a space ID from the list in the search command. See the [auth guide](../comm
 
 The repository does not currently publish GitHub release binaries or a `deposium/cli` Docker image. For a standalone executable, [build the Bun binary from source](#method-4-bun-binary-build-from-source).
 
+## Start the menu
+
+```bash
+deposium
+```
+
+CLI 1.7.2+ opens the menu when stdin and stdout are terminals, outside CI and
+`TERM=dumb`. `deposium i` / `deposium interactive` work on earlier versions.
+Bare noninteractive invocation prints help without requesting credentials.
+
+With mise, if a shim says “No version is set”, select an installed Node runtime:
+
+```bash
+mise use -g node@24
+```
+
+Then `deposium` no longer needs a `mise exec` prefix. This selects your global
+Node default; project-level mise configurations may override it. `deposium --version`
+checks the CLI version, while `node --version` checks the runtime.
+
 ## Updates
 
 **Requires CLI 1.6.0 or newer.** Check your installed version and the latest

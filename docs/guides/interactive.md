@@ -5,8 +5,13 @@
 The menu described here requires **CLI 1.6.1 or newer**. Compare `deposium --version`
 with `npm view @deposium/cli version`: a merged change may still await npm approval.
 
-After `deposium auth login`, run `deposium interactive` (or `deposium i`). Your
+After `deposium auth login`, run **`deposium`** in a terminal (CLI 1.7.2+).
+`deposium interactive` and `deposium i` remain aliases for the same menu. Your
 stored key is reused. No tenant or space UUID needs to be memorized for the menu.
+
+Without a terminal, bare `deposium` prints offline help and exits. `--help` and
+`--version` stay offline; unknown commands/options fail instead of opening a menu.
+The startup wordmark appears once at menu entry, with a compact narrow-screen fallback.
 
 ## Choose an operation
 
@@ -27,8 +32,8 @@ query. Ambiguous duplicate names include the space ID for identification.
 
 ## Advanced operations
 
-- **Compound reasoning** uses server reasoning and may use web tools. It is not
-  the space-scoped document chat; choose Chat for that purpose. Only successful
+- **General AI (Compound)** uses server reasoning and may use web tools. It does not
+  select a document space; choose Chat to summarize or question your files. Only successful
   exchanges enter its in-memory context. Before another question, you can view
   previous exchanges, start fresh, explicitly continue, or return without sending.
 - **Query intent** classifies the question and suggests parameters. It does not
@@ -58,6 +63,7 @@ in the running process; a new chat or a real space change starts fresh context.
 The current terminal interface remains English. CLI 1.7.0 adds chat activity,
 source inspection and grouped verification notes; see the [chat guide](../commands/chat.md#activity-and-source-inspection-cli-170).
 A unified FR/EN setting, Health preference display and live `/` completion remain
-separate roadmap milestones.
+separate roadmap milestones. See the [qualification and limitations](qualification.md)
+for what has actually been checked.
 
 For complete tool reference and raw input schemas, see the [Tools guide](../commands/tools.md).

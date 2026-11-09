@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import {
+  commandProgress,
   initializeCommand,
   withErrorHandling,
   resolveTenantSpace,
@@ -24,10 +25,12 @@ mermaidCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (options) => {
-      const { config, client } = await initializeCommand();
+      const { config, client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
       const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-      console.log(chalk.bold('\n🔍 Parsing Mermaid diagrams...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔍 Parsing Mermaid diagrams...\n'));
 
       const content = await runMcpTool(
         client,
@@ -37,7 +40,7 @@ mermaidCommand
           space_id: spaceId,
           doc_id: parseOptionalInt(options.docId, '--doc-id'),
         },
-        { label: 'Parse', spinner: !options.silent }
+        { label: 'Parse', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -55,9 +58,11 @@ mermaidCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (type: string, options) => {
-      const { client } = await initializeCommand();
+      const { client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
 
-      console.log(chalk.bold('\n🎨 Generating Mermaid diagram...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🎨 Generating Mermaid diagram...\n'));
 
       const data = safeParseJSON<Record<string, unknown>>(options.data, '--data');
 
@@ -69,7 +74,7 @@ mermaidCommand
           data,
           title: options.title,
         },
-        { label: 'Generation', spinner: !options.silent }
+        { label: 'Generation', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);
@@ -89,10 +94,12 @@ mermaidCommand
   .option('--silent', 'Suppress progress messages')
   .action(
     withErrorHandling(async (query: string, options) => {
-      const { config, client } = await initializeCommand();
+      const { config, client } = await initializeCommand({
+        machineReadable: options.format?.toLowerCase() === 'json',
+      });
       const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-      console.log(chalk.bold('\n🔎 Querying diagrams...\n'));
+      if (commandProgress(options)) console.log(chalk.bold('\n🔎 Querying diagrams...\n'));
 
       const content = await runMcpTool(
         client,
@@ -104,7 +111,7 @@ mermaidCommand
           diagram_type: options.diagramType,
           top_k: parseIntOrThrow(options.topK, '--top-k'),
         },
-        { label: 'Query', spinner: !options.silent }
+        { label: 'Query', spinner: commandProgress(options) }
       );
 
       formatOutput(content, options.format);

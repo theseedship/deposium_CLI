@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { formatOutput, safeParseJSON } from '../utils/formatter';
 import {
+  commandProgress,
   initializeCommand,
   withErrorHandling,
   resolveTenantSpace,
@@ -56,10 +57,13 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const { config, client } = await initializeCommand({
+            machineReadable: options.format?.toLowerCase() === 'json',
+          });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n🎯 Evaluating Corpus Quality...\n'));
+          if (commandProgress(options))
+            console.log(chalk.bold('\n🎯 Evaluating Corpus Quality...\n'));
 
           const content = await runMcpTool(
             client,
@@ -70,7 +74,7 @@ export const corpusCommand = new Command('corpus')
               // Schema expects `metrics: string[]`, not singular `metric`.
               metrics: [options.metric ?? 'relevance'],
             },
-            { label: 'Evaluation' }
+            { label: 'Evaluation', spinner: commandProgress(options) }
           );
 
           formatOutput(content, options.format);
@@ -96,10 +100,13 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const { config, client } = await initializeCommand({
+            machineReadable: options.format?.toLowerCase() === 'json',
+          });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
+          if (commandProgress(options))
+            console.log(chalk.bold('\n💡 Analyzing corpus improvements...\n'));
 
           const evaluationResults = options.evaluationResults
             ? safeParseJSON<unknown>(options.evaluationResults, '--evaluation-results')
@@ -114,7 +121,7 @@ export const corpusCommand = new Command('corpus')
               improvement_type: options.type,
               evaluation_results: evaluationResults,
             },
-            { label: 'Improvement analysis' }
+            { label: 'Improvement analysis', spinner: commandProgress(options) }
           );
 
           formatOutput(content, options.format);
@@ -135,10 +142,13 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const { config, client } = await initializeCommand({
+            machineReadable: options.format?.toLowerCase() === 'json',
+          });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n⚡ Fetching evaluation snapshot...\n'));
+          if (commandProgress(options))
+            console.log(chalk.bold('\n⚡ Fetching evaluation snapshot...\n'));
 
           const content = await runMcpTool(
             client,
@@ -148,7 +158,7 @@ export const corpusCommand = new Command('corpus')
               space_id: spaceId,
               interval: parseIntOrThrow(options.interval, '--interval'),
             },
-            { label: 'Evaluation snapshot' }
+            { label: 'Evaluation snapshot', spinner: commandProgress(options) }
           );
 
           formatOutput(content, options.format);
@@ -177,10 +187,13 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const { config, client } = await initializeCommand({
+            machineReadable: options.format?.toLowerCase() === 'json',
+          });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n🔍 Monitoring corpus quality...\n'));
+          if (commandProgress(options))
+            console.log(chalk.bold('\n🔍 Monitoring corpus quality...\n'));
 
           const content = await runMcpTool(
             client,
@@ -191,7 +204,7 @@ export const corpusCommand = new Command('corpus')
               action: options.action,
               alert_threshold: parseFloatOrThrow(options.threshold, '--threshold'),
             },
-            { label: 'Monitoring' }
+            { label: 'Monitoring', spinner: commandProgress(options) }
           );
 
           formatOutput(content, options.format);
@@ -207,10 +220,13 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const { config, client } = await initializeCommand({
+            machineReadable: options.format?.toLowerCase() === 'json',
+          });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n🆕 Checking corpus freshness...\n'));
+          if (commandProgress(options))
+            console.log(chalk.bold('\n🆕 Checking corpus freshness...\n'));
 
           const sources = options.sources
             ? safeParseJSON<string[]>(options.sources, '--sources')
@@ -224,7 +240,7 @@ export const corpusCommand = new Command('corpus')
               space_id: spaceId,
               external_sources: sources,
             },
-            { label: 'Freshness check' }
+            { label: 'Freshness check', spinner: commandProgress(options) }
           );
 
           formatOutput(content, options.format);
@@ -248,10 +264,13 @@ export const corpusCommand = new Command('corpus')
       .option('-f, --format <type>', 'Output format (json|table)', 'table')
       .action(
         withErrorHandling(async (options) => {
-          const { config, client } = await initializeCommand();
+          const { config, client } = await initializeCommand({
+            machineReadable: options.format?.toLowerCase() === 'json',
+          });
           const { tenantId, spaceId } = resolveTenantSpace(options, config);
 
-          console.log(chalk.bold('\n📉 Detecting concept drift...\n'));
+          if (commandProgress(options))
+            console.log(chalk.bold('\n📉 Detecting concept drift...\n'));
 
           // Compute `baseline_date` from `--time-window <days>`. Backend
           // reads ISO strings; use YYYY-MM-DD for stability across TZs.
@@ -269,7 +288,7 @@ export const corpusCommand = new Command('corpus')
               baseline_date: baselineDate,
               sensitivity: options.sensitivity,
             },
-            { label: 'Drift detection' }
+            { label: 'Drift detection', spinner: commandProgress(options) }
           );
 
           formatOutput(content, options.format);

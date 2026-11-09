@@ -1,6 +1,6 @@
 {
   "name": "@deposium/cli",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "CLI for Deposium MCP Server - Document search, graph queries, and AI workflows",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
     "install:local": "npm run build && npm link",
     "uninstall:local": "npm unlink -g @deposium/cli",
     "pack:local": "npm run build && npm pack",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.demo.json",
     "lint": "eslint 'src/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "format": "prettier --write .",
@@ -27,7 +27,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist node_modules",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "demo:ui": "tsx demo-ui.ts"
   },
   "keywords": [
     "deposium",

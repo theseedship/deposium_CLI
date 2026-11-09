@@ -120,7 +120,7 @@ The CLI accepts user-keys only:
   by humans and must use a user-key. The check fires for env-var,
   stored credential, and `auth login` paste paths.
 
-See [`auth` — Key types](../commands/auth.md#key-types--user-key-vs-service-key)
+See [`auth` — Key types](../commands/auth.md#key-types)
 for the full rejection message and remediation.
 
 ### Resolution Priority

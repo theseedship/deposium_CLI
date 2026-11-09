@@ -98,7 +98,7 @@ command:
 3. Interactive prompt.
 
 Service-keys (`dep_svc_*`) are rejected at startup — see the
-[auth command Key types](./auth.md#key-types--user-key-vs-service-key)
+[auth command Key types](./auth.md#key-types)
 section. Always use a user-key (`dep_live_*` or `dep_test_*`) provisioned
 via the Deposium web UI.
 

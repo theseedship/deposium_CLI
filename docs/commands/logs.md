@@ -66,5 +66,5 @@ deposium logs clear [options]
 
 **Options:**
 
-- `--confirm`: Skip confirmation prompt.
+- `--confirm`: Explicit confirmation required to clear server logs. Without it, the command fails before authentication or any backend call (CLI 1.7.2+).
 - `-f, --format <type>`: Output format.
