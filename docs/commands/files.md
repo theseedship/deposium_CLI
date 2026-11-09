@@ -1,4 +1,4 @@
-> Revision: 2026-04-25
+> Revision: 2026-11-09
 
 # Files Command
 
@@ -19,7 +19,7 @@ deposium files [subcommand] [options]
 List documents accessible to your API key.
 
 ```bash
-deposium files list                                    # all documents
+deposium files list                                    # your own uploads
 deposium files list --space <space-id>                 # filter by space
 deposium files list --limit 20 --offset 40 --silent    # paginated
 deposium files ls --format json --silent | jq '.[].id' # pipe IDs
@@ -111,6 +111,17 @@ deposium files delete 2459 --yes
   via `update_spaces` MCP tools (admin-only).
 - `files upload <path>` — use the existing [`upload-batch`](upload-batch.md)
   command, which handles glob patterns, mime detection, and progress UI.
+
+## JSON output and scope
+
+`list`, `show`, and `check` emit one JSON value when `--format json` is selected
+(case-insensitive), without progress text or an extra `--silent` flag. An empty
+list is `[]`. Authentication failures go to stderr and exit with code 1 without
+prompting for credentials; run `deposium auth login` separately.
+
+Without `--space`, `files list` lists your own uploads. To inspect documents
+available through a space, including references to existing files, pass its UUID
+explicitly. This is not a combined inventory of all accessible spaces.
 
 ## See also
 

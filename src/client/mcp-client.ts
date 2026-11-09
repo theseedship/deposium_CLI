@@ -380,9 +380,9 @@ export class MCPClient {
   /**
    * List documents/files. Calls `GET /api/v1/documents/`.
    *
-   * Without a `spaceId` filter the server returns the user's full document
-   * catalog (across all spaces). With a `spaceId` filter the response also
-   * includes a pagination envelope.
+   * Without a `spaceId` filter the server returns the caller's own uploads,
+   * not a union of every accessible space. An explicit `spaceId` lists that
+   * authorized space, including referenced documents, with pagination.
    */
   async listDocuments(
     options: { spaceId?: string; limit?: number; offset?: number } = {}
