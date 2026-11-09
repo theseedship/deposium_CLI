@@ -41,6 +41,18 @@ test('shows passages, names, pages and physical IDs without dumping duplicate bo
   expect(out()).toContain('Choose Chat');
   expect(out()).not.toMatch(/DUPLICATE BODY|INTERNAL TRACE|MCP resource/);
 });
+test('retains numeric physical file IDs for passages sharing the same name', () => {
+  const out = capture();
+  formatOutput({
+    documents: [],
+    blocks: [
+      { file_name: 'Same.pdf', text: 'First', file_id: 42 },
+      { file_name: 'Same.pdf', text: 'Second', file_id: 43 },
+    ],
+  });
+  expect(out()).toContain('File ID: 42');
+  expect(out()).toContain('File ID: 43');
+});
 test('distinguishes no match from a completed but opaque tool call', () => {
   const out = capture();
   formatOutput({ documents: [], blocks: [] });
@@ -79,6 +91,10 @@ test('strips terminal control sequences from returned passages', () => {
   });
   expect(out()).toContain('BeforeAfter');
   expect(out()).not.toContain('clipboard');
+  const raw = vi.mocked(console.log).mock.calls.flat().join('\n');
+  expect(raw).not.toContain('\u001b]52;');
+  expect(raw).not.toContain('clipboard');
+  expect(raw).toContain('BeforeAfter');
 });
 for (const kind of ['search', 'generic']) {
   test(`large Unicode ${kind} results render in a bounded child process instead of freezing the terminal`, () => {

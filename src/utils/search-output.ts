@@ -30,8 +30,8 @@ export function printSearchResult(value: unknown): boolean {
     console.log(chalk.cyan(`\n[${index + 1}] ${excerpt(name, 160)}${pageLabel}`));
     const content = text(raw.text) || text(raw.snippet) || text(raw.content);
     console.log(content ? excerpt(content, 600) : tr('No passage text supplied.'));
-    if (typeof raw.file_id === 'string')
-      console.log(tr('File ID: {0}', excerpt(text(raw.file_id), 120)));
+    if (typeof raw.file_id === 'string' || typeof raw.file_id === 'number')
+      console.log(tr('File ID: {0}', excerpt(text(String(raw.file_id)), 120)));
   });
   if (rows.length > 20)
     console.log(
