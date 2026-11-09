@@ -145,6 +145,8 @@ type OnAmbiguousMode = (typeof VALID_ON_AMBIGUOUS)[number];
 program
   .command('chat')
   .description('Start AI chat mode (continuous conversation)')
+  .option('-s, --space <id>', 'Chat in one accessible space')
+  .option('--all-spaces', 'Explicitly chat across all accessible spaces')
   .option('--verbose', 'Show all verification notes after the answer')
   .option('--direct', 'Bypass Edge Runtime, connect directly to MCP server (dev only)')
   .option(
@@ -152,24 +154,43 @@ program
     `HITL policy when the server pauses for input — one of: ${VALID_ON_AMBIGUOUS.join('|')}. ` +
       `Defaults to 'prompt' in a TTY, 'fail' otherwise.`
   )
-  .action(async (options: { direct?: boolean; onAmbiguous?: string; verbose?: boolean }) => {
-    let onAmbiguous: OnAmbiguousMode | undefined;
-    if (options.onAmbiguous) {
-      if (!VALID_ON_AMBIGUOUS.includes(options.onAmbiguous as OnAmbiguousMode)) {
-        console.error(
-          chalk.red(
-            `❌ Invalid --on-ambiguous value: '${options.onAmbiguous}'. ` +
-              `Must be one of: ${VALID_ON_AMBIGUOUS.join(', ')}`
-          )
-        );
-        process.exit(2);
+  .action(
+    async (options: {
+      direct?: boolean;
+      onAmbiguous?: string;
+      verbose?: boolean;
+      space?: string;
+      allSpaces?: boolean;
+    }) => {
+      let onAmbiguous: OnAmbiguousMode | undefined;
+      if (options.onAmbiguous) {
+        if (!VALID_ON_AMBIGUOUS.includes(options.onAmbiguous as OnAmbiguousMode)) {
+          console.error(
+            chalk.red(
+              `❌ Invalid --on-ambiguous value: '${options.onAmbiguous}'. ` +
+                `Must be one of: ${VALID_ON_AMBIGUOUS.join(', ')}`
+            )
+          );
+          process.exit(2);
+        }
+        onAmbiguous = options.onAmbiguous as OnAmbiguousMode;
       }
-      onAmbiguous = options.onAmbiguous as OnAmbiguousMode;
-    }
 
-    const { startChat } = await import('./chat');
-    await startChat({ direct: options.direct, onAmbiguous, verbose: options.verbose });
-  });
+      const { startChat } = await import('./chat');
+      try {
+        await startChat({
+          direct: options.direct,
+          onAmbiguous,
+          verbose: options.verbose,
+          space: options.space,
+          allSpaces: options.allSpaces,
+        });
+      } catch (error: unknown) {
+        console.error(chalk.red('\n❌ Error:'), getErrorMessage(error));
+        process.exitCode = 1;
+      }
+    }
+  );
 
 // Parse arguments
 program.parse(process.argv);
