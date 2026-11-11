@@ -26,7 +26,7 @@ Thank you for your interest in contributing to Deposium CLI! This document provi
 
 ### Prerequisites
 
-- **Node.js**: `^22.13.0` or `>=24`; the Node 22 floor follows Inquirer 13, Node 23 is not supported, and Node 24 is recommended for development
+- **Node.js**: `^22.22.2 || ^24.15.0 || >=26.0.0`; the minimum versions follow Inquirer 14 and its prompt core. Node 23 and 25 are unsupported; Node 24.15.0 or newer on the 24.x line is recommended for development
 - **npm**: The version bundled with a supported Node.js release for development; see the release guide for staged publishing requirements
 - **Git**: For version control
 
@@ -284,7 +284,7 @@ Every PR triggers automated checks on GitHub Actions:
 - ✅ Prettier check
 - ✅ TypeScript type checking
 - ✅ Tests execution
-- 🔄 Quality and build checks run on Node 22.13.0 and Node 24.x; security and publishing use Node 24.x
+- 🔄 Quality and build checks run on Node 22.22.2 and Node 24.x; security and publishing use Node 24.x
 
 ### Build Job
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.2 — Dependency refresh and reliable local checks
+
+### Changed
+
+- Update runtime dependencies and development tools, including Inquirer 14/core 12, Commander 15, Marked 18/marked-terminal 7.3.1, ESLint 10 and Vitest/coverage 5. Keep TypeScript at 6.0.3 for the supported typescript-eslint cohort and use NodeNext module resolution.
+- Keep marked-terminal on 7.3.1: version 8 adds an image-rendering dependency chain affected by the unpatched Zod memory-exhaustion advisory GHSA-mrhx-c7xc-m3w5.
+- Require Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` and update the quality CI matrix to Node 22.22.2 and 24.x. Retain Node 22 type definitions to check against the minimum supported API.
+
+### Fixed
+
+- Compile the CLI once per process-test suite instead of rebuilding it for each subprocess invocation.
+- Keep temporal-assertion fixtures in LF format for deterministic cross-platform hashes.
+
 ## 1.9.1 — Responsive search results
 
 - Render search passages with document names, page references and excerpts instead of serializing the complete retrieval/graph payload into a table. Explain empty results and the difference between Search and Chat.

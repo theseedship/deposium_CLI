@@ -455,7 +455,13 @@ export class MCPClient {
 
     let response: Response;
     try {
-      response = await fetch(url, { method: 'POST', headers, body, duplex: 'half' });
+      const request: RequestInit & { duplex: 'half' } = {
+        method: 'POST',
+        headers,
+        body,
+        duplex: 'half',
+      };
+      response = await fetch(url, request);
     } catch (error) {
       if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
         throw connectionRefusedError(this.baseUrl);
@@ -736,7 +742,8 @@ export class MCPClient {
         // to throwForKnownAxiosError which uses a generic "Not found".
         if (error.response?.status === 404) {
           throw new Error(
-            `Report not found for run_id=${runId}. The run may not exist or may not be complete yet.`
+            `Report not found for run_id=${runId}. The run may not exist or may not be complete yet.`,
+            { cause: error }
           );
         }
       }

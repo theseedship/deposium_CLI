@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { coverageConfigDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -6,6 +6,9 @@ export default defineConfig({
     // files running in parallel + dynamic `await import('../chat')` inside
     // tests, the import phase can spike under load. 15s leaves headroom for
     // CI runners without masking real hangs.
+    coverage: {
+      exclude: [...coverageConfigDefaults.exclude, 'src/__tests__/**'],
+    },
     testTimeout: 15000,
     hookTimeout: 15000,
   },

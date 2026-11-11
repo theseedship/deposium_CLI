@@ -65,7 +65,7 @@ Detailed documentation is available in the `docs/` directory:
 
 ## 📦 Get started
 
-Requires Node.js `^22.13.0 || >=24` (Node 23 is unsupported).
+Requires Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` (Node 23 and 25 are unsupported).
 
 ```bash
 npm install -g @deposium/cli

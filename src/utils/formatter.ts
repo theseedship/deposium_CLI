@@ -189,7 +189,7 @@ function formatMarkdown(data: unknown): void {
 
 function formatCompoundAI(data: TextBlock[]): void {
   // Parse the text content to extract JSON
-  let result: CompoundAIResult = { success: false };
+  let result: CompoundAIResult;
 
   try {
     // Combine all text blocks

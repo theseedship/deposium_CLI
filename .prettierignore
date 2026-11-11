@@ -20,3 +20,6 @@ CHANGELOG.md
 
 # Vendored MCPs fixtures, pinned byte-for-byte by SHA-256 in the test suite: never reformat
 src/__tests__/fixtures/temporal-assertion/
+
+# Local agent permissions are machine-specific and untracked
+.claude/settings.local.json

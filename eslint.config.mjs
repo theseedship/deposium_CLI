@@ -10,7 +10,7 @@ export default [
   // TypeScript files configuration (non-test)
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.spec.ts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts', 'src/__tests__/**'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -84,7 +84,7 @@ export default [
 
   // Test files configuration (use separate tsconfig)
   {
-    files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    files: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/__tests__/**/*.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
