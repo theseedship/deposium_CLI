@@ -4,6 +4,10 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { afterAll, beforeAll, expect } from 'vitest';
 
+/**
+ * Register compilation and cleanup hooks while the suite loads.
+ * Use the returned module-path function only after beforeAll has completed.
+ */
 export function useCompiledCli() {
   const require = createRequire(path.resolve('package.json'));
   const buildTimeout = 30000;
