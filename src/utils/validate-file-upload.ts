@@ -67,7 +67,8 @@ export async function uploadFileForValidate(
     if (hasErrorCauseWithCode(error, 'ECONNREFUSED')) {
       throw new Error(
         `Cannot connect to Deposium API at ${baseUrl}\n` +
-          'Make sure the Deposium server is running'
+          'Make sure the Deposium server is running',
+        { cause: error }
       );
     }
     throw error;

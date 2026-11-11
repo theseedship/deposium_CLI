@@ -4,7 +4,7 @@
 
 ## 📦 Installation Options
 
-The npm package requires Node.js `^22.13.0 || >=24`; Node 23 is unsupported.
+The npm package requires Node.js `^22.22.2 || ^24.15.0 || >=26.0.0`; Node 23 and 25 are unsupported. The minimum supported releases are Node 22.22.2 and Node 24.15.0 on their respective release lines.
 
 ### Option 1: npm (Recommended for end-users)
 

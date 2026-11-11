@@ -232,7 +232,8 @@ benchmarkCommand
           } catch (readError) {
             throw new Error(
               `--queries: not valid inline JSON and could not be read as a file path ` +
-                `(${filePath}): ${readError instanceof Error ? readError.message : String(readError)}`
+                `(${filePath}): ${readError instanceof Error ? readError.message : String(readError)}`,
+              { cause: readError }
             );
           }
           try {
@@ -245,6 +246,7 @@ benchmarkCommand
             // position info if present; otherwise stay generic.
             const raw = parseError instanceof Error ? parseError.message : '';
             const position = raw.match(/at position \d+|line \d+ column \d+/i)?.[0];
+            // eslint-disable-next-line preserve-caught-error -- The original cause includes private file content.
             throw new Error(
               `--queries: file ${filePath} does not contain valid JSON` +
                 (position ? ` (${position})` : '')

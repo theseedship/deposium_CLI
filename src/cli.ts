@@ -136,7 +136,7 @@ program.addCommand(temporalAssertionCommand);
 
 // Interactive mode
 async function openInteractiveMenu(): Promise<void> {
-  const { startInteractive } = await import('./interactive');
+  const { startInteractive } = await import('./interactive.js');
   await startInteractive();
 }
 
@@ -184,7 +184,7 @@ program
         onAmbiguous = options.onAmbiguous as OnAmbiguousMode;
       }
 
-      const { startChat } = await import('./chat');
+      const { startChat } = await import('./chat.js');
       try {
         await startChat({
           direct: options.direct,

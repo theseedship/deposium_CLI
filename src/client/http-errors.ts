@@ -24,7 +24,7 @@ export function connectionRefusedError(baseUrl: string): Error {
   );
 }
 
-type ForbiddenHeaders = AxiosHeaders | Headers | Record<string, unknown>;
+type ForbiddenHeaders = InstanceType<typeof AxiosHeaders> | Headers | Record<string, unknown>;
 
 function isCloudflareChallenge(headers: ForbiddenHeaders | undefined): boolean {
   const mitigation =

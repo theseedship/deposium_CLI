@@ -1,3 +1,9 @@
+# Keep text files consistent across Linux, macOS and Windows checkouts.
+* text=auto eol=lf
+
 # Force LF line endings for shell scripts and hooks
 *.sh text eol=lf
 .husky/* text eol=lf
+
+# Fixture checksums are computed from the exact committed bytes.
+src/__tests__/fixtures/temporal-assertion/** text eol=lf

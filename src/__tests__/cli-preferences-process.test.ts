@@ -3,6 +3,10 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
+import { useCompiledCli } from './helpers/compiled-cli';
+
+const compiledModule = useCompiledCli();
+
 let home: string;
 beforeEach(() => {
   home = mkdtempSync(path.join(tmpdir(), 'deposium-preferences-'));
@@ -12,7 +16,7 @@ function cli(args: string[], overrides: NodeJS.ProcessEnv = {}) {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith('DEPOSIUM_'))
   );
-  return spawnSync(process.execPath, ['--import', 'tsx', 'src/cli.ts', '--no-update', ...args], {
+  const result = spawnSync(process.execPath, [compiledModule('cli.js'), '--no-update', ...args], {
     encoding: 'utf8',
     timeout: 10000,
     env: {
@@ -25,6 +29,8 @@ function cli(args: string[], overrides: NodeJS.ProcessEnv = {}) {
       ...overrides,
     },
   });
+  expect(result.error, result.stderr).toBeUndefined();
+  return result;
 }
 function json(args: string[], env?: NodeJS.ProcessEnv) {
   const result = cli(args, env);

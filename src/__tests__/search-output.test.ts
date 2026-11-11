@@ -3,6 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { stripVTControlCharacters } from 'node:util';
 import { formatOutput } from '../utils/formatter';
 import { initializeLanguage } from '../utils/i18n';
+import { useCompiledCli } from './helpers/compiled-cli';
+
+const compiledModule = useCompiledCli();
 
 const result = {
   documents: [{ file_name: 'Guide.pdf', content: 'DUPLICATE BODY' }],
@@ -98,8 +101,8 @@ test('strips terminal control sequences from returned passages', () => {
 });
 for (const kind of ['search', 'generic']) {
   test(`large Unicode ${kind} results render in a bounded child process instead of freezing the terminal`, () => {
-    const code = `const {formatOutput}=require('./src/utils/formatter.ts'); const body='été '.repeat(30000); formatOutput(${kind === 'search' ? "{documents:[{content:body}],blocks:[{text:body,file_name:'Synthetic.pdf',page:1}]}" : '{details:{body},items:25}'});`;
-    const child = spawnSync(process.execPath, ['--import', 'tsx', '-e', code], {
+    const code = `const {formatOutput}=require(${JSON.stringify(compiledModule('utils/formatter.js'))}); const body='été '.repeat(30000); formatOutput(${kind === 'search' ? "{documents:[{content:body}],blocks:[{text:body,file_name:'Synthetic.pdf',page:1}]}" : '{details:{body},items:25}'});`;
+    const child = spawnSync(process.execPath, ['-e', code], {
       timeout: 4000,
       maxBuffer: 200000,
     });
